@@ -1,4 +1,4 @@
-# STM32.app - Application framework1
+# STM32.app - Application framework2
 
 An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables writing modular networking applications for STM32 microcontrollers.. 
 
