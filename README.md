@@ -19,36 +19,36 @@ An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables w
 * **FreeRTOS** - a realtime OS for cooperative multitasking (LGPL)
 
 
-## Primitives
+# Primitives
 
-  ### CANopen node
-  CANopen is a higher-level layer built on top of CAN bus which itself is decentralized. Each node in the network is defined by its Object Dictionary, which is an observable registry that configures behavior of a node. 
-  * **Can work without network**: Even though CANopen is made for networking, since it is fully decentralized, devices are operational without the network 
-  * **Composable**: ODs are meant to provide scaffolding for typical devices (elevators, hospital beds, vehicles, etc.) that can be customized and layered together for complex and reusable behaviors. Often new nodes can be configured by disabling features, instead of adding them, allowing a single codebase powering devices with different features.
-  * **Uniquely-addressable** There can be up to 255 networked devices and each configuration property of each device has its own address in the network. There is a builtin mechanism to acquire unique node address and negotiate bitrate.
-  * **Networked**: Properties in the registry may be designated as chanagable remotely, so devices can reconfigure each other. The same mechanism is used to make devices communicate with each other - instead of sending abstract events, they send requests to modify each other's state.
-  * **Robust**: There're multiple layers of prioritization, safety, error correction, failure recovery, monitoring and network operation built into the system. CAN is used in safety-critical applications and comes from automotive industry.
-  * **Synchronizable**: Provides mechanisms to sync timestamps and emulate synchronous execution of commands (i.e. reporting metrics at the same exact moment) in an inherently blocking network.
-  
-
-  ### Actor
-  **Actors** are individual actors representing a single standalone feature (devices, subsystems, peripherals, etc). Each actor corresponds to entry in CANopen Object Dictionary. They define callbacks and event handlers, and receieve messages from message bus. Some actors may compose together and link to others (e.g. EEPROM to SPI transport) to be able to send signals to each other directly, but generally they communicate by publishing events to the message bus. 
-
-  * **Observable properties**: All configuration options of an actor, together with its changable runtime properties are listed in an Object Dictionary. Devices on the CAN bus are able manipulate each other's state, and the actors will react to those state changes. Observability and reporting of state changes to other nodes is fully configurable and is built in to the CANopen system.
-  * **Loose coupling**: Since STM32.app is written in C, there is no subclassing of the actors. A generic container struct with unified API interface is used when actors need to communicate to each other. They send each other signals and events, instead of calling methods reducing logical coupling. Actors may subscribe to events broadcasted over the bus, or recieve events directed point-to-point. An actor that consumed and handled event, can later report to producer actor when the work is complete.
-  * **Prioritized execution**: Actors can have parts of their logic run and schedule with different priorities with no extra overhead of spawning tasks and queues.
+## CANopen node
+CANopen is a higher-level layer built on top of CAN bus which itself is decentralized. Each node in the network is defined by its Object Dictionary, which is an observable registry that configures behavior of a node. 
+* **Can work without network**: Even though CANopen is made for networking, since it is fully decentralized, devices are operational without the network 
+* **Composable**: ODs are meant to provide scaffolding for typical devices (elevators, hospital beds, vehicles, etc.) that can be customized and layered together for complex and reusable behaviors. Often new nodes can be configured by disabling features, instead of adding them, allowing a single codebase powering devices with different features.
+* **Uniquely-addressable** There can be up to 255 networked devices and each configuration property of each device has its own address in the network. There is a builtin mechanism to acquire unique node address and negotiate bitrate.
+* **Networked**: Properties in the registry may be designated as chanagable remotely, so devices can reconfigure each other. The same mechanism is used to make devices communicate with each other - instead of sending abstract events, they send requests to modify each other's state.
+* **Robust**: There're multiple layers of prioritization, safety, error correction, failure recovery, monitoring and network operation built into the system. CAN is used in safety-critical applications and comes from automotive industry.
+* **Synchronizable**: Provides mechanisms to sync timestamps and emulate synchronous execution of commands (i.e. reporting metrics at the same exact moment) in an inherently blocking network.
 
 
-  ### Thread, Tick, Task
-  Threads is an abstraction over prioritized task, a pubsub queue and event dispatcher. Multiple actors share the same task provided by the thread, reducing memory consumption.
+## Actor
+**Actors** are individual actors representing a single standalone feature (devices, subsystems, peripherals, etc). Each actor corresponds to entry in CANopen Object Dictionary. They define callbacks and event handlers, and receieve messages from message bus. Some actors may compose together and link to others (e.g. EEPROM to SPI transport) to be able to send signals to each other directly, but generally they communicate by publishing events to the message bus. 
 
-  * **Cooperation**: Threads have different priorities to make more important things run before less important
-  * **Event bus**: Threads provide a pub/sub queue for incoming events, that can be dispatched to subscribed actors. Using unified queue is characterized by predictable and managable memory footprint, and ability to mix events of different types coming from different sources. Events can be broadcasted, served to first taker, or sent directly. Actors may ask the thread to keep the event in a backlog for later processing.
-  * **Alarm management**: Threads allow devices to schedule periodical or delayed execution with precision of 1ms at almost no overhead. Higher precision can be achieved by using the timer modules.
+* **Observable properties**: All configuration options of an actor, together with its changable runtime properties are listed in an Object Dictionary. Devices on the CAN bus are able manipulate each other's state, and the actors will react to those state changes. Observability and reporting of state changes to other nodes is fully configurable and is built in to the CANopen system.
+* **Loose coupling**: Since STM32.app is written in C, there is no subclassing of the actors. A generic container struct with unified API interface is used when actors need to communicate to each other. They send each other signals and events, instead of calling methods reducing logical coupling. Actors may subscribe to events broadcasted over the bus, or recieve events directed point-to-point. An actor that consumed and handled event, can later report to producer actor when the work is complete.
+* **Prioritized execution**: Actors can have parts of their logic run and schedule with different priorities with no extra overhead of spawning tasks and queues.
 
-  Actors can declare **ticks**, where each tick is a function corresponding to a specific thread. Ticks handle events, schedule periodical or delayed execution, or do work with a specific priority. Events are typed messages with data attached to it. Actors receive broadcasted events via pub-sub, handle them in one of the ticks, and then report back to the producer of event. 
 
-  Many of actors define **tasks**, that can run in response to events. A tasks is a state-machine that encapsulates asynchronous logic that spans through multiple steps, threads, events and require back and forth hand-off between different parties. They are used to separate business logic from IO and schedulling.
+## Thread, Tick, Task
+Threads is an abstraction over prioritized task, a pubsub queue and event dispatcher. Multiple actors share the same task provided by the thread, reducing memory consumption.
+
+* **Cooperation**: Threads have different priorities to make more important things run before less important
+* **Event bus**: Threads provide a pub/sub queue for incoming events, that can be dispatched to subscribed actors. Using unified queue is characterized by predictable and managable memory footprint, and ability to mix events of different types coming from different sources. Events can be broadcasted, served to first taker, or sent directly. Actors may ask the thread to keep the event in a backlog for later processing.
+* **Alarm management**: Threads allow devices to schedule periodical or delayed execution with precision of 1ms at almost no overhead. Higher precision can be achieved by using the timer modules.
+
+Actors can declare **ticks**, where each tick is a function corresponding to a specific thread. Ticks handle events, schedule periodical or delayed execution, or do work with a specific priority. Events are typed messages with data attached to it. Actors receive broadcasted events via pub-sub, handle them in one of the ticks, and then report back to the producer of event. 
+
+Many of actors define **tasks**, that can run in response to events. A tasks is a state-machine that encapsulates asynchronous logic that spans through multiple steps, threads, events and require back and forth hand-off between different parties. They are used to separate business logic from IO and schedulling.
 
 # Cooperation
 STM32.app implements cheap asynchrony, prioritization of work, event-driven communication with queues and cooperation through easy to use primitives.
