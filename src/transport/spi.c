@@ -1,5 +1,8 @@
 #include "spi.h"
 
+
+volatile uint8_t dummy_byte = 0;
+
 /* SPI must be within range */
 static app_signal_t spi_validate(transport_spi_properties_t *properties) {
     return 0;
@@ -77,8 +80,13 @@ static app_signal_t spi_start(transport_spi_t *spi) {
     log_printf("    > SPI%i MISO", spi->actor->seq + 1);
     gpio_configure_input(spi->properties->miso_port, spi->properties->miso_pin);
 
+    
     /* Reset SPI, SPI_CR1 register cleared, SPI is disabled */
     spi_reset(spi->address);
+
+    if (TRANSPORT_SPI_MODE_FULL_DUPLEX == spi->properties->mode) {
+        spi_set_full_duplex_mode(spi->address);
+    }
 
     /* Set up SPI in Master mode with:
      * Clock baud rate: 1/64 of peripheral clock frequency
@@ -146,20 +154,21 @@ static app_signal_t spi_schedule_rx_timeout(transport_spi_t *spi) {
 }
 
 /* Check if DMAs circular buffer position is still the same */
-static app_signal_t spi_read_is_idle(transport_spi_t *spi) {
+static app_signal_t spi_dma_read_is_idle(transport_spi_t *spi) {
     return actor_dma_get_buffer_position(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->properties->rx_buffer_size) ==
            spi->rx_buffer_cursor;
 }
-static app_signal_t spi_on_write(transport_spi_t *spi, app_event_t *event) {
+
+// Initiate dma write. If size is 0 for the sent message, it will send zeroes indefinitely
+static app_signal_t spi_dma_write(transport_spi_t *spi, uint8_t *data, size_t size) {
     actor_register_dma(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream, spi->actor); 
     log_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_tx_start((uint32_t) & (SPI_DR(spi->address)), spi->properties->dma_tx_unit, spi->properties->dma_tx_stream,
-                        spi->properties->dma_tx_channel, event->data, event->size);
+                        spi->properties->dma_tx_channel, size == 0 ? dummy_byte : data, size == 0 ? 1 : size);
     spi_enable_tx_dma(spi->address);
-    return APP_SIGNAL_OK;
+    return 0;
 }
-
-static app_signal_t spi_on_read(transport_spi_t *spi, app_event_t *event) {
+static app_signal_t spi_dma_read(transport_spi_t *spi, size_t size) {
     if (spi->rx_buffer == NULL) {
         int error = spi_allocate_rx_buffer(spi);
         if (error != 0) {
@@ -169,30 +178,33 @@ static app_signal_t spi_on_read(transport_spi_t *spi, app_event_t *event) {
     actor_register_dma(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->actor); 
     log_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_rx_start((uint32_t) & (SPI_DR(spi->address)), spi->properties->dma_rx_unit, spi->properties->dma_rx_stream,
-                        spi->properties->dma_rx_channel, spi->rx_buffer, event->size == 0 ? spi->properties->rx_buffer_size : event->size);
+                        spi->properties->dma_rx_channel, spi->rx_buffer, size = 0 ? spi->properties->rx_buffer_size : size);
     spi_enable_rx_dma(spi->address);
     // schedule timeout to detect end of rx transmission
     spi_schedule_rx_timeout(spi);
-    return APP_SIGNAL_OK;
+    return 0;
 }
 
+
+
+
 // todo: Read DR register
-static app_signal_t spi_write_complete(transport_spi_t *spi) {
+static app_signal_t spi_dma_write_complete(transport_spi_t *spi) {
     log_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_tx_stop(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream,
                         spi->properties->dma_tx_channel);
-    actor_event_finalize(spi->actor, &spi->writing);
+    actor_event_finalize(spi->actor, &spi->processed_event);
     actor_tick_catchup(spi->actor, spi->actor->ticks->input);
 }
 
 /* Send the resulting read contents back via a queue */
-static app_signal_t spi_read_complete(transport_spi_t *spi) {
+static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
     log_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_tx_stop(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream,
                         spi->properties->dma_rx_channel);
     app_event_t *response = app_event_from_vpool(
-        &(app_event_t){.type = APP_EVENT_RESPONSE, .producer = spi->actor, .consumer = spi->reading.producer}, &spi->rx_pool);
-    actor_event_finalize(spi->actor, &spi->reading);
+        &(app_event_t){.type = APP_EVENT_RESPONSE, .producer = spi->actor, .consumer = spi->processed_event.producer}, &spi->rx_pool);
+    actor_event_finalize(spi->actor, &spi->processed_event);
     app_publish(spi->actor->app, &response);
     actor_tick_catchup(spi->actor, spi->actor->ticks->input);
 }
@@ -206,8 +218,8 @@ static app_signal_t spi_signal(transport_spi_t *spi, actor_t *actor, app_signal_
     case APP_SIGNAL_TIMEOUT:
         // if it's not idle still, then we expect for idle interrupt
         if ((uint32_t)source == ACTOR_REQUESTING) {
-            if (spi_read_is_idle(spi)) {
-                spi_read_complete(spi);
+            if (spi_dma_read_is_idle(spi)) {
+                spi_dma_read_complete(spi);
             }
         }
         break;
@@ -218,7 +230,7 @@ static app_signal_t spi_signal(transport_spi_t *spi, actor_t *actor, app_signal_
                               &spi->rx_buffer_cursor, &spi->rx_pool);
             spi_schedule_rx_timeout(spi);
         } else {
-            spi_write_complete(spi);
+            spi_dma_write_complete(spi);
         }
         break;
     default: break;
@@ -226,11 +238,57 @@ static app_signal_t spi_signal(transport_spi_t *spi, actor_t *actor, app_signal_
 
     return 0;
 }
+static app_signal_t spi_on_write(transport_spi_t *spi, app_event_t *event) {
+    spi_dma_read(spi, event->size);
+    return spi_dma_write(spi, event->data, event->size);
+}
 
+static app_signal_t spi_on_read(transport_spi_t *spi, app_event_t *event) {
+    spi_dma_read(spi, event->size);
+    return spi_dma_write(spi, dummy_byte, event->size);
+}
+
+static app_signal_t spi_on_transfer(transport_spi_t *spi, app_event_t *event) {
+    /*
+    uint32_t read_size = (uint32_t) event->argument;
+    uint32_t write_size = event->size;
+    if (read_size == 0 && write_size == 0) {
+        // Read of unknown length
+        // Sending: Dummy bytes circularily
+        // End condition: Read is idle (hopefully)
+        spi_dma_read(spi, 0);
+        return spi_dma_write(spi, dummy_byte, 1);
+    } else if (read_size > 0 && write_size == 0) {
+        // Read of known length
+        // Sending: Dummy bytes circularily
+        // End condition: Read is complete 
+        spi_dma_read(spi, read_size);
+        return spi_dma_write(spi, dummy_byte, 1);
+    } else if (read_size > 0 && write_size > 0) {
+        // Write and read of known lengths
+        // Sending: Message circularily (if write is longer that read there will be "garbage")
+        // End condition: Read is complete 
+        spi_dma_read(spi, read_size);
+        return spi_dma_write(spi, event->data, write_size);
+    } else if (read_size == 0 && write_size > 0) {
+        // Read of known length, doesnt fit in a buffer
+        // Sending: Message circularily (will yield some garbage)
+        // End condition: Read is done, limit has to be set dynamically
+        spi_dma_read(spi, 0);
+        return spi_dma_write(spi, event->data, write_size);
+    }*/
+
+    spi_dma_read(spi, (uint32_t) event->argument);
+    return spi_dma_write(spi, event->data, event->size);
+}
 static app_signal_t spi_tick_input(transport_spi_t *spi, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
     switch (event->type) {
-    case APP_EVENT_READ: return actor_event_handle_and_process(spi->actor, event, &spi->reading, spi_on_read);
-    case APP_EVENT_WRITE: return actor_event_handle_and_process(spi->actor, event, &spi->writing, spi_on_write);
+    case APP_EVENT_READ: 
+        return actor_event_handle_and_process(spi->actor, event, &spi->processed_event, spi_on_read);
+    case APP_EVENT_WRITE: 
+        return actor_event_handle_and_process(spi->actor, event, &spi->processed_event, spi_on_write);
+    case APP_EVENT_TRANSFER: 
+        return actor_event_handle_and_process(spi->actor, event, &spi->processed_event, spi_on_transfer);
     default: return 0;
     }
 }

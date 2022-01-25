@@ -158,7 +158,7 @@ void actor_dma_ingest(uint8_t unit, uint8_t index, uint8_t *buffer, uint16_t buf
 }
 
 void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size) {
-    log_printf("DMA%u(%u/%u)\tRX started\t(%u bytes)\n", unit + 1, stream, channel, size);
+    log_printf("RX started\tDMA%u(%u/%u)\t(%u bytes)\n", unit + 1, stream, channel, size);
 	uint32_t dma_address = dma_get_address(unit);
 
     rcc_periph_clock_enable(dma_get_clock_address(unit));
@@ -193,7 +193,7 @@ void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
 }
 
 void actor_dma_rx_stop(uint8_t unit, uint8_t stream, uint8_t channel) {
-    log_printf("DMA%u(%u/%u)\tTX stopped\n", unit + 1, stream, channel);
+    log_printf("TX stopped\nDMA%u(%u/%u)\t", unit + 1, stream, channel);
     uint32_t dma_address = dma_get_address(unit);
     dma_disable_stream(dma_address, stream);
     dma_stream_reset(dma_address, stream);
@@ -201,7 +201,7 @@ void actor_dma_rx_stop(uint8_t unit, uint8_t stream, uint8_t channel) {
 }
 
 void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size) {
-    log_printf("DMA%u(%u/%u)\tTX started\t(%u bytes)\n", unit + 1, stream, channel, size);
+    log_printf("TX started\tDMA%u(%u/%u)\t(%u bytes)\n", unit + 1, stream, channel, size);
     uint32_t dma_address = dma_get_address(unit);
     rcc_periph_clock_enable(dma_get_clock_address(unit));
     rcc_peripheral_enable_clock(dma_get_ahb(unit), dma_get_peripherial_clock(unit));
@@ -220,7 +220,7 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
 
     dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_8BIT);
     dma_set_memory_size(dma_address, stream, DMA_MSIZE_8BIT);
-    dma_set_priority(dma_address, stream, DMA_PL_VERY_HIGH);
+    dma_set_priority(dma_address, stream, DMA_PL_HIGH);
 
     dma_enable_direct_mode(dma_address, stream);
     dma_disable_fifo_error_interrupt(dma_address, stream);
@@ -237,7 +237,7 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
 }
 
 void actor_dma_tx_stop(uint8_t unit, uint8_t stream, uint8_t channel) {
-    log_printf("DMA%u(%u/%u)\tTX stopped\n", unit + 1, stream, channel);
+    log_printf("TX stopped\nDMA%u(%u/%u)\t", unit + 1, stream, channel);
     uint32_t dma_address = dma_get_address(unit);
     dma_disable_stream(dma_address, stream);
     dma_stream_reset(dma_address, stream);

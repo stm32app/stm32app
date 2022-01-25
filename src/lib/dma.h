@@ -25,6 +25,7 @@ void dma_channel_select(uint32_t dma, uint8_t stream, uint8_t channel) {} // noo
 void dma_set_read_from_peripheral(uint32_t dma, uint8_t stream);
 void dma_set_read_from_memory(uint32_t dma, uint8_t stream);
 #endif
+uint8_t dma_get_interrupt_for_stream(uint32_t dma, uint8_t index);
 
 
 /* Define generic constants for psize/msize*/

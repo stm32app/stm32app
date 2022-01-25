@@ -1,61 +1,37 @@
 #include "w25.h"
 #include "transport/spi.h"
 
-static app_task_signal_t step_write_spi(app_task_t *task, uint8_t *data, size_t size) {
-    app_publish(task->actor->app, &((app_event_t){
-                                       .type = APP_EVENT_WRITE,
-                                       .consumer = ((storage_w25_t *)task->actor->object)->spi->actor,
-                                       .producer = task->actor,
-                                       .data = data,
-                                       .size = size,
-                                   }));
-    return APP_TASK_STEP_WAIT;
-}
-static app_task_signal_t step_read_spi(app_task_t *task, size_t size) {
-    app_publish(task->actor->app, &((app_event_t){
-                                       .type = APP_EVENT_READ,
-                                       .consumer = ((storage_w25_t *)task->actor->object)->spi->actor,
-                                       .producer = task->actor,
-                                       .size = size,
-                                   }));
-    return APP_TASK_STEP_WAIT;
-}
 
-// Send command and receieve response
-static app_task_signal_t step_fetch(app_task_t *task, uint8_t *data, size_t size, size_t reply_size) {
-    switch (task->step_index) {
-    case 0: return step_write_spi(task, data, size);
-    case 1: return step_read_spi(task, reply_size);
-    default: return APP_TASK_STEP_COMPLETE;
-    }
-}
-// Send command without wait_until_readying for response
-static app_task_signal_t step_send(app_task_t *task, uint8_t *data, size_t size) {
-    switch (task->step_index) {
-    case 0: return step_write_spi(task, data, size);
-    default: return APP_TASK_STEP_COMPLETE;
-    }
+static app_task_signal_t step_spi_transfer(app_task_t *task, uint8_t *write_data, size_t write_size, size_t read_size) {
+    app_publish(task->actor->app, &((app_event_t){
+                                       .type = APP_EVENT_TRANSFER,
+                                       .consumer = ((storage_w25_t *)task->actor->object)->spi->actor,
+                                       .producer = task->actor,
+                                       .data = write_data,
+                                       .size = write_size,
+                                       .argument = (void *) read_size
+                                   }));
+    return APP_TASK_STEP_WAIT;
 }
 
 // Query SR signal in a loop to check if actor is ready to accept commands
 static app_task_signal_t step_wait_until_ready(app_task_t *task) {
     switch (task->step_index) {
-    case 0: return step_write_spi(task, (uint8_t[]){W25_CMD_READ_SR1}, 1);
-    case 1: return step_read_spi(task, 1);
+    case 0: return step_spi_transfer(task, (uint8_t[]){W25_CMD_READ_SR1}, 1, 1);
     default: return (*task->awaited_event.data & W25_SR1_BUSY) ? APP_TASK_STEP_RETRY : APP_TASK_STEP_COMPLETE;
     }
 }
 
 // Send command and receieve response
 static app_task_signal_t step_set_lock(app_task_t *task, bool_t state) {
-    return step_send(task, (uint8_t[]){state ? W25_CMD_UNLOCK : W25_CMD_LOCK}, 1);
+    return step_spi_transfer(task, (uint8_t[]){state ? W25_CMD_UNLOCK : W25_CMD_LOCK}, 1, 0);
 }
 
 static app_task_signal_t step_write_in_pages(app_task_t *task, uint32_t address, uint8_t *data, size_t size, size_t page_size) {
     uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, page_size);
     switch (task->step_index) {
     case 0: return step_set_lock(task, false);
-    case 2: return step_write_spi(task, data, bytes_on_page);
+    case 2: return step_spi_transfer(task, data, bytes_on_page, bytes_on_page);
     default:
         task->counter += bytes_on_page;
         if (task->counter == size) {
@@ -70,7 +46,7 @@ static app_task_signal_t step_write_in_pages(app_task_t *task, uint32_t address,
 static app_task_signal_t w25_task_introspection(app_task_t *task) {
     switch (task->phase_index) {
     case 0: return step_wait_until_ready(task);
-    case 1: return step_fetch(task, (uint8_t[]){W25_CMD_MANUF_ACTOR, 0xff, 0xff, 0x00}, 4, 2);
+    case 1: return step_spi_transfer(task, (uint8_t[]){W25_CMD_MANUF_ACTOR, 0xff, 0xff, 0x00}, 4, 2);
     default: return APP_TASK_COMPLETE;
     }
 }

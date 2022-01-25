@@ -17,6 +17,8 @@ enum app_event_type {
     APP_EVENT_IDLE = 0, // initial/empty state of an event
     APP_EVENT_READ,  // abstract peripherial read events for cases with known receiver
     APP_EVENT_WRITE,
+    APP_EVENT_TRANSFER,
+    
     APP_EVENT_ERASE,
     APP_EVENT_RESPONSE,
     APP_EVENT_LOCK,

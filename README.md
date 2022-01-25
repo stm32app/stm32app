@@ -56,53 +56,53 @@ STM32.app implements cheap asynchrony, prioritization of work, event-driven comm
 
 There is a small set of built-in threads with different priorities that actors in the framework share. This is unlike typical usage of FreeRTOS in which there are many tasks with overlapping priorities. Let's overview different approaches to cooperation, to see why STM32.app does what it does:
 
-## Multiple FreeRTOS tasks per actor
+## Other projects: Multiple FreeRTOS tasks per actor
 The most flexible way is to define more than one task per each actor, each having different priorities. One task to accept input, one task to produce output, maybe even some more tasks for for background jobs. 
 
 ### Pros
-* ✅ **Flexible**: An actor can use however many priorities it needs to
-* ✅ **Non-blocking**: If a task takes too much time, FreeRTOS will pause it to allow other tasks with the same priority do run
-* ✅ **Simple execution flow**: Tasks code *can* be easy to follow and write, since the execution never leaves task function. Tasks may use stack variables to store intermediate results, and places of asynchrony can be easy to see.
+* 🟢 **Flexible**: An actor can use however many priorities it needs to
+* 🟢 **Non-blocking**: If a task takes too much time, FreeRTOS will pause it to allow other tasks with the same priority to run
+* 🟢 **Simple execution flow**: Tasks code *can* be easy to follow and write, since the execution never leaves task function. Tasks may use stack variables to store intermediate results, and places of asynchrony can be easy to see.
 
 ### Cons
-* ❌ **Memory over-allocation**: Memory for each task stack and its queues has to be allocated upfront to handle bursts of activity without losing any messages or input. There is a lot of memory left unused, because it had to be allocated just in case or because it is needed once.
-* ❌ **Comunication complexity**: Tasks of the same actor need to pass each other notifications or queue messages to pass messages and work. If queues arent used or are full, the more important tasks can be blocked by less important tasks. Usage of queues for each task leads to over-allocation of memory. 
-* ❌ **No system bus or broadcasting**: Messages are only passed point to point, leading to increased amount of coupling. Tasks can only be blocked on a single queue, making it hard to handle messages of a different kind and origin. Events can't be broadcasted or published for the first taker.
-* ❌ **Can be harder to manage**: Spreading execution across multiple priorities can easily make program logic and its state machine complex and opaque
+* 🔴 **Memory over-allocation**: Memory for each task stack and its queues has to be allocated upfront to handle bursts of activity without losing any messages or input. There is a lot of memory left unused, because it had to be allocated just in case or because it is needed once.
+* 🔴 **Comunication complexity**: Tasks of the same actor need to pass each other notifications or queue messages to pass messages and work. If queues arent used or are full, the more important tasks can be blocked by less important tasks. Usage of queues for each task leads to over-allocation of memory. 
+* 🟡 **No system bus or broadcasting**: Messages are only passed point to point, leading to increased amount of coupling. Tasks can only be blocked on a single queue, making it hard to handle messages of a different kind and origin. Events can't be broadcasted or published for the first taker.
+* 🟡 **Can be harder to manage**: Spreading execution across multiple priorities can easily make program logic and its state machine complex and opaque
 
 
-## Single FreeRTOS task per actor
+## Other projects: Single FreeRTOS task per actor
 Very often developers choose to sacrifice ability of a single actor to do work with different priorities, and instead define a single task (and thus a single priority) for the whole actor. It's a tempting approach as it keeps things simple, but it often leads to inefficiency.
 
 ### Pros
-* ✅ **Non-blocking:** If a task takes too much time, FreeRTOS will pause it to allow other tasks with the same priority do run
-* ✅ **Low complexity**: A single task is easy to reason about
-* ✅ **Simple execution flow**: Tasks code can be easy to follow and write, since the execution never leaves task function. Tasks may use stack variables to store intermediate results, and points of asynchrony are easy to see.
+* 🟢 **Non-blocking:** If a task takes too much time, FreeRTOS will pause it to allow other tasks with the same priority do run
+* 🟢 **Low complexity**: A single task is easy to reason about
+* 🟢 **Simple execution flow**: Tasks code can be easy to follow and write, since the execution never leaves task function. Tasks may use stack variables to store intermediate results, and points of asynchrony are easy to see.
 
 ### Cons
-* ❌ **Single thread**: If an actor does some work, it is not responsive for (potentially more important) input, like a command to abort the task
-* ❌ **No priorities**: There is no way for an actor to identify that some of its functions are more important than others. If it starts taking on unimportant work, it has to finish it before starting on something else.
-* ❌ **Memory over-allocation**: Memory for each task stack and its queues has to be allocated upfront to handle bursts of activity without losing any messages or input. There is a lot of memory left unused, because it had to be allocated just in case or because it is needed once.
-* ❌ **No system bus or broadcasting**: Actors can only talk one-to-one, needing to know about each other's queues. Tasks can only be blocked on a single queue, making it hard to handle messages of different kind and origin. Events can't be broadcasted or published for the first taker.
+* 🔴 **Single thread**: If an actor does some work, it is not responsive for (potentially more important) input, like a command to abort the task
+* 🔴 **No priorities**: There is no way for an actor to identify that some of its functions are more important than others. If it starts taking on unimportant work, it has to finish it before starting on something else.
+* 🔴 **Memory over-allocation**: Memory for each task stack and its queues has to be allocated upfront to handle bursts of activity without losing any messages or input. There is a lot of memory left unused, because it had to be allocated just in case or because it is needed once.
+* 🟡 **No system bus or broadcasting**: Actors can only talk one-to-one, needing to know about each other's queues. Tasks can only be blocked on a single queue, making it hard to handle messages of different kind and origin. Events can't be broadcasted or published for the first taker.
 
 
-## System-wide shared threads
+## Our project: System-wide shared threads
 STM32.app provides a primitive called thread - a combination of task, a queue and a timer manager. STM32.app defines a small set of threads with different priorities. Actors in the system can declare their work to run in any of the builtin threads without overhead. This however prevents time-slicing to be effective, so the code has to be written in a way to avoid blocking as much as possible. 
 
 ### Pros
-* ✅ **Flexible**: Actors can do work with however many different priorities they need to
-* ✅ **Simple**: Actors dont need to deal with task lifecycle or their memory requirements
-* ✅ **Per-thread event bus**: Actors share a message queue provided by the thread. This dramatically reduces memory over-allocation and reduces potential for bottle necks. The bus holds events of various kinds allowing actors to receieve input from multiple places. 
-* ✅ **Broadcasting**: All actors that use thread have a chance to receive incoming messages, handle it exclusively or let others handle it too 
-* ✅ **Responsive**: Input is processed with highest priority, allowing actors to abort or change their workload. Actors can signal to input thread that they are currently unable to take on the new input, causing event to be off-load edthe event to a backlog bus. This ensures input bus is never blocked and events are never lost.
-* ✅ **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide.   
+* 🟢 **Flexible**: Actors can do work with however many different priorities they need to
+* 🟢 **Simple**: Actors dont need to deal with task lifecycle or their memory requirements
+* 🟢 **Per-thread event bus**: Actors share a message queue provided by the thread. This dramatically reduces memory over-allocation and reduces potential for bottle necks. The bus holds events of various kinds allowing actors to receieve input from multiple places. 
+* 🟢 **Broadcasting**: All actors that use thread have a chance to receive incoming messages, handle it exclusively or let others handle it too 
+* 🟢 **Responsive**: Input is processed with highest priority, allowing actors to abort or change their workload. Actors can signal to input thread that they are currently unable to accept incoming event, causing it to be off-loaded to a backlog bus for actor to catch up later. This ensures input bus is never blocked and events are never lost.
+* 🟢 **Customizable**: Some actors may choose to define their own threads in addition to the ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide.   
 
 ### Cons
-* ❌ **Limited time-slicing**: Since actors share tasks, workloads of the same priority block each other. FreeRTOS time slicing which usually grants ability for tasks of the same priority to run for a bit, even if some take too much time does not help in this case. Thus the code has to be written in a way that avoid blocking the CPU as much as possible.
-  * ✅ **Thoughtful built-ins**: All standard actors and drivers leverage non-blocking features like DMA to avoid blocking
-  * ✅ **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide. However just like with regular FreeRTOS, developer would have to manually decide how much memory should be allocated for thread's stack and optional queue.
-* ❌ **Harder to follow**: Spreading work across tasks with multiple priorities can make the execution flow opaque and complicated. 
-  * ✅ **Task primitive**: STM32.app offers a very lightweight approach to writing asynchronous code that contains all of its steps close to each other in a state machine. All the minutiae is done behind the scenes, and handling of input and switching priorities mid-way is separated from the logical flow of a task. This often makes the code even easier to read than even with more advanced languages async/await or couroutines.
+* 🟡 **Limited time-slicing**: Since actors share tasks, workloads of the same priority block each other. FreeRTOS time slicing which usually grants ability for tasks of the same priority to run for a bit, even if some take too much time does not help in this case. Thus the code has to be written in a way that avoids blocking the CPU as much as possible.
+  * 🟢 **Thoughtful built-ins**: All standard actors and drivers leverage non-blocking features like DMA to avoid blocking
+  * 🟢 **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide. However just like with regular FreeRTOS, developer would have to manually decide how much memory should be allocated for thread's stack and optional queue.
+* 🟡 **Harder to follow**: Spreading work across tasks with multiple priorities can make the execution flow opaque and complicated. 
+  * 🟢 **Task primitive**: STM32.app offers a very lightweight approach to writing asynchronous code that contains all of its steps close to each other in a state machine. All the minutiae is done behind the scenes, and handling of input and switching priorities mid-way is separated from the logical flow of a task. This often makes the code even easier to read than even with more advanced languages async/await or couroutines.
 
 # Networking
 Internal changes of state can be broardcasted to network as individual values or packed into PDO actors (8 bytes). CANopen provides ability to snapshot and send data from multiple actors simultaneously by simulating synchronous messaging. Actors can acquire addresses automatically, then can be monitored via heartbeats and orchestrated to boot up at once. Master nodes can log errors on the network and report issues.
