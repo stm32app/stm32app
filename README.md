@@ -20,6 +20,7 @@ An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables w
 
 
 # Primitives
+Proper abstractions is the key for the framework to be useful. Many applications have a lot in common, but generalizing the problems is a lot of work. The following is an overview of the main building blocks that STM32.app uses.
 
 ## CANopen node
 CANopen is a higher-level layer built on top of CAN bus which itself is decentralized. Each node in the network is defined by its Object Dictionary, which is an observable registry that configures behavior of a node. 
