@@ -14,7 +14,7 @@ An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables w
 
 ## Standing on shoulders of giants
 
-* [**CANopenNode**](https://github.com/CANopenNode/CANopenNode/) - higher level protocol for managing, configuring and connecting CAN actors (Apache 2)
+* [**CANopenNode**](https://github.com/CANopenNode/CANopenNode/) - higher level layer for managing CAN devices (Apache 2)
 * [**libopencm3**](https://github.com/libopencm3/libopencm3/)- stm32 hardware-independency with no overhead (MIT)
 * [**FreeRTOS**](https://freertos.org) - a realtime OS for cooperative multitasking (LGPL)
 
