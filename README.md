@@ -5,7 +5,7 @@ An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables w
 ## Features
   * **CAN bus-first** - bulletproof wired networking for devices that shouldnt break
   * **Actor-oriented** - individual objects sending messages to each other
-  * **Event-driven** - loosely coupling, highly composable
+  * **Event-driven** - loosely coupled, highly composable
   * **Cooperative** - pre-emptive multi-tasking with no effort  
   * **Observable** - fully configurable via CANopen via device profiles, via UI or programmatically over network
   * **Hardware independent** - aimed to support all STM32 devices transparently
