@@ -1,4 +1,4 @@
-# STM32.app - Application framework2
+# STM32.app - Application framework
 
 An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables writing modular networking applications for STM32 microcontrollers.. 
 
@@ -62,6 +62,7 @@ The most flexible way is to define more than one task per each actor, each havin
 * ✅ **Flexible**: An actor can use however many priorities it needs to
 * ✅ **Non-blocking**: If a task takes too much time, FreeRTOS will pause it to allow other tasks with the same priority do run
 * ✅ **Simple execution flow**: Tasks code *can* be easy to follow and write, since the execution never leaves task function. Tasks may use stack variables to store intermediate results, and places of asynchrony can be easy to see.
+
 ### Cons
 * ❌ **Memory over-allocation**: Memory for each task stack and its queues has to be allocated upfront to handle bursts of activity without losing any messages or input. There is a lot of memory left unused, because it had to be allocated just in case or because it is needed once.
 * ❌ **Comunication complexity**: Tasks of the same actor need to pass each other notifications or queue messages to pass messages and work. If queues arent used or are full, the more important tasks can be blocked by less important tasks. Usage of queues for each task leads to over-allocation of memory. 
@@ -76,6 +77,7 @@ Very often developers choose to sacrifice ability of a single actor to do work w
 * ✅ **Non-blocking:** If a task takes too much time, FreeRTOS will pause it to allow other tasks with the same priority do run
 * ✅ **Low complexity**: A single task is easy to reason about
 * ✅ **Simple execution flow**: Tasks code can be easy to follow and write, since the execution never leaves task function. Tasks may use stack variables to store intermediate results, and points of asynchrony are easy to see.
+
 ### Cons
 * ❌ **Single thread**: If an actor does some work, it is not responsive for (potentially more important) input, like a command to abort the task
 * ❌ **No priorities**: There is no way for an actor to identify that some of its functions are more important than others. If it starts taking on unimportant work, it has to finish it before starting on something else.
@@ -93,6 +95,7 @@ STM32.app provides a primitive called thread - a combination of task, a queue an
 * ✅ **Broadcasting**: All actors that use thread have a chance to receive incoming messages, handle it exclusively or let others handle it too 
 * ✅ **Responsive**: Input is processed with highest priority, allowing actors to abort or change their workload. Actors can signal to input thread that they are currently unable to take on the new input, causing event to be off-load edthe event to a backlog bus. This ensures input bus is never blocked and events are never lost.
 * ✅ **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide.   
+
 ### Cons
 * ❌ **Limited time-slicing**: Since actors share tasks, workloads of the same priority block each other. FreeRTOS time slicing which usually grants ability for tasks of the same priority to run for a bit, even if some take too much time does not help in this case. Thus the code has to be written in a way that avoid blocking the CPU as much as possible.
   * ✅ **Thoughtful built-ins**: All standard actors and drivers leverage non-blocking features like DMA to avoid blocking
