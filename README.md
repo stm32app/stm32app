@@ -14,9 +14,9 @@ An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables w
 
 ## Standing on shoulders of giants
 
-* **CANopenNode** - higher level protocol for managing, configuring and connecting CAN actors (Apache 2)
-* **libopencm3** - stm32 hardware-independency with no overhead (MIT)
-* **FreeRTOS** - a realtime OS for cooperative multitasking (LGPL)
+* [**CANopenNode**](https://github.com/CANopenNode/CANopenNode/) - higher level protocol for managing, configuring and connecting CAN actors (Apache 2)
+* [**libopencm3**](https://github.com/libopencm3/libopencm3/)- stm32 hardware-independency with no overhead (MIT)
+* [**FreeRTOS**](https://freertos.org) - a realtime OS for cooperative multitasking (LGPL)
 
 
 # Primitives
@@ -95,12 +95,11 @@ STM32.app provides a primitive called thread - a combination of task, a queue an
 * 🟢 **Per-thread event bus**: Actors share a message queue provided by the thread. This dramatically reduces memory over-allocation and reduces potential for bottle necks. The bus holds events of various kinds allowing actors to receieve input from multiple places. 
 * 🟢 **Broadcasting**: All actors that use thread have a chance to receive incoming messages, handle it exclusively or let others handle it too 
 * 🟢 **Responsive**: Input is processed with highest priority, allowing actors to abort or change their workload. Actors can signal to input thread that they are currently unable to accept incoming event, causing it to be off-loaded to a backlog bus for actor to catch up later. This ensures input bus is never blocked and events are never lost.
-* 🟢 **Customizable**: Some actors may choose to define their own threads in addition to the ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide.   
 
 ### Cons
 * 🟡 **Limited time-slicing**: Since actors share tasks, workloads of the same priority block each other. FreeRTOS time slicing which usually grants ability for tasks of the same priority to run for a bit, even if some take too much time does not help in this case. Thus the code has to be written in a way that avoids blocking the CPU as much as possible.
   * 🟢 **Thoughtful built-ins**: All standard actors and drivers leverage non-blocking features like DMA to avoid blocking
-  * 🟢 **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide. However just like with regular FreeRTOS, developer would have to manually decide how much memory should be allocated for thread's stack and optional queue.
+  * 🟢 **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide. However just like with barebone FreeRTOS, the developer has to manually decide how much memory should be allocated for thread's stack and its optional queue.
 * 🟡 **Harder to follow**: Spreading work across tasks with multiple priorities can make the execution flow opaque and complicated. 
   * 🟢 **Task primitive**: STM32.app offers a very lightweight approach to writing asynchronous code that contains all of its steps close to each other in a state machine. All the minutiae is done behind the scenes, and handling of input and switching priorities mid-way is separated from the logical flow of a task. This often makes the code even easier to read than even with more advanced languages async/await or couroutines.
 
