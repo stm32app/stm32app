@@ -3,20 +3,26 @@
 
 app_signal_t app_task_execute(app_task_t *task) {
   configASSERT(task);
-  app_task_signal_t task_signal = app_task_advance(task);
-  switch (task_signal) {
-    case APP_TASK_COMPLETE:
-    case APP_TASK_HALT:
-      app_task_finalize(task);
-      actor_tick_catchup(task->actor, task->tick);
-      break;
-    case APP_TASK_STEP_WAIT:
-      actor_event_finalize(task->actor, &task->awaited_event);  // free up room for a new event
-      break;
-    default:
-      break;
+  bool_t halt = false;
+  while (!halt) {
+    app_task_signal_t task_signal = app_task_advance(task);
+    switch (task_signal) {
+      case APP_TASK_STEP_RETRY:
+      case APP_TASK_STEP_COMPLETE:
+         break;
+      case APP_TASK_COMPLETE:
+      case APP_TASK_HALT:
+        app_task_finalize(task);
+        actor_tick_catchup(task->actor, task->tick);
+        return task_signal;
+      case APP_TASK_STEP_WAIT:
+        actor_event_finalize(task->actor, &task->awaited_event);  // free up room for a new event
+        return task_signal;
+      default:
+        return task_signal;
+    }
   }
-  return task_signal;
+  return APP_TASK_COMPLETE;
 }
 
 app_task_signal_t app_task_advance(app_task_t *task) {
@@ -41,8 +47,12 @@ app_task_signal_t app_task_advance(app_task_t *task) {
       break;
 
     case APP_TASK_STEP_WAIT:
-    case APP_TASK_STEP_COMPLETE:
       task->step_index++;
+      break;
+
+    case APP_TASK_STEP_COMPLETE:
+      task->phase_index++;
+      task->step_index = 0;
       break;
       
     case APP_TASK_STEP_HALT:

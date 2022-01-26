@@ -88,13 +88,14 @@ case 34: return "APP_EVENT_THREAD_ALARM";
 case 0: return "APP_EVENT_IDLE";
 case 1: return "APP_EVENT_READ";
 case 2: return "APP_EVENT_WRITE";
-case 3: return "APP_EVENT_ERASE";
-case 4: return "APP_EVENT_RESPONSE";
-case 5: return "APP_EVENT_LOCK";
-case 6: return "APP_EVENT_UNLOCK";
-case 7: return "APP_EVENT_INTROSPECTION";
-case 8: return "APP_EVENT_ENABLE";
-case 9: return "APP_EVENT_DISABLE";
+case 3: return "APP_EVENT_TRANSFER";
+case 4: return "APP_EVENT_ERASE";
+case 5: return "APP_EVENT_RESPONSE";
+case 6: return "APP_EVENT_LOCK";
+case 7: return "APP_EVENT_UNLOCK";
+case 8: return "APP_EVENT_INTROSPECTION";
+case 9: return "APP_EVENT_ENABLE";
+case 10: return "APP_EVENT_DISABLE";
 default: return "Unknown";
 }
 };
@@ -124,7 +125,7 @@ default: return "Unknown";
 }
 };
 
-char* get_actor_circuit_properties_properties_name (uint32_t v) {
+char* get_device_circuit_properties_properties_name (uint32_t v) {
 switch (v) {
 case 1: return "DEVICE_CIRCUIT_PORT";
 case 2: return "DEVICE_CIRCUIT_PIN";

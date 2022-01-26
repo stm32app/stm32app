@@ -54,7 +54,7 @@ static app_task_signal_t w25_task_introspection(app_task_t *task) {
 static app_task_signal_t w25_send_command(app_task_t *task, uint8_t command) {
     switch (task->phase_index) {
     case 0: return step_wait_until_ready(task);
-    case 1: return step_send(task, (uint8_t[]){command}, 1);
+    case 1: return step_spi_transfer(task, (uint8_t[]){command}, 1, 0);
     default: return APP_TASK_COMPLETE;
     }
 }
@@ -167,7 +167,7 @@ static app_signal_t w25_tick_input(storage_w25_t *w25, app_event_t *event, actor
         return actor_event_handle_and_start_task(w25->actor, event, &w25->task, w25->actor->app->threads->high_priority,
                                                   w25_task_unlock);
     case APP_EVENT_RESPONSE:
-        if (event->producer == w25->spi && w25->task.handler != NULL) {
+        if (event->producer == w25->spi->actor && w25->task.handler != NULL) {
             return actor_event_handle_and_pass_to_task(w25->actor, event, &w25->task, w25->actor->app->threads->high_priority,
                                                         w25->task.handler);
         }

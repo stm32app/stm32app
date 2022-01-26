@@ -20,10 +20,10 @@ The former need to configure stream to be the same as channel*/
 #define dma_enable_stream dma_enable_channel
 #define dma_disable_stream dma_disable_channel
 #define dma_stream_reset dma_reset_channel
-void dma_channel_select(uint32_t dma, uint8_t stream, uint8_t channel) {} // noop
+#define dma_channel_select(dma, stream, channel)
 #else
-void dma_set_read_from_peripheral(uint32_t dma, uint8_t stream);
-void dma_set_read_from_memory(uint32_t dma, uint8_t stream);
+#define dma_set_read_from_peripheral(unit, stream) dma_set_transfer_mode(unit, stream, DMA_SxCR_DIR_PERIPHERAL_TO_MEM)
+#define dma_set_read_from_memory(unit, stream) dma_set_transfer_mode(unit, stream, DMA_SxCR_DIR_MEM_TO_PERIPHERAL)
 #endif
 uint8_t dma_get_interrupt_for_stream(uint32_t dma, uint8_t index);
 
@@ -67,8 +67,8 @@ uint32_t dma_get_clock_address(uint8_t index);
 uint32_t nvic_dma_get_channel_base(uint8_t index);
 
 
-void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size);
-void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size);
+void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,  bool_t circular_mode);
+void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *buffer, size_t buffer_size, bool_t circular_mode);
 
 void actor_dma_tx_stop(uint8_t unit, uint8_t stream, uint8_t channel);
 void actor_dma_rx_stop(uint8_t unit, uint8_t stream, uint8_t channel);
@@ -82,7 +82,7 @@ void actor_unregister_dma(uint8_t unit, uint8_t index);
 void actors_dma_notify(uint8_t unit, uint8_t index);
 
 
-uint16_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint16_t buffer_size);
+uint32_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint32_t buffer_size);
 
 
 /* Read from circular buffer into memory pool from interrupt*/

@@ -88,7 +88,7 @@ static void transport_usart_tx_dma_stop(transport_usart_t *usart) {
 static void transport_usart_tx_dma_start(transport_usart_t *usart, uint8_t *data, uint16_t size) {
     transport_usart_tx_dma_stop(usart);
     actor_dma_tx_start((uint32_t) & (USART_DR(usart->address)), usart->properties->dma_tx_unit, usart->properties->dma_tx_stream,
-                        usart->properties->dma_tx_channel, data, size);
+                        usart->properties->dma_tx_channel, data, size, false);
     usart_enable_tx_dma(usart->address);
 }
 
@@ -102,7 +102,7 @@ static void transport_usart_rx_dma_stop(transport_usart_t *usart) {
 static void transport_usart_rx_dma_start(transport_usart_t *usart, uint8_t *data, uint16_t size) {
     transport_usart_rx_dma_stop(usart);
     actor_dma_rx_start((uint32_t) & (USART_DR(usart->address)), usart->properties->dma_tx_unit, usart->properties->dma_tx_stream,
-                        usart->properties->dma_tx_channel, data, size);
+                        usart->properties->dma_tx_channel, data, size, false);
     usart_enable_rx_dma(usart->address);
 }
 

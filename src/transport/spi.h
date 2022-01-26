@@ -53,6 +53,9 @@ struct transport_spi {
     app_event_t processed_event;      // current reading job
     uint8_t *rx_buffer;        // circular buffer for DMA
     uint16_t rx_buffer_cursor; // current ingested position in rx buffer
+    uint32_t rx_bytes_target;
+    uint32_t tx_bytes_target;
+    uint32_t tx_bytes_sent;
     struct vpool rx_pool;      // pool that allocates growing memory chunk for recieved messages
 };
 
