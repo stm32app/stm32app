@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #include "core/types.h"
-#include "lib/vpool.h"
 
 enum app_event_type {
     // Internal events that dont need subscription
@@ -24,6 +23,7 @@ enum app_event_type {
     APP_EVENT_LOCK,
     APP_EVENT_UNLOCK,
     APP_EVENT_INTROSPECTION,
+    APP_EVENT_DIAGNOSE,
 
     APP_EVENT_ENABLE,
     APP_EVENT_DISABLE,
@@ -36,20 +36,19 @@ enum app_event_status {
     APP_EVENT_RECEIVED,  // Some actors receieved the event
     APP_EVENT_ADDRESSED, // A actor that could handle event was busy, others still can claim it
     APP_EVENT_HANDLED,   // Device processed the event so no others will receive it
-    APP_EVENT_DEFERRED   // A busy actor wants this event exclusively
+    APP_EVENT_DEFERRED,   // A busy actor wants this event exclusively
+    APP_EVENT_FINALIZED
 };
 
 struct app_event {
     app_event_type_t type;     /* Kind of event*/
     app_event_status_t status; /* Status of events handling*/
     uint8_t *data;             /* Pointer to data package*/
-    size_t size;               /* Size of data payload*/
+    uint32_t size;               /* Size of data payload*/
     void *argument;            /* Optional argument */
     actor_t *producer;        /* Where event originated at */
     actor_t *consumer;        /* Device that handled the event*/
 };
-
-app_event_t *app_event_from_vpool(app_event_t *event, struct vpool *vpool);
 
 #ifdef __cplusplus
 }

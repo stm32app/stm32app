@@ -18,7 +18,7 @@ typedef struct transport_usart_properties {
     uint8_t dma_rx_unit;
     uint8_t dma_rx_stream;
     uint8_t dma_rx_channel;
-    uint8_t dma_rx_buffer_size;
+    uint8_t dma_rx_circular_buffer_size;
     uint8_t dma_tx_unit;
     uint8_t dma_tx_stream;
     uint8_t dma_tx_channel;
@@ -38,7 +38,7 @@ struct transport_usart {
     actor_t *target_actor;
     void *target_argument;
 
-    uint8_t *dma_rx_buffer;
+    uint8_t *dma_rx_circular_buffer;
 };
 
 extern actor_class_t transport_usart_class;
@@ -51,7 +51,7 @@ typedef enum transport_usart_properties_properties {
   TRANSPORT_USART_DMA_RX_UNIT = 0x01,
   TRANSPORT_USART_DMA_RX_STREAM = 0x02,
   TRANSPORT_USART_DMA_RX_CHANNEL = 0x03,
-  TRANSPORT_USART_DMA_RX_BUFFER_SIZE = 0x04,
+  TRANSPORT_USART_DMA_RX_CIRCULAR_BUFFER_SIZE = 0x04,
   TRANSPORT_USART_DMA_TX_UNIT = 0x05,
   TRANSPORT_USART_DMA_TX_STREAM = 0x06,
   TRANSPORT_USART_DMA_TX_CHANNEL = 0x07,

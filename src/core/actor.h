@@ -9,6 +9,7 @@ extern "C" {
 #include "core/app.h"
 #include "core/thread.h"
 #include "lib/gpio.h"
+#include "lib/heap.h"
 
 
 /*#define OD_ACCESSORS(OD_TYPE, NAME, SUBTYPE, PROPERTY, SUBINDEX, TYPE, SHORT_TYPE) \
@@ -51,41 +52,6 @@ enum actor_phase {
     ACTOR_DESTRUCTING
 };
 
-enum actor_type {
-    APP = 0x3000,
-
-    // custom actors
-    DEVICE_CIRCUIT = 0x4000,
-
-    // basic features
-    SYSTEM_MCU = 0x6000,
-    SYSTEM_CANOPEN = 0x6020,
-
-    // internal mcu modules
-    MODULE_TIMER = 0x6100,
-
-    // communication modules
-    TRANSPORT_CAN = 0x6200,
-    TRANSPORT_SPI = 0x6220,
-    TRANSPORT_USART = 0x6240,
-    TRANSPORT_I2C = 0x6260,
-    TRANSPORT_MODBUS = 0x6280,
-
-    MODULE_ADC = 0x6300,
-
-    STORAGE_W25 = 0x7100,
-
-    // input actors
-    INPUT_SENSOR = 0x8000,
-
-    // control periphery
-    CONTROL_TOUCHSCREEN = 0x8100,
-
-    // output actors
-    SCREEN_EPAPER = 0x9000,
-    INDICATOR_LED = 0x9800,
-};
-
 struct actor {
     void *object;                   /* Pointer to the actor own struct */
     uint8_t seq;                    /* Sequence number of the actor in its family  */
@@ -118,7 +84,7 @@ struct actor_class {
     app_signal_t (*resume)(void *object);       /* Wake actor up from sleep */
 
     app_signal_t (*on_task)(void *object, app_task_t *task);                                   /* Task has been complete */
-    app_signal_t (*on_event)(void *object, app_event_t *event);                                /* Somebody processed the event */
+    app_signal_t (*on_report)(void *object, app_event_t *event);                                /* Somebody processed the event */
     app_signal_t (*on_phase)(void *object, actor_phase_t phase);                              /* Handle phase change */
     app_signal_t (*on_signal)(void *object, actor_t *origin, app_signal_t signal, void *arg); /* Send signal to actor */
     app_signal_t (*on_value)(void *object, actor_t *actor, void *value, void *arg);          /* Accept value from linked actor */
@@ -183,7 +149,7 @@ void actor_event_subscribe(actor_t *actor, app_event_type_t type);
 /* Attempt to store event in a memory destination if it's not occupied yet */
 app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t *event, app_event_t *destination,
                                                      app_event_status_t ready_status, app_event_status_t busy_status,
-                                                     actor_on_event_t handler);
+                                                     actor_on_report_t handler);
 
 app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event_t *event, app_task_t *task, app_thread_t *thread,
                                                         actor_on_task_t handler, app_event_status_t ready_status,
@@ -198,7 +164,7 @@ app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_eve
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_DEFERRED, NULL)
 /* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
 #define actor_event_handle_and_process(actor, event, destination, handler)                                                               \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_DEFERRED, (actor_on_event_t)handler)
+    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_DEFERRED, (actor_on_report_t)handler)
 /* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
 #define actor_event_handle_and_start_task(actor, event, task, thread, handler)                                                           \
     actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)

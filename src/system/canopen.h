@@ -37,8 +37,8 @@ extern "C" {
    CANOpen framework */
 typedef struct system_canopen_properties {
     uint8_t parameter_count;
-    uint16_t can_index; // Values other than zero will prevent actor from initializing 
-    uint8_t can_fifo_index; // Values other than zero will prevent actor from initializing 
+    uint16_t can_index; // Values other than zero will prevent device from initializing 
+    uint8_t can_fifo_index; // Values other than zero will prevent device from initializing 
     uint16_t green_led_index;
     uint16_t red_led_index;
     uint16_t first_hb_time;

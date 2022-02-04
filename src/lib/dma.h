@@ -5,7 +5,7 @@ The former need to configure stream to be the same as channel*/
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/rcc.h>
-#include "lib/vpool.h"
+#include "lib/membuf.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -86,7 +86,7 @@ uint32_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint32_t buf
 
 
 /* Read from circular buffer into memory pool from interrupt*/
-void actor_dma_ingest(uint8_t unit, uint8_t index, uint8_t *buffer, uint16_t buffer_size, uint16_t *cursor, struct vpool *pool);
+void actor_dma_ingest(uint8_t unit, uint8_t index, uint8_t *circular_buffer, uint16_t circular_buffer_size, uint16_t expected_buffer_size, uint16_t *cursor, membuf_t *membuf);
 
 /* Combine DMA unit and index into a pointer */
 void *actor_dma_pack_source(uint8_t unit, uint8_t index);

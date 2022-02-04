@@ -40,8 +40,8 @@ void app_thread_execute(app_thread_t *thread) {
     thread->current_time = xTaskGetTickCount();
     thread->last_time = thread->current_time;
     thread->next_time = thread->current_time + MAX_THREAD_SLEEP_TIME;
-    size_t tick_index = app_thread_get_tick_index(thread);      // Which actor tick handles this thread
-    size_t deferred_count = 0;                                  // Counter of re-queued events
+    size_t tick_index = app_thread_get_tick_index(thread);   // Which actor tick handles this thread
+    size_t deferred_count = 0;                               // Counter of re-queued events
     actor_t *first_actor = app_thread_filter_actors(thread); // linked list of actors declaring the tick
     app_event_t event = {.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_START};
 
@@ -76,10 +76,12 @@ static inline bool_t app_thread_should_notify_actor(app_thread_t *thread, app_ev
     switch (event->type) {
     // Ticks get notified when thread starts and stops, so they can construct/destruct or schedule a periodical alarm
     case APP_EVENT_THREAD_START:
-    case APP_EVENT_THREAD_STOP: return true;
+    case APP_EVENT_THREAD_STOP:
+        return true;
 
     // Ticks that set up software alarm will recieve schedule event in time
-    case APP_EVENT_THREAD_ALARM: return tick->next_time <= thread->current_time;
+    case APP_EVENT_THREAD_ALARM:
+        return tick->next_time <= thread->current_time;
 
     default:
         if (event->consumer == actor) {
@@ -222,8 +224,8 @@ static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event,
             return -1;
         }
         break;
-
-    case APP_EVENT_RECEIVED: break;
+    default:
+        break;
     }
 
     return 0;
@@ -255,6 +257,14 @@ static inline bool_t app_thread_event_queue_shift(app_thread_t *thread, app_even
     return true;
 }
 
+static inline void app_thread_log_switch(app_thread_t *thread) {
+    if (thread != NULL && thread->actor->app->current_thread != thread) {
+        if (thread->actor->app->current_thread != NULL)
+            log_printf("~ %s <= %s\n", app_thread_get_name(thread), app_get_current_thread_name(thread->actor->app));
+        thread->actor->app->current_thread = thread;
+    }
+}
+
 /*
   A thread goes to sleep to allow tasks with lower priority to run, when it does not have any events that can be processed right now.
   - Publishing new events also sends the notification for the thread to wake up. If an event was published to the back of the queue that had
@@ -283,11 +293,7 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
         uint32_t notification = ulTaskNotifyTake(true, pdMS_TO_TICKS((uint32_t)timeout));
 
 #ifdef DEBUG
-        if (thread->actor->app->current_thread != thread) {
-            if (thread->actor->app->current_thread != NULL)
-                log_printf("~ %s <= %s\n", app_thread_get_name(thread), app_get_current_thread_name(thread->actor->app));
-            thread->actor->app->current_thread = thread;
-        }
+        app_thread_log_switch(thread);
 #endif
 
         switch (notification) {
@@ -351,30 +357,40 @@ bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t ov
 }
 
 bool_t app_thread_publish_generic(app_thread_t *thread, app_event_t *event, bool_t to_front) {
-    log_printf("~ %s: %s publishing #%s for %s\n", app_get_current_thread_name(thread->actor->app),
-               get_actor_type_name(event->producer->class->type), get_app_event_type_name(event->type), app_thread_get_name(thread));
+    log_printf("~ %s: %s publishing #%s for %s (%s)\n", app_get_current_thread_name(thread->actor->app),
+               get_actor_type_name(event->producer->class->type), get_app_event_type_name(event->type), 
+               event->consumer ? get_actor_type_name(event->consumer->class->type) : "broadcast", app_thread_get_name(thread));
+    bool_t result = false;
+#ifdef DEBUG
+    app_thread_t *current_thread = thread->actor->app->current_thread;
+#endif
     if (IS_IN_ISR) {
         static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        bool_t result = false;
         if (thread->queue == NULL || xQueueGenericSendFromISR(thread->queue, event, &xHigherPriorityTaskWoken, to_front)) {
             result = xTaskNotifyFromISR(thread->task, (uint32_t)event, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
         };
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-        return result;
     } else {
         if (thread->queue == NULL || xQueueGenericSend(thread->queue, event, 0, to_front)) {
-            return xTaskNotify(thread->task, (uint32_t)event, eSetValueWithOverwrite);
-        } else {
-            return false;
+            result = xTaskNotify(thread->task, (uint32_t)event, eSetValueWithOverwrite);
         }
     }
+#ifdef DEBUG
+    app_thread_log_switch(current_thread);
+#endif
+    return result;
 }
 
 void app_thread_schedule(app_thread_t *thread, uint32_t time) {
-    if (thread->next_time > time)
+    if (thread->next_time > time) {
         thread->next_time = time;
-    if (eTaskGetState(thread->task) == eBlocked) {
-        app_thread_reschedule(thread);
+        // notification should be sent even if task has active status
+        // i.e. a more important task may have taken over the less important task
+        // while it was on its way to become blocked, creating a race condition
+        //eTaskState state = eTaskGetState(thread->task);
+        //if (state == eBlocked || state == eReady) {
+            app_thread_reschedule(thread);
+        //}
     }
 }
 void app_thread_tick_schedule(app_thread_t *thread, actor_tick_t *tick, uint32_t time) {
@@ -517,7 +533,7 @@ int actor_ticks_free(actor_t *actor) {
 
 int app_threads_allocate(app_t *app) {
     app->threads = malloc(sizeof(app_threads_t));
-    return app_thread_allocate(&app->threads->input, app, (void (*)(void *ptr))app_thread_execute, "Input", 200, 20, 5, NULL) ||
+    return app_thread_allocate(&app->threads->input, app, (void (*)(void *ptr))app_thread_execute, "Input", 300, 20, 5, NULL) ||
            app_thread_allocate(&app->threads->catchup, app, (void (*)(void *ptr))app_thread_execute, "Catchup", 200, 100, 5, NULL) ||
            app_thread_allocate(&app->threads->high_priority, app, (void (*)(void *ptr))app_thread_execute, "High P", 200, 1, 4, NULL) ||
            app_thread_allocate(&app->threads->medium_priority, app, (void (*)(void *ptr))app_thread_execute, "Medium P", 200, 1, 3, NULL) ||
@@ -530,7 +546,7 @@ char *app_thread_get_name(app_thread_t *thread) {
 }
 
 char *app_get_current_thread_name(app_t *app) {
-    return IS_IN_ISR ? "ISR" : pcTaskGetTaskName(app->current_thread->task);
+    return IS_IN_ISR ? "ISR" : app->current_thread == NULL ? "???" : pcTaskGetTaskName(app->current_thread->task);
 }
 
 int app_threads_free(app_t *app) {

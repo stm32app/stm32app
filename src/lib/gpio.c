@@ -17,13 +17,18 @@ uint8_t gpio_get_speed_setting(uint8_t speed) {
     }
 }
 
-void gpio_configure_input(uint8_t port, uint8_t pin) {
-    log_printf("\t[%c%u]\tinput\n", (char)(65 + port - 1), pin);
+void gpio_configure_input_generic(uint8_t port, uint8_t pin, uint8_t analog, uint8_t pullup) {
+    log_printf("\t[%c%u]\tinput\t%s\t%s\n", (char)(65 + port - 1), pin,
+            analog == 0 ? "float" : "analog",
+               pullup == 0   ? ""
+               : pullup == 1 ? "Pullup"
+                             : "Pulldown");
     gpio_enable_port(port);
 #ifdef STM32F1
+    // todo
     gpio_set_mode(GPIOX(port), GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, pins);
 #else
-    gpio_mode_setup(GPIOX(port), GPIO_MODE_INPUT, GPIO_MODE_ANALOG, 1 << pin);
+    gpio_mode_setup(GPIOX(port), analog ? GPIO_MODE_ANALOG : GPIO_MODE_INPUT, pullup, 1 << pin);
 #endif
 }
 
@@ -36,10 +41,11 @@ void gpio_configure_output_generic(uint8_t port, uint8_t pin, uint8_t speed, uin
                : pullup == 1 ? "Pullup"
                              : "Pulldown");
 #ifdef STM32F1
+    // todo
     gpio_set_mode(GPIOX(port), speed, GPIO_CNF_OUTPUT_PUSHPULL, pins);
 #else
     gpio_enable_port(port);
-    gpio_mode_setup(GPIOX(port), af_index == (uint8_t)-1 ? GPIO_MODE_OUTPUT : GPIO_MODE_AF, pullup ? GPIO_PUPD_PULLUP : GPIO_PUPD_PULLDOWN,
+    gpio_mode_setup(GPIOX(port), af_index == (uint8_t)-1 ? GPIO_MODE_OUTPUT : GPIO_MODE_AF, pullup,
                     1 << pin);
     if (af_index != (uint8_t)-1) {
         gpio_set_af(GPIOX(port), af_index, 1 << pin);

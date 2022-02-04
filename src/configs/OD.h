@@ -16,7 +16,7 @@
 
         Created:      9/25/2021 2:03:07 AM
         Created By:   
-        Modified:     1/25/2022 2:36:22 PM
+        Modified:     2/4/2022 8:48:59 PM
         Modified By:  
 
     Device Info:
@@ -47,7 +47,7 @@
 #define OD_CNT_RPDO 4
 #define OD_CNT_TPDO 4
 #define OD_CNT_DEVICE_CIRCUIT 1
-#define OD_CNT_MODULE_TIMER 3
+#define OD_CNT_MODULE_TIMER 4
 #define OD_CNT_TRANSPORT_CAN 1
 #define OD_CNT_TRANSPORT_SPI 1
 #define OD_CNT_TRANSPORT_USART 1
@@ -58,6 +58,7 @@
 #define OD_CNT_STORAGE_WINBOND 1
 #define OD_CNT_STORAGE_FLASH 1
 #define OD_CNT_MEMORY_SRAM 1
+#define OD_CNT_STORAGE_AT24C 1
 #define OD_CNT_INPUT_SENSOR 1
 #define OD_CNT_CONTROL_TOUCHSCREEN 1
 #define OD_CNT_SCREEN_EPAPER 1
@@ -307,6 +308,14 @@ typedef struct {
     } x6102_moduleTimer_3;
     struct {
         uint8_t highestSub_indexSupported;
+        uint8_t prescaler;
+        uint8_t initialSubscriptionsCount;
+        uint32_t period;
+        uint32_t frequency;
+        uint8_t phase;
+    } x6106_moduleTimer_7;
+    struct {
+        uint8_t highestSub_indexSupported;
         uint8_t TX_Port;
         uint8_t TX_Pin;
         uint8_t RX_Port;
@@ -328,7 +337,7 @@ typedef struct {
         uint8_t DMA_RxStream;
         uint8_t DMA_RxChannel;
         uint32_t DMA_RxIdleTimeout;
-        uint16_t rxBufferSize;
+        uint16_t DMA_RxCircularBufferSize;
         uint16_t rxPoolMaxSize;
         uint16_t rxPoolInitialSize;
         uint16_t rxPoolBlockSize;
@@ -351,7 +360,7 @@ typedef struct {
         uint8_t DMA_RxUnit;
         uint8_t DMA_RxStream;
         uint8_t DMA_RxChannel;
-        uint8_t DMA_RxBufferSize;
+        uint8_t DMA_RxCircularBufferSize;
         uint8_t DMA_TxUnit;
         uint8_t DMA_TxStream;
         uint8_t DMA_TxChannel;
@@ -364,13 +373,24 @@ typedef struct {
         uint8_t DMA_RxUnit;
         uint8_t DMA_RxStream;
         uint8_t DMA_RxChannel;
-        uint8_t DMA_RxBufferSize;
+        uint8_t DMA_RxCircularBufferSize;
+        uint16_t rxPoolMaxSize;
+        uint16_t rxPoolInitialSize;
+        uint16_t rxPoolBlockSize;
         uint8_t DMA_TxUnit;
         uint8_t DMA_TxStream;
         uint8_t DMA_TxChannel;
-        uint32_t baudrate;
+        uint8_t AF;
+        uint8_t SMBA_Pin;
+        uint8_t SMBA_Port;
+        uint8_t SDA_Port;
+        uint8_t SDA_Pin;
+        uint8_t SCL_Port;
+        uint8_t SCL_Pin;
+        int8_t frequency;
         uint8_t databits;
         uint8_t phase;
+        uint8_t slaveAddress;
     } x6260_transportI2C_1;
     struct {
         uint8_t highestSub_indexSupported;
@@ -378,7 +398,6 @@ typedef struct {
         uint8_t RTS_Port;
         uint8_t RTS_Pin;
         uint8_t slaveAddress;
-        uint16_t rxBufferSize;
         uint16_t timeout;
         uint8_t phase;
     } x6280_transportModbus_1;
@@ -422,6 +441,15 @@ typedef struct {
         uint16_t size;
         uint8_t phase;
     } x7300_memorySRAM_1;
+    struct {
+        uint8_t highestSub_indexSupported;
+        uint16_t I2C_Index;
+        uint8_t I2C_Address;
+        uint16_t startAddress;
+        uint16_t pageSize;
+        uint16_t size;
+        uint8_t phase;
+    } x7400_storageAT24C;
     struct {
         uint8_t highestSub_indexSupported;
         uint16_t disabled;
@@ -566,22 +594,24 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H6100 &OD->list[37]
 #define OD_ENTRY_H6101 &OD->list[38]
 #define OD_ENTRY_H6102 &OD->list[39]
-#define OD_ENTRY_H6200 &OD->list[40]
-#define OD_ENTRY_H6220 &OD->list[41]
-#define OD_ENTRY_H6240 &OD->list[42]
-#define OD_ENTRY_H6260 &OD->list[43]
-#define OD_ENTRY_H6280 &OD->list[44]
-#define OD_ENTRY_H6300 &OD->list[45]
-#define OD_ENTRY_H7000 &OD->list[46]
-#define OD_ENTRY_H7100 &OD->list[47]
-#define OD_ENTRY_H7200 &OD->list[48]
-#define OD_ENTRY_H7300 &OD->list[49]
-#define OD_ENTRY_H8000 &OD->list[50]
-#define OD_ENTRY_H8100 &OD->list[51]
-#define OD_ENTRY_H9000 &OD->list[52]
-#define OD_ENTRY_H9800 &OD->list[53]
-#define OD_ENTRY_H9801 &OD->list[54]
-#define OD_ENTRY_H9900 &OD->list[55]
+#define OD_ENTRY_H6106 &OD->list[40]
+#define OD_ENTRY_H6200 &OD->list[41]
+#define OD_ENTRY_H6220 &OD->list[42]
+#define OD_ENTRY_H6240 &OD->list[43]
+#define OD_ENTRY_H6260 &OD->list[44]
+#define OD_ENTRY_H6280 &OD->list[45]
+#define OD_ENTRY_H6300 &OD->list[46]
+#define OD_ENTRY_H7000 &OD->list[47]
+#define OD_ENTRY_H7100 &OD->list[48]
+#define OD_ENTRY_H7200 &OD->list[49]
+#define OD_ENTRY_H7300 &OD->list[50]
+#define OD_ENTRY_H7400 &OD->list[51]
+#define OD_ENTRY_H8000 &OD->list[52]
+#define OD_ENTRY_H8100 &OD->list[53]
+#define OD_ENTRY_H9000 &OD->list[54]
+#define OD_ENTRY_H9800 &OD->list[55]
+#define OD_ENTRY_H9801 &OD->list[56]
+#define OD_ENTRY_H9900 &OD->list[57]
 
 
 /*******************************************************************************
@@ -627,22 +657,24 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H6100_moduleTimer_1 &OD->list[37]
 #define OD_ENTRY_H6101_moduleTimer_2 &OD->list[38]
 #define OD_ENTRY_H6102_moduleTimer_3 &OD->list[39]
-#define OD_ENTRY_H6200_transportCAN_1 &OD->list[40]
-#define OD_ENTRY_H6220_transportSPI_1 &OD->list[41]
-#define OD_ENTRY_H6240_transportUSART_1 &OD->list[42]
-#define OD_ENTRY_H6260_transportI2C_1 &OD->list[43]
-#define OD_ENTRY_H6280_transportModbus_1 &OD->list[44]
-#define OD_ENTRY_H6300_moduleADC_1 &OD->list[45]
-#define OD_ENTRY_H7000_storageEeprom_1 &OD->list[46]
-#define OD_ENTRY_H7100_storageW25 &OD->list[47]
-#define OD_ENTRY_H7200_storageFlash &OD->list[48]
-#define OD_ENTRY_H7300_memorySRAM_1 &OD->list[49]
-#define OD_ENTRY_H8000_inputSensor_1 &OD->list[50]
-#define OD_ENTRY_H8100_controlTouchscreen_1 &OD->list[51]
-#define OD_ENTRY_H9000_screenEpaper_1 &OD->list[52]
-#define OD_ENTRY_H9800_indicatorLED_1 &OD->list[53]
-#define OD_ENTRY_H9801_indicatorLED_2 &OD->list[54]
-#define OD_ENTRY_H9900_signalBeeper_1 &OD->list[55]
+#define OD_ENTRY_H6106_moduleTimer_7 &OD->list[40]
+#define OD_ENTRY_H6200_transportCAN_1 &OD->list[41]
+#define OD_ENTRY_H6220_transportSPI_1 &OD->list[42]
+#define OD_ENTRY_H6240_transportUSART_1 &OD->list[43]
+#define OD_ENTRY_H6260_transportI2C_1 &OD->list[44]
+#define OD_ENTRY_H6280_transportModbus_1 &OD->list[45]
+#define OD_ENTRY_H6300_moduleADC_1 &OD->list[46]
+#define OD_ENTRY_H7000_storageEeprom_1 &OD->list[47]
+#define OD_ENTRY_H7100_storageW25 &OD->list[48]
+#define OD_ENTRY_H7200_storageFlash &OD->list[49]
+#define OD_ENTRY_H7300_memorySRAM_1 &OD->list[50]
+#define OD_ENTRY_H7400_storageAT24C &OD->list[51]
+#define OD_ENTRY_H8000_inputSensor_1 &OD->list[52]
+#define OD_ENTRY_H8100_controlTouchscreen_1 &OD->list[53]
+#define OD_ENTRY_H9000_screenEpaper_1 &OD->list[54]
+#define OD_ENTRY_H9800_indicatorLED_1 &OD->list[55]
+#define OD_ENTRY_H9801_indicatorLED_2 &OD->list[56]
+#define OD_ENTRY_H9900_signalBeeper_1 &OD->list[57]
 
 
 /*******************************************************************************

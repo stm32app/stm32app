@@ -14,8 +14,12 @@
 
 void vApplicationMallocFailedHook(void);
 
-__attribute__((used)) void hardfault_discovery(struct scb_exception_stack_frame *frame);
-__attribute__((naked)) void hardfault_handler(void);
+__attribute__((used)) void hard_fault_handler_inside(struct scb_exception_stack_frame *frame);
+__attribute__((naked)) void hard_fault_handler(void);
+__attribute__((used)) void mem_manage_handler(void);
+__attribute__((used)) void bus_fault_handler(void);
+__attribute__((used)) void usage_fault_handler(void);
+
 #endif
 
 #endif

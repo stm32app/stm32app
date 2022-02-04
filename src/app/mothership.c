@@ -7,10 +7,12 @@
 #include "module/adc.h"
 #include "module/timer.h"
 #include "storage/w25.h"
+#include "storage/at24c.h"
 //#include "screen/epaper.h"
 //#include "transport/can.h"
 //#include "transport/i2c.h"
 #include "transport/spi.h"
+#include "transport/i2c.h"
 #include "indicator/led.h"
 //#include "transport/usart.h"
 
@@ -65,7 +67,9 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     count += app_actor_type_enumerate(app, od, &module_adc_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_can_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_spi_class, destination, count);
+    count += app_actor_type_enumerate(app, od, &transport_i2c_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_w25_class, destination, count);
+    count += app_actor_type_enumerate(app, od, &storage_at24c_class, destination, count);
     count += app_actor_type_enumerate(app, od, &indicator_led_class, destination, count);
     // count += app_actor_type_enumerate(MODULE_USART, &transport_usart_class, sizeof(transport_usart_t), destination, count);
     // count += app_actor_type_enumerate(app, od, TRANSPORT_I2C, &transport_i2c_class, sizeof(transport_i2c_t), destination, count);
@@ -82,10 +86,11 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
         // test simple timeout
         module_timer_timeout(mothership->timer, mothership->actor, (void *)123, 1000000);
         // test w25 via spi
+        
         return app_publish(mothership->actor->app, &((app_event_t){
-            .type = APP_EVENT_INTROSPECTION,
+            .type = APP_EVENT_DIAGNOSE,
             .producer = mothership->actor,
-            .consumer = app_actor_find_by_type((app_t *) mothership, STORAGE_W25)
+            //.consumer = app_actor_find_by_type((app_t *) mothership, STORAGE_AT24C)
         }));
     }
     return 0;
@@ -100,7 +105,7 @@ static app_signal_t mothership_on_signal(app_mothership_t mothership, actor_t *a
 };
 
 actor_class_t app_mothership_class = {
-    .type = APP,
+    .type = CORE_APP,
     .size = sizeof(app_mothership_t),
     .phase_subindex = CORE_APP_PHASE,
     .validate = (app_method_t)mothership_validate,

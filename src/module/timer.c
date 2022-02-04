@@ -3,6 +3,7 @@
 #include <libopencm3/cm3/common.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/dma.h>
 
 volatile module_timer_t *module_timers[TIMER_UNITS];
 

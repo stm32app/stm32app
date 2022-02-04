@@ -249,6 +249,14 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .frequency = 0x000F4240,
         .phase = 0x00
     },
+    .x6106_moduleTimer_7 = {
+        .highestSub_indexSupported = 0x05,
+        .prescaler = 0x00,
+        .initialSubscriptionsCount = 0x0A,
+        .period = 0x0000FFFF,
+        .frequency = 0x000F4240,
+        .phase = 0x00
+    },
     .x6200_transportCAN_1 = {
         .highestSub_indexSupported = 0x0B,
         .TX_Port = 0x00,
@@ -272,7 +280,7 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .DMA_RxStream = 0x00,
         .DMA_RxChannel = 0x03,
         .DMA_RxIdleTimeout = 0x00000004,
-        .rxBufferSize = 0x0040,
+        .DMA_RxCircularBufferSize = 0x0040,
         .rxPoolMaxSize = 0x1000,
         .rxPoolInitialSize = 0x0020,
         .rxPoolBlockSize = 0x0020,
@@ -280,7 +288,7 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .DMA_TxStream = 0x03,
         .DMA_TxChannel = 0x03,
         .AF_Index = 0x01,
-        .SS_Port = 0x01,
+        .SS_Port = 0x02,
         .SS_Pin = 0x04,
         .SCK_Port = 0x02,
         .SCK_Pin = 0x03,
@@ -295,7 +303,7 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .DMA_RxUnit = 0x01,
         .DMA_RxStream = 0x04,
         .DMA_RxChannel = 0x04,
-        .DMA_RxBufferSize = 0x40,
+        .DMA_RxCircularBufferSize = 0x40,
         .DMA_TxUnit = 0x01,
         .DMA_TxStream = 0x04,
         .DMA_TxChannel = 0x04,
@@ -304,17 +312,28 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .phase = 0x00
     },
     .x6260_transportI2C_1 = {
-        .highestSub_indexSupported = 0x0A,
+        .highestSub_indexSupported = 0x15,
         .DMA_RxUnit = 0x01,
-        .DMA_RxStream = 0x04,
-        .DMA_RxChannel = 0x04,
-        .DMA_RxBufferSize = 0x40,
+        .DMA_RxStream = 0x00,
+        .DMA_RxChannel = 0x01,
+        .DMA_RxCircularBufferSize = 0x40,
+        .rxPoolMaxSize = 0x1000,
+        .rxPoolInitialSize = 0x0020,
+        .rxPoolBlockSize = 0x0020,
         .DMA_TxUnit = 0x01,
-        .DMA_TxStream = 0x04,
-        .DMA_TxChannel = 0x04,
-        .baudrate = 0x0001C200,
+        .DMA_TxStream = 0x06,
+        .DMA_TxChannel = 0x01,
+        .AF = 0x04,
+        .SMBA_Pin = 0x05,
+        .SMBA_Port = 0x02,
+        .SDA_Port = 0x02,
+        .SDA_Pin = 0x09,
+        .SCL_Port = 0x02,
+        .SCL_Pin = 0x08,
+        .frequency = 42,
         .databits = 0x08,
-        .phase = 0x00
+        .phase = 0x00,
+        .slaveAddress = 0x00
     },
     .x6280_transportModbus_1 = {
         .highestSub_indexSupported = 0x07,
@@ -322,7 +341,6 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .RTS_Port = 0x02,
         .RTS_Pin = 0x02,
         .slaveAddress = 0x00,
-        .rxBufferSize = 0x0014,
         .timeout = 0x0002,
         .phase = 0x00
     },
@@ -364,6 +382,15 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .transportAddress = 0x0000,
         .pageSize = 0x0008,
         .size = 0x0100,
+        .phase = 0x00
+    },
+    .x7400_storageAT24C = {
+        .highestSub_indexSupported = 0x06,
+        .I2C_Index = 0x6260,
+        .I2C_Address = 0x50,
+        .startAddress = 0x0008,
+        .pageSize = 0x0008,
+        .size = 0x0800,
         .phase = 0x00
     },
     .x8000_inputSensor_1 = {
@@ -497,16 +524,18 @@ typedef struct {
     OD_obj_record_t o_6100_moduleTimer_1[6];
     OD_obj_record_t o_6101_moduleTimer_2[6];
     OD_obj_record_t o_6102_moduleTimer_3[6];
+    OD_obj_record_t o_6106_moduleTimer_7[6];
     OD_obj_record_t o_6200_transportCAN_1[12];
     OD_obj_record_t o_6220_transportSPI_1[25];
     OD_obj_record_t o_6240_transportUSART_1[11];
-    OD_obj_record_t o_6260_transportI2C_1[11];
-    OD_obj_record_t o_6280_transportModbus_1[8];
+    OD_obj_record_t o_6260_transportI2C_1[22];
+    OD_obj_record_t o_6280_transportModbus_1[7];
     OD_obj_record_t o_6300_moduleADC_1[7];
     OD_obj_record_t o_7000_storageEeprom_1[6];
     OD_obj_record_t o_7100_storageW25[5];
     OD_obj_record_t o_7200_storageFlash[5];
     OD_obj_record_t o_7300_memorySRAM_1[7];
+    OD_obj_record_t o_7400_storageAT24C[7];
     OD_obj_record_t o_8000_inputSensor_1[7];
     OD_obj_record_t o_8100_controlTouchscreen_1[14];
     OD_obj_record_t o_9000_screenEpaper_1[14];
@@ -1718,6 +1747,44 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 1
         }
     },
+    .o_6106_moduleTimer_7 = {
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6106_moduleTimer_7.highestSub_indexSupported,
+            .subIndex = 0,
+            .attribute = ODA_SDO_R,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6106_moduleTimer_7.prescaler,
+            .subIndex = 1,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6106_moduleTimer_7.initialSubscriptionsCount,
+            .subIndex = 2,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6106_moduleTimer_7.period,
+            .subIndex = 3,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6106_moduleTimer_7.frequency,
+            .subIndex = 4,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6106_moduleTimer_7.phase,
+            .subIndex = 5,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        }
+    },
     .o_6200_transportCAN_1 = {
         {
             .dataOrig = &OD_PERSIST_COMM.x6200_transportCAN_1.highestSub_indexSupported,
@@ -1842,7 +1909,7 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x6220_transportSPI_1.rxBufferSize,
+            .dataOrig = &OD_PERSIST_COMM.x6220_transportSPI_1.DMA_RxCircularBufferSize,
             .subIndex = 8,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 2
@@ -1970,7 +2037,7 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x6240_transportUSART_1.DMA_RxBufferSize,
+            .dataOrig = &OD_PERSIST_COMM.x6240_transportUSART_1.DMA_RxCircularBufferSize,
             .subIndex = 4,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
@@ -2038,44 +2105,110 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.DMA_RxBufferSize,
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.DMA_RxCircularBufferSize,
             .subIndex = 4,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.DMA_TxUnit,
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.rxPoolMaxSize,
             .subIndex = 5,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.rxPoolInitialSize,
+            .subIndex = 6,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.rxPoolBlockSize,
+            .subIndex = 7,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.DMA_TxUnit,
+            .subIndex = 8,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         },
         {
             .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.DMA_TxStream,
-            .subIndex = 6,
-            .attribute = ODA_SDO_RW,
-            .dataLength = 1
-        },
-        {
-            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.DMA_TxChannel,
-            .subIndex = 7,
-            .attribute = ODA_SDO_RW,
-            .dataLength = 1
-        },
-        {
-            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.baudrate,
-            .subIndex = 8,
-            .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 4
-        },
-        {
-            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.databits,
             .subIndex = 9,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.phase,
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.DMA_TxChannel,
             .subIndex = 10,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.AF,
+            .subIndex = 11,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.SMBA_Pin,
+            .subIndex = 12,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.SMBA_Port,
+            .subIndex = 13,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.SDA_Port,
+            .subIndex = 14,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.SDA_Pin,
+            .subIndex = 15,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.SCL_Port,
+            .subIndex = 16,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.SCL_Pin,
+            .subIndex = 17,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.frequency,
+            .subIndex = 18,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.databits,
+            .subIndex = 19,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.phase,
+            .subIndex = 20,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6260_transportI2C_1.slaveAddress,
+            .subIndex = 21,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         }
@@ -2110,12 +2243,6 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .subIndex = 4,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
-        },
-        {
-            .dataOrig = &OD_PERSIST_COMM.x6280_transportModbus_1.rxBufferSize,
-            .subIndex = 5,
-            .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 2
         },
         {
             .dataOrig = &OD_PERSIST_COMM.x6280_transportModbus_1.timeout,
@@ -2315,6 +2442,50 @@ static CO_PROGMEM ODObjs_t ODObjs = {
         },
         {
             .dataOrig = &OD_PERSIST_COMM.x7300_memorySRAM_1.phase,
+            .subIndex = 6,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        }
+    },
+    .o_7400_storageAT24C = {
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.highestSub_indexSupported,
+            .subIndex = 0,
+            .attribute = ODA_SDO_R,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.I2C_Index,
+            .subIndex = 1,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.I2C_Address,
+            .subIndex = 2,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.startAddress,
+            .subIndex = 3,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.pageSize,
+            .subIndex = 4,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.size,
+            .subIndex = 5,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.phase,
             .subIndex = 6,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
@@ -2679,16 +2850,18 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x6100, 0x06, ODT_REC, &ODObjs.o_6100_moduleTimer_1, NULL},
     {0x6101, 0x06, ODT_REC, &ODObjs.o_6101_moduleTimer_2, NULL},
     {0x6102, 0x06, ODT_REC, &ODObjs.o_6102_moduleTimer_3, NULL},
+    {0x6106, 0x06, ODT_REC, &ODObjs.o_6106_moduleTimer_7, NULL},
     {0x6200, 0x0C, ODT_REC, &ODObjs.o_6200_transportCAN_1, NULL},
     {0x6220, 0x19, ODT_REC, &ODObjs.o_6220_transportSPI_1, NULL},
     {0x6240, 0x0B, ODT_REC, &ODObjs.o_6240_transportUSART_1, NULL},
-    {0x6260, 0x0B, ODT_REC, &ODObjs.o_6260_transportI2C_1, NULL},
-    {0x6280, 0x08, ODT_REC, &ODObjs.o_6280_transportModbus_1, NULL},
+    {0x6260, 0x16, ODT_REC, &ODObjs.o_6260_transportI2C_1, NULL},
+    {0x6280, 0x07, ODT_REC, &ODObjs.o_6280_transportModbus_1, NULL},
     {0x6300, 0x07, ODT_REC, &ODObjs.o_6300_moduleADC_1, NULL},
     {0x7000, 0x06, ODT_REC, &ODObjs.o_7000_storageEeprom_1, NULL},
     {0x7100, 0x05, ODT_REC, &ODObjs.o_7100_storageW25, NULL},
     {0x7200, 0x05, ODT_REC, &ODObjs.o_7200_storageFlash, NULL},
     {0x7300, 0x07, ODT_REC, &ODObjs.o_7300_memorySRAM_1, NULL},
+    {0x7400, 0x07, ODT_REC, &ODObjs.o_7400_storageAT24C, NULL},
     {0x8000, 0x07, ODT_REC, &ODObjs.o_8000_inputSensor_1, NULL},
     {0x8100, 0x0E, ODT_REC, &ODObjs.o_8100_controlTouchscreen_1, NULL},
     {0x9000, 0x0E, ODT_REC, &ODObjs.o_9000_screenEpaper_1, NULL},

@@ -30,6 +30,7 @@ int main(void) {
     app_t *app;
     app_boot(&app); 
     log_printf("App - Starting tasks...\n");
+    scb_set_priority_grouping(SCB_AIRCR_PRIGROUP_GROUP16_NOSUB);
     vTaskStartScheduler();
     while (true) { }
     return 0;

@@ -1,10 +1,8 @@
 #ifndef INC_ENUMS
 #define INC_ENUMS
-#include "core/types.h"
+#include <stdint.h>
 // defined in ./src/core/actor.h
 char* get_actor_phase_name (uint32_t v);
-// defined in ./src/core/actor.h
-char* get_actor_type_name (uint32_t v);
 // defined in ./src/core/app.h
 char* get_app_signal_name (uint32_t v);
 // defined in ./src/core/app.h
@@ -15,20 +13,22 @@ char* get_app_event_type_name (uint32_t v);
 char* get_app_event_status_name (uint32_t v);
 // defined in ./src/core/task.h
 char* get_app_task_signal_name (uint32_t v);
+// defined in ./src/definitions/dictionary.h
+char* get_actor_type_name (uint32_t v);
 // defined in ./src/device/circuit.h
 char* get_device_circuit_properties_properties_name (uint32_t v);
 // defined in ./src/indicator/led.h
 char* get_indicator_led_properties_properties_name (uint32_t v);
 // defined in ./src/input/sensor.h
 char* get_input_sensor_properties_properties_name (uint32_t v);
-// defined in ./src/lib/vpool.h
-char* get_vpool_trunc_name (uint32_t v);
 // defined in ./src/module/adc.h
 char* get_module_adc_properties_properties_name (uint32_t v);
 // defined in ./src/module/timer.h
 char* get_module_timer_properties_properties_name (uint32_t v);
 // defined in ./src/screen/epaper.h
 char* get_screen_epaper_properties_properties_name (uint32_t v);
+// defined in ./src/storage/at24c.h
+char* get_storage_at24c_properties_properties_name (uint32_t v);
 // defined in ./src/storage/w25.h
 char* get_w25_commands_name (uint32_t v);
 // defined in ./src/storage/w25.h

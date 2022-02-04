@@ -2,7 +2,7 @@
 #include "debug.h"
 
 #ifdef DEBUG
-__attribute__((naked)) void hardfault_handler(void)
+__attribute__((naked)) void hard_fault_handler(void)
 {
   __asm volatile (
     "movs r0,#4            \n"
@@ -15,13 +15,13 @@ __attribute__((naked)) void hardfault_handler(void)
     "mrs r0, msp           \n"
   "_HALT:                  \n"
     "ldr r1,[r0,#20]       \n"
-    "b hardfault_discovery \n"
+    "b hard_fault_handler_inside \n"
     "bkpt #0               \n"
   );
 };
 
 
-__attribute__((used)) void hardfault_discovery(struct scb_exception_stack_frame *frame)
+__attribute__((used)) void hard_fault_handler_inside(struct scb_exception_stack_frame *frame)
 {
     volatile uint32_t _CFSR;
     volatile uint32_t _HFSR;
@@ -87,6 +87,17 @@ void vApplicationMallocFailedHook(void) {
     }
 }
 
-#pragma weak hard_fault_handler = hardfault_handler
+void mem_manage_handler(void)
+{
+	while (1);
+}
+void usage_fault_handler(void)
+{
+	while (1);
+}
+void bus_fault_handler(void)
+{
+	while (1);
+}
 
 #endif

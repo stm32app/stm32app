@@ -4,4 +4,4 @@ node scripts/overlay.js ./src/definitions/Base_F1.c ./src/configs/OD.c ./src/con
 node scripts/overlay.js ./src/definitions/Base_F4.c ./src/configs/OD.c ./src/configs/Base_F4.c 
 
 node --experimental-modules scripts/types.js ./src/configs/Base.xdd ./src/configs/OD.h
-
+node scripts/enums.js --experimental-modules

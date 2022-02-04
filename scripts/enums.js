@@ -6,7 +6,7 @@ glob(`./src/**/*.h`, (err, files) => {
   var header = '';
   header += "#ifndef INC_ENUMS\n"
   header += "#define INC_ENUMS\n"
-  header += `#include "core/types.h"\n`;
+  header += `#include <stdint.h>\n`;
   files.map((file) => {
     const content = fs.readFileSync(file).toString()
     content.replace(/enum (.*?)\s*\{([^}+]+)\}/g, (m, c, b) => {
@@ -35,7 +35,6 @@ glob(`./src/**/*.h`, (err, files) => {
     })
   })
   header += "#endif"
-  fs.writeFileSync('src/enums.h', header);
-  fs.writeFileSync('src/enums.c', result);
-  console.log(result)
+  fs.writeFileSync('src/definitions/enums.h', header);
+  fs.writeFileSync('src/definitions/enums.c', result);
 })

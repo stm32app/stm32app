@@ -75,9 +75,9 @@ int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_tick, uint32_t
 
 app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t *event, app_event_t *destination,
                                                      app_event_status_t ready_status, app_event_status_t busy_status,
-                                                     actor_on_event_t handler) {
+                                                     actor_on_report_t handler) {
     // Check if destination can store the incoming event, otherwise actor will be considered busy
-    if (destination != NULL || destination->type != APP_EVENT_IDLE) {
+    if (destination == NULL || destination->type == APP_EVENT_IDLE) {
         event->consumer = actor;
         event->status = ready_status;
         memcpy(destination, event, sizeof(app_event_t));
@@ -102,7 +102,6 @@ app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event
         memset(&task->awaited_event, 0, sizeof(app_event_t));
         task->step_index = task->phase_index = 0;
         task->thread = thread;
-        task->tick = NULL;
         task->counter = 0;
         log_printf("~ %s: New task for %s via #%s\n", get_actor_type_name(actor->class->type), app_thread_get_name(thread), get_app_event_type_name(event->type));
         app_thread_actor_schedule(thread, actor, thread->current_time);
@@ -199,8 +198,8 @@ void actor_event_subscribe(actor_t *actor, app_event_type_t type) {
 
 app_signal_t actor_event_report(actor_t *actor, app_event_t *event) {
     (void)actor;
-    if (event->producer && event->producer->class->on_event) {
-        return event->producer->class->on_event(event->producer->object, event);
+    if (event->producer && event->producer->class->on_report) {
+        return event->producer->class->on_report(event->producer->object, event);
     } else {
         return APP_SIGNAL_OK;
     }
@@ -219,7 +218,8 @@ app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
 }
 
 app_signal_t actor_tick_catchup(actor_t *actor, actor_tick_t *tick) {
-    (void)actor;
+    if (tick == NULL)
+        tick = actor->ticks->input;
     app_thread_t *thread = tick->catchup;
     if (thread) {
         tick->catchup = NULL;

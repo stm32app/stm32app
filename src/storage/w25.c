@@ -2,7 +2,7 @@
 #include "transport/spi.h"
 
 
-static app_task_signal_t step_spi_transfer(app_task_t *task, uint8_t *write_data, size_t write_size, size_t read_size) {
+static app_task_signal_t w25_spi_transfer(app_task_t *task, uint8_t *write_data, size_t write_size, size_t read_size) {
     app_publish(task->actor->app, &((app_event_t){
                                        .type = APP_EVENT_TRANSFER,
                                        .consumer = ((storage_w25_t *)task->actor->object)->spi->actor,
@@ -14,24 +14,24 @@ static app_task_signal_t step_spi_transfer(app_task_t *task, uint8_t *write_data
     return APP_TASK_STEP_WAIT;
 }
 
+// Send command and receieve response
+static app_task_signal_t w25_set_lock(app_task_t *task, bool_t state) {
+    return w25_spi_transfer(task, (uint8_t[]){state ? W25_CMD_UNLOCK : W25_CMD_LOCK}, 1, 0);
+}
+
 // Query SR signal in a loop to check if actor is ready to accept commands
-static app_task_signal_t step_wait_until_ready(app_task_t *task) {
+static app_task_signal_t w25_step_wait_until_ready(app_task_t *task) {
     switch (task->step_index) {
-    case 0: return step_spi_transfer(task, (uint8_t[]){W25_CMD_READ_SR1}, 1, 1);
+    case 0: return w25_spi_transfer(task, (uint8_t[]){W25_CMD_READ_SR1}, 1, 1);
     default: return (*task->awaited_event.data & W25_SR1_BUSY) ? APP_TASK_STEP_RETRY : APP_TASK_STEP_COMPLETE;
     }
 }
 
-// Send command and receieve response
-static app_task_signal_t step_set_lock(app_task_t *task, bool_t state) {
-    return step_spi_transfer(task, (uint8_t[]){state ? W25_CMD_UNLOCK : W25_CMD_LOCK}, 1, 0);
-}
-
-static app_task_signal_t step_write_in_pages(app_task_t *task, uint32_t address, uint8_t *data, size_t size, size_t page_size) {
+static app_task_signal_t w25_step_write_in_pages(app_task_t *task, uint32_t address, uint8_t *data, size_t size, size_t page_size) {
     uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, page_size);
     switch (task->step_index) {
-    case 0: return step_set_lock(task, false);
-    case 2: return step_spi_transfer(task, data, bytes_on_page, bytes_on_page);
+    case 0: return w25_set_lock(task, false);
+    case 2: return w25_spi_transfer(task, data, bytes_on_page, bytes_on_page);
     default:
         task->counter += bytes_on_page;
         if (task->counter == size) {
@@ -45,45 +45,54 @@ static app_task_signal_t step_write_in_pages(app_task_t *task, uint32_t address,
 
 static app_task_signal_t w25_task_introspection(app_task_t *task) {
     switch (task->phase_index) {
-    case 0: return step_wait_until_ready(task);
-    case 1: return step_spi_transfer(task, (uint8_t[]){W25_CMD_MANUF_ACTOR, 0xff, 0xff, 0x00}, 4, 2);
+    case 0: return w25_step_wait_until_ready(task);
+    case 1: return w25_spi_transfer(task, (uint8_t[]){W25_CMD_MANUF_ACTOR, 0x00, 0x00, 0x00}, 4, 2);
     default: return APP_TASK_COMPLETE;
     }
 }
 
 static app_task_signal_t w25_send_command(app_task_t *task, uint8_t command) {
     switch (task->phase_index) {
-    case 0: return step_wait_until_ready(task);
-    case 1: return step_spi_transfer(task, (uint8_t[]){command}, 1, 0);
+    case 0: return w25_step_wait_until_ready(task);
+    case 1: return w25_spi_transfer(task, (uint8_t[]){command}, 1, 0);
     default: return APP_TASK_COMPLETE;
     }
 }
 static app_task_signal_t w25_task_lock(app_task_t *task) {
     switch (task->phase_index) {
-    case 0: return step_wait_until_ready(task);
-    case 1: return step_set_lock(task, true);
+    case 0: return w25_step_wait_until_ready(task);
+    case 1: return w25_set_lock(task, true);
     default: return APP_TASK_COMPLETE;
     }
 }
 static app_task_signal_t w25_task_unlock(app_task_t *task) {
     switch (task->phase_index) {
-    case 0: return step_wait_until_ready(task);
-    case 1: return step_set_lock(task, false);
+    case 0: return w25_step_wait_until_ready(task);
+    case 1: return w25_set_lock(task, false);
     default: return APP_TASK_COMPLETE;
     }
 }
 static app_task_signal_t w25_task_enable(app_task_t *task) {
-    return w25_send_command(task, W25_CMD_PWR_ON);
-}
-static app_task_signal_t w25_task_disable(app_task_t *task) {
-    return w25_send_command(task, W25_CMD_PWR_OFF);
+    switch (task->phase_index) {
+    case 0: return w25_step_wait_until_ready(task);
+    case 1: return w25_spi_transfer(task, (uint8_t[]){W25_CMD_PWR_ON, 0xFF, 0xFF, 0xFF}, 4, 1);
+    default: return APP_TASK_COMPLETE;
+    }
 }
 
+static app_task_signal_t w25_task_disable(app_task_t *task) {
+    switch (task->phase_index) {
+    case 0: return w25_step_wait_until_ready(task);
+    case 1: return w25_spi_transfer(task, (uint8_t[]){W25_CMD_PWR_OFF}, 1, 0);
+    default: return APP_TASK_COMPLETE;
+    }
+}
+    
 static app_task_signal_t w25_task_write(app_task_t *task) {
     switch (task->phase_index) {
-    case 1: return step_wait_until_ready(task);
+    case 1: return w25_step_wait_until_ready(task);
     case 2:
-        return step_write_in_pages(task, (uint32_t)task->inciting_event.argument, task->inciting_event.data, task->inciting_event.size,
+        return w25_step_write_in_pages(task, (uint32_t)task->inciting_event.argument, task->inciting_event.data, task->inciting_event.size,
                                    256);
     default: return APP_TASK_COMPLETE;
     }
@@ -120,12 +129,12 @@ static app_signal_t w25_construct(storage_w25_t *w25) {
 
 static app_signal_t w25_stop(storage_w25_t *w25) {
     return actor_event_handle_and_start_task(w25->actor, &((app_event_t){.type = APP_EVENT_DISABLE}), &w25->task,
-                                              w25->actor->app->threads->bg_priority, w25_task_disable);
+                                              w25->actor->app->threads->high_priority, w25_task_disable);
 }
 
 static app_signal_t w25_start(storage_w25_t *w25) {
-    return actor_event_handle_and_start_task(w25->actor, &((app_event_t){.type = APP_EVENT_ENABLE}), &w25->task,
-                                              w25->actor->app->threads->bg_priority, w25_task_enable);
+    //return actor_event_handle_and_start_task(w25->actor, &((app_event_t){.type = APP_EVENT_ENABLE}), &w25->task,
+    //                                          w25->actor->app->threads->high_priority, w25_task_enable);
 }
 
 /* Link w25 actor with its spi module (i2c, spi, uart) */
@@ -141,7 +150,7 @@ static app_signal_t w25_on_phase(storage_w25_t *w25, actor_phase_t phase) {
 }
 
 // Acknowledge returned event
-static app_signal_t w25_on_event(storage_w25_t *w25, app_event_t *event) {
+static app_signal_t w25_on_report(storage_w25_t *w25, app_event_t *event) {
     switch (event->type) {
     case APP_EVENT_WRITE:
         app_thread_actor_schedule(w25->actor->app->threads->high_priority, w25->actor,
@@ -188,6 +197,6 @@ actor_class_t storage_w25_class = {
     .tick_input = (actor_on_tick_t)w25_tick_input,
     .tick_high_priority = (actor_on_tick_t)w25_tick_high_priority,
     .on_phase = (actor_on_phase_t)w25_on_phase,
-    .on_event = (actor_on_event_t)w25_on_event,
+    .on_report = (actor_on_report_t)w25_on_report,
     .property_write = w25_property_write,
 };

@@ -7,8 +7,7 @@ extern "C" {
 
 #include "core/actor.h"
 #include "lib/dma.h"
-#include "lib/vpool.h"
-#include "lib/vpool.h"
+#include "lib/membuf.h"
 #include <libopencm3/stm32/spi.h>
 
 
@@ -25,7 +24,7 @@ typedef struct transport_spi_properties {
     uint8_t dma_rx_stream;
     uint8_t dma_rx_channel;
     uint32_t dma_rx_idle_timeout; // In microseconds 
-    uint16_t rx_buffer_size;
+    uint16_t dma_rx_circular_buffer_size;
     uint16_t rx_pool_max_size;
     uint16_t rx_pool_initial_size;
     uint16_t rx_pool_block_size;
@@ -51,12 +50,12 @@ struct transport_spi {
     uint32_t clock;
     uint32_t address;
     app_event_t processed_event;      // current reading job
-    uint8_t *rx_buffer;        // circular buffer for DMA
-    uint16_t rx_buffer_cursor; // current ingested position in rx buffer
+    uint8_t *dma_rx_circular_buffer;        // circular buffer for DMA
+    uint16_t dma_rx_circular_buffer_cursor; // current ingested position in rx buffer
     uint32_t rx_bytes_target;
     uint32_t tx_bytes_target;
     uint32_t tx_bytes_sent;
-    struct vpool rx_pool;      // pool that allocates growing memory chunk for recieved messages
+    membuf_t rx_pool;      // pool that allocates growing memory chunk for recieved messages
 };
 
 extern actor_class_t transport_spi_class;
@@ -78,7 +77,7 @@ typedef enum transport_spi_properties_properties {
   TRANSPORT_SPI_DMA_RX_STREAM = 0x05,
   TRANSPORT_SPI_DMA_RX_CHANNEL = 0x06,
   TRANSPORT_SPI_DMA_RX_IDLE_TIMEOUT = 0x07,
-  TRANSPORT_SPI_RX_BUFFER_SIZE = 0x08,
+  TRANSPORT_SPI_DMA_RX_CIRCULAR_BUFFER_SIZE = 0x08,
   TRANSPORT_SPI_RX_POOL_MAX_SIZE = 0x09,
   TRANSPORT_SPI_RX_POOL_INITIAL_SIZE = 0x0A,
   TRANSPORT_SPI_RX_POOL_BLOCK_SIZE = 0x0B,

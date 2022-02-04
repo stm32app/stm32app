@@ -16,12 +16,10 @@ static app_signal_t modbus_validate(transport_modbus_properties_t *properties) {
 }
 
 static app_signal_t modbus_construct(transport_modbus_t *modbus) {
-    modbus->rx_buffer = malloc(modbus->properties->rx_buffer_size);
     return 0;
 }
 
 static app_signal_t modbus_destruct(transport_modbus_t *modbus) {
-    free(modbus->rx_buffer);
     return 0;
 }
 
@@ -65,21 +63,6 @@ static app_signal_t modbus_validate_message(transport_modbus_t *modbus, uint8_t 
     return 0;
 }
 
-/* Copy memory from the circular buffer */
-static void transport_modbus_ingest_buffer(transport_modbus_t *modbus) {
-    size_t pos = transport_usart_get_buffer_size_written(modbus->usart);
-    if (pos != modbus->rx_position) {    /* Check change in received data */
-        if (pos > modbus->rx_position) { /* Current position is over previous one */
-            memcpy(modbus->usart->dma_rx_buffer, modbus->rx_buffer[modbus->rx_position], pos - modbus->rx_position);
-        } else {
-            memcpy(modbus->usart->dma_rx_buffer, modbus->rx_buffer[modbus->rx_position],
-                   transport_usart_get_buffer_size(modbus->usart) - modbus->rx_position);
-            memcpy(modbus->usart->dma_rx_buffer, modbus->rx_buffer[0], pos);
-        }
-        modbus->rx_position = pos; /* Save current position as old for next transfers */
-    }
-}
-
 static app_signal_t modbus_signal(transport_modbus_t *modbus, actor_t *actor, app_signal_t signal, char *source) {
     switch (signal) {
         /* usart is idle, need to wait 3.5 characters to start reading */
@@ -88,7 +71,7 @@ static app_signal_t modbus_signal(transport_modbus_t *modbus, actor_t *actor, ap
             break;
         /* 3.5 characters delay time is over, ready to process messages in buffer */
         case APP_SIGNAL_TIMEOUT:
-            transport_modbus_ingest_buffer(modbus);
+            //transport_modbus_ingest_buffer(modbus);
             break;
         default:
             break;
