@@ -28,7 +28,7 @@ static app_task_signal_t w25_step_wait_until_ready(app_task_t *task) {
 }
 
 static app_task_signal_t w25_step_write_in_pages(app_task_t *task, uint32_t address, uint8_t *data, size_t size, size_t page_size) {
-    uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, page_size);
+    uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, size, page_size);
     switch (task->step_index) {
     case 0: return w25_set_lock(task, false);
     case 2: return w25_spi_transfer(task, data, bytes_on_page, bytes_on_page);

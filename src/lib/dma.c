@@ -1,5 +1,5 @@
 #include "dma.h"
-#include "lib/membuf.h"
+#include "lib/app_buffer.h"
 
 uint32_t dma_get_address(uint8_t index) {
     switch (index) {
@@ -147,28 +147,6 @@ bool_t actor_dma_match_source(void *source, uint8_t unit, uint8_t index) {
 
 uint32_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint32_t buffer_size) {
     return buffer_size - dma_get_number_of_data(dma_get_address(unit), index);
-}
-
-void actor_dma_ingest(uint8_t unit, uint8_t index, uint8_t *circular_buffer, uint16_t buffer_size, uint16_t expected_buffer_size,
-                      uint16_t *cursor, membuf_t *membuf) {
-    uint16_t pos = (uint16_t)actor_dma_get_buffer_position(unit, index, expected_buffer_size);
-    if (pos != *cursor) {
-        // If total size is known upfront, membuf can allocate it so there is no wasted memory
-        if (expected_buffer_size < buffer_size && membuf->buffer_size == 0) {
-            membuf_init(membuf, expected_buffer_size);
-        }
-
-        //  Handle wraparound of circular buffer, copy memory into membuf that can grow automatically
-        if (pos > *cursor) {
-            membuf_append(membuf, &circular_buffer[*cursor], pos - *cursor);
-        } else {
-            membuf_append(membuf, &circular_buffer[*cursor], expected_buffer_size - *cursor);
-            if (pos > 0) {
-                membuf_append(membuf, &circular_buffer[0], pos);
-            }
-        }
-        *cursor = pos;
-    }
 }
 
 void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *buffer, size_t buffer_size,

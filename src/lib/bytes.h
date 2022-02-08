@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-uint32_t get_number_of_bytes_intesecting_page(uint32_t address, size_t page_size);
+uint32_t get_number_of_bytes_intesecting_page(uint32_t address, uint32_t size, uint32_t page_size) ;
 
 uint16_t swap_bytes_ba(uint16_t AB);
 uint16_t swap_bytes_ab(uint16_t AB);

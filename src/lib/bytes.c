@@ -25,9 +25,9 @@ uint32_t swap_bytes_dcba(uint32_t ABCD) {
 #define min(a, b) (a > b ? b : a)
 #define max(a, b) (a < b ? b : a)
 
-uint32_t get_number_of_bytes_intesecting_page(uint32_t address, size_t page_size) {
-    size_t current_address = address;
-    size_t page_start_offset = current_address % page_size;
-    size_t last_byte_on_page = min(current_address + page_size, address + page_size);
-    return last_byte_on_page - page_start_offset;
+uint32_t get_number_of_bytes_intesecting_page(uint32_t address, uint32_t size, uint32_t page_size) {
+    uint32_t page_start_offset = address % page_size;
+    uint32_t last_byte_in_range = address + size;
+    uint32_t last_byte_on_page = address - page_start_offset + page_size;
+    return min(last_byte_on_page, last_byte_in_range) - address;
 }

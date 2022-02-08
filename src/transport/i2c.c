@@ -23,21 +23,9 @@ static ODR_t i2c_property_write(OD_stream_t *stream, const void *buf, OD_size_t 
     ODR_t result = OD_writeOriginal(stream, buf, count, countWritten);
     return result;
 }
-
-static app_signal_t i2c_allocate_rx_circular_buffer(transport_i2c_t *i2c) {
-    i2c->dma_rx_circular_buffer = malloc(i2c->properties->dma_rx_circular_buffer_size);
-    i2c->dma_rx_circular_buffer_cursor = 0;
-    return i2c->dma_rx_circular_buffer == NULL;
-}
-
 static app_signal_t i2c_validate(transport_i2c_properties_t *properties) {
     (void)properties;
     return 0;
-}
-
-static uint32_t i2c_dma_get_effectve_rx_circular_buffer_size(transport_i2c_t *i2c) {
-    uint32_t bytes = i2c->rx_bytes_target;
-    return bytes > 0 && bytes < i2c->properties->dma_rx_circular_buffer_size ? bytes : i2c->properties->dma_rx_circular_buffer_size;
 }
 
 static void i2c_dma_tx_start(transport_i2c_t *i2c, uint8_t *data, uint32_t size) {
@@ -63,34 +51,35 @@ static void i2c_dma_tx_stop(transport_i2c_t *i2c) {
     actor_unregister_dma(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream);
 }
 
-static void i2c_dma_rx_start(transport_i2c_t *i2c, uint32_t size) {
-    i2c->rx_bytes_target = size;
+static void i2c_dma_rx_start(transport_i2c_t *i2c, uint8_t *data, uint32_t size) {
     actor_register_dma(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->actor);
 
     log_printf("   > I2C%u\t", i2c->actor->seq + 1);
     log_printf("RX started\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
 
     i2c_enable_dma(i2c->address);
+    app_double_buffer_start(&i2c->read, data, size);
 
-    uint32_t buffer_size = i2c_dma_get_effectve_rx_circular_buffer_size(i2c);
     actor_dma_rx_start((uint32_t) & (I2C_DR(i2c->address)), i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream,
-                       i2c->properties->dma_rx_channel, i2c->dma_rx_circular_buffer, buffer_size,
-                       i2c->rx_bytes_target == 0 || i2c->rx_bytes_target > buffer_size);
+                       i2c->properties->dma_rx_channel, app_double_buffer_get_buffer(&i2c->read), app_double_buffer_get_sufficent_buffer_size(&i2c->read),
+                       app_double_buffer_uses_ring_buffer(&i2c->read));
 }
 
 static void i2c_dma_rx_stop(transport_i2c_t *i2c) {
-    i2c->rx_bytes_target = 0;
     log_printf("   > I2C%u\t", i2c->actor->seq + 1);
     log_printf("RX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
 
     i2c->incoming_signal = 0;
-    i2c->dma_rx_circular_buffer_cursor = 0;
     actor_dma_rx_stop(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
     actor_unregister_dma(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream);
 }
 
 static app_signal_t i2c_construct(transport_i2c_t *i2c) {
-    i2c->rx_pool.block_size = i2c->properties->rx_pool_block_size;
+    i2c->read.growable_buffer_initial_size = i2c->properties->rx_pool_initial_size;
+    i2c->read.growable_buffer.block_size = i2c->properties->rx_pool_block_size;
+    i2c->read.growable_buffer.max_size = i2c->properties->rx_pool_max_size;
+    i2c->read.ring_buffer_size = i2c->properties->dma_rx_circular_buffer_size;
+
     switch (i2c->actor->seq) {
     case 0:
         i2c->clock = RCC_I2C1;
@@ -264,14 +253,8 @@ static app_task_signal_t i2c_step_write_data(app_task_t *task, uint8_t address, 
     }
 }
 
-static app_task_signal_t i2c_step_read_data(app_task_t *task, uint8_t address, uint32_t size) {
+static app_task_signal_t i2c_step_read_data(app_task_t *task, uint8_t address, uint8_t *data, uint32_t size) {
     transport_i2c_t *i2c = task->actor->object;
-    if (i2c->dma_rx_circular_buffer == NULL) {
-        int error = i2c_allocate_rx_circular_buffer(i2c);
-        if (error != 0) {
-            return APP_TASK_FAILURE;
-        }
-    }
     switch (task->step_index) {
     case 0:
         i2c_enable_ack(i2c->address);
@@ -288,7 +271,7 @@ static app_task_signal_t i2c_step_read_data(app_task_t *task, uint8_t address, u
         if (!I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address)) {
             return APP_TASK_STEP_LOOP;
         } else {
-            i2c_dma_rx_start(i2c, size);
+            i2c_dma_rx_start(i2c, data, size);
             return APP_TASK_STEP_WAIT;
         }
     default:
@@ -306,7 +289,7 @@ static app_task_signal_t i2c_step_read_data(app_task_t *task, uint8_t address, u
 app_task_signal_t i2c_step_publish_response(app_task_t *task) {
     transport_i2c_t *i2c = task->actor->object;
     app_event_t *response = &(app_event_t){.type = APP_EVENT_RESPONSE, .producer = i2c->actor, .consumer = task->inciting_event.producer};
-    response->data = membuf_release(&i2c->rx_pool, &response->size);
+    app_double_buffer_stop(&i2c->read, &response->data, &response->size);
     app_publish(task->actor->app, response);
     return APP_TASK_STEP_COMPLETE;
 }
@@ -321,7 +304,7 @@ static app_task_signal_t i2c_task_read(app_task_t *task) {
     case 0:
         return i2c_step_setup(task, argument->slave_address, argument->memory_address);
     case 1:
-        return i2c_step_read_data(task, argument->slave_address, task->inciting_event.size);
+        return i2c_step_read_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
     case 2:
         return i2c_step_publish_response(task);
     case 3:
@@ -367,10 +350,8 @@ static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_sign
     // DMA interrupts on buffer filling up half-way or all the way up
     case APP_SIGNAL_DMA_TRANSFERRING:
         if (actor_dma_match_source(source, i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream)) {
-            actor_dma_ingest(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->dma_rx_circular_buffer,
-                             i2c->properties->dma_rx_circular_buffer_size, i2c_dma_get_effectve_rx_circular_buffer_size(i2c),
-                             &i2c->dma_rx_circular_buffer_cursor, &i2c->rx_pool);
-            if (i2c->rx_bytes_target != i2c->rx_pool.size) {
+            if (app_double_buffer_from_dma(&i2c->read, dma_get_number_of_data(dma_get_address(i2c->properties->dma_rx_unit),
+                                                                     i2c->properties->dma_rx_stream)) == APP_SIGNAL_INCOMPLETE) {
                 break;
             }
         }

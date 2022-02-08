@@ -266,7 +266,7 @@ static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
         .type = APP_EVENT_RESPONSE, 
         .producer = spi->actor, 
         .consumer = spi->processed_event.producer,};
-    response->data = membuf_release(&spi->rx_pool, &response->size);
+    response->data = app_buffer_release(&spi->rx_pool, &response->size);
 
     // shift pointer by tx bytes
     response->argument = (void *)spi->tx_bytes_target;
@@ -283,9 +283,9 @@ static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
 static app_signal_t spi_dma_read_possibly_complete(transport_spi_t *spi, bool_t is_idle) {
 
     // copy receieved dma chunk from circular buffer into a growable pool
-    actor_dma_ingest(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->dma_rx_circular_buffer,
+    /*actor_dma_ingest(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->dma_rx_circular_buffer,
                      spi->properties->dma_rx_circular_buffer_size, spi_dma_get_effectve_rx_circular_buffer_size(spi),
-                     &spi->dma_rx_circular_buffer_cursor, &spi->rx_pool);
+                     &spi->dma_rx_circular_buffer_cursor, &spi->rx_pool);*/
 
     uint32_t rx_bytes_required = spi_dma_get_required_rx_bytes(spi);
 

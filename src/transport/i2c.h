@@ -7,7 +7,8 @@ extern "C" {
 
 #include "core/actor.h"
 #include <libopencm3/stm32/i2c.h>
-#include "lib/membuf.h"
+#include "lib/dma.h"
+#include "core/buffer.h"
 
 #define I2C_UNITS 3
 
@@ -47,16 +48,13 @@ struct transport_i2c{
     uint32_t address;
     uint32_t ev_irq;
     uint32_t er_irq;
-    uint32_t dma_tx_address;
-    uint32_t dma_rx_address;
-    uint32_t rx_bytes_target;
+
+
     app_signal_t incoming_signal;
     app_task_t task;
     uint16_t task_retries;
-    uint8_t *dma_rx_circular_buffer;        // circular buffer for DMA
-    uint16_t dma_rx_circular_buffer_cursor; // current ingested position in rx buffer
-    membuf_t rx_pool;      // pool that allocates growing memory chunk for recieved messages
-
+    
+    app_double_buffer_t read;
     uint8_t ready;
 } ;
 

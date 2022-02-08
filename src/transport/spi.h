@@ -7,7 +7,6 @@ extern "C" {
 
 #include "core/actor.h"
 #include "lib/dma.h"
-#include "lib/membuf.h"
 #include <libopencm3/stm32/spi.h>
 
 
@@ -55,7 +54,7 @@ struct transport_spi {
     uint32_t rx_bytes_target;
     uint32_t tx_bytes_target;
     uint32_t tx_bytes_sent;
-    membuf_t rx_pool;      // pool that allocates growing memory chunk for recieved messages
+    app_buffer_t rx_pool;      // pool that allocates growing memory chunk for recieved messages
 };
 
 extern actor_class_t transport_spi_class;

@@ -27,6 +27,8 @@ typedef enum app_signal app_signal_t;             /* Things that actor tell each
 typedef struct app_task app_task_t;               /* State machine dealing with high_priority commands*/
 typedef enum app_task_signal app_task_signal_t;   /* Commands to advance step machine*/
 typedef struct actor_blank actor_blank_t; /* Example blank actor */
+typedef struct app_buffer app_buffer_t; /* Growable owned buffer */
+typedef struct app_double_buffer app_double_buffer_t; /* Typical read operation for peripheral*/
 typedef app_task_signal_t (*actor_on_task_t)(app_task_t *task);
 typedef app_signal_t (*actor_on_report_t)(void *object, app_event_t *event);
 typedef app_signal_t (*actor_on_tick_t)(void *object, app_event_t *event, actor_tick_t *tick, app_thread_t *thread);
