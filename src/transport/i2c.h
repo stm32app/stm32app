@@ -54,7 +54,10 @@ struct transport_i2c{
     app_task_t task;
     uint16_t task_retries;
     
-    app_double_buffer_t read;
+    app_buffer_t *ring_buffer;
+    app_buffer_t *output_buffer;
+    app_buffer_t *source_buffer;
+
     uint8_t ready;
 } ;
 

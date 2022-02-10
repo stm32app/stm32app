@@ -42,7 +42,8 @@ case 11: return "APP_SIGNAL_INCOMING";
 case 12: return "APP_SIGNAL_BUSY";
 case 13: return "APP_SIGNAL_NOT_FOUND";
 case 14: return "APP_SIGNAL_UNCONFIGURED";
-case 15: return "APP_SIGNAL_OUT_OF_MEMORY";
+case 15: return "APP_SIGNAL_INCOMPLETE";
+case 16: return "APP_SIGNAL_OUT_OF_MEMORY";
 default: return "Unknown";
 }
 };
@@ -58,6 +59,14 @@ default: return "Unknown";
 }
 };
 
+char* get_app_buffer_flag_name (uint32_t v) {
+switch (v) {
+case 1: return "APP_BUFFER_UNMANAGED";
+case 2: return "APP_BUFFER_PROGRESS";
+default: return "Unknown";
+}
+};
+
 char* get_app_event_type_name (uint32_t v) {
 switch (v) {
 case 32: return "APP_EVENT_THREAD_START";
@@ -65,16 +74,17 @@ case 33: return "APP_EVENT_THREAD_STOP";
 case 34: return "APP_EVENT_THREAD_ALARM";
 case 0: return "APP_EVENT_IDLE";
 case 1: return "APP_EVENT_READ";
-case 2: return "APP_EVENT_WRITE";
-case 3: return "APP_EVENT_TRANSFER";
-case 4: return "APP_EVENT_ERASE";
-case 5: return "APP_EVENT_RESPONSE";
-case 6: return "APP_EVENT_LOCK";
-case 7: return "APP_EVENT_UNLOCK";
-case 8: return "APP_EVENT_INTROSPECTION";
-case 9: return "APP_EVENT_DIAGNOSE";
-case 10: return "APP_EVENT_ENABLE";
-case 11: return "APP_EVENT_DISABLE";
+case 2: return "APP_EVENT_READ_TO_BUFFER";
+case 3: return "APP_EVENT_WRITE";
+case 4: return "APP_EVENT_TRANSFER";
+case 5: return "APP_EVENT_ERASE";
+case 6: return "APP_EVENT_RESPONSE";
+case 7: return "APP_EVENT_LOCK";
+case 8: return "APP_EVENT_UNLOCK";
+case 9: return "APP_EVENT_INTROSPECTION";
+case 10: return "APP_EVENT_DIAGNOSE";
+case 11: return "APP_EVENT_ENABLE";
+case 12: return "APP_EVENT_DISABLE";
 default: return "Unknown";
 }
 };
@@ -93,17 +103,17 @@ default: return "Unknown";
 
 char* get_app_task_signal_name (uint32_t v) {
 switch (v) {
-case 0: return "APP_TASK_CONTINUE";
-case 1: return "APP_TASK_COMPLETE";
-case 2: return "APP_TASK_RETRY";
-case 3: return "APP_TASK_HALT";
-case 4: return "APP_TASK_FAILURE";
-case 5: return "APP_TASK_STEP_RETRY";
-case 6: return "APP_TASK_STEP_WAIT";
-case 7: return "APP_TASK_STEP_COMPLETE";
-case 8: return "APP_TASK_STEP_CONTINUE";
-case 9: return "APP_TASK_STEP_HALT";
-case 10: return "APP_TASK_STEP_LOOP";
+case 0: return "APP_TASK_STEP_CONTINUE";
+case 1: return "APP_TASK_STEP_RETRY";
+case 2: return "APP_TASK_STEP_WAIT";
+case 3: return "APP_TASK_STEP_QUIT_ISR";
+case 4: return "APP_TASK_STEP_LOOP";
+case 5: return "APP_TASK_CONTINUE";
+case 6: return "APP_TASK_RETRY";
+case 252: return "APP_TASK_STEP_SUCCESS";
+case 253: return "APP_TASK_STEP_FAILURE";
+case 254: return "APP_TASK_SUCCESS";
+case 255: return "APP_TASK_FAILURE";
 default: return "Unknown";
 }
 };

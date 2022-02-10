@@ -40,8 +40,9 @@ CANopen is a higher-level layer built on top of CAN bus which itself is decentra
 * **Prioritized execution**: Actors can have parts of their logic run and schedule with different priorities with no extra overhead of spawning tasks and queues.
 
 
+
 ## Thread, Tick, Task
-Threads is an abstraction over prioritized task, a pubsub queue and event dispatcher. Multiple actors share the same task provided by the thread, reducing memory consumption.
+**Threads** is an abstraction over prioritized task, a pubsub queue and event dispatcher. Multiple actors share the same task provided by the thread, reducing memory consumption.
 
 * **Cooperation**: Threads have different priorities to make more important things run before less important
 * **Event bus**: Threads provide a pub/sub queue for incoming events, that can be dispatched to subscribed actors. Using unified queue is characterized by predictable and managable memory footprint, and ability to mix events of different types coming from different sources. Events can be broadcasted, served to first taker, or sent directly. Actors may ask the thread to keep the event in a backlog for later processing.
@@ -50,6 +51,16 @@ Threads is an abstraction over prioritized task, a pubsub queue and event dispat
 Actors can declare **ticks**, where each tick is a function corresponding to a specific thread. Ticks handle events, schedule periodical or delayed execution, or do work with a specific priority. Events are typed messages with data attached to it. Actors receive broadcasted events via pub-sub, handle them in one of the ticks, and then report back to the producer of event. 
 
 Many of actors define **tasks**, that can run in response to events. A tasks is a state-machine that encapsulates asynchronous logic that spans through multiple steps, threads, events and require back and forth hand-off between different parties. They are used to separate business logic from IO and schedulling.
+
+## Buffer
+**Buffer** is an abstraction over memory allocation. It solves multiples concerns related to managing data:
+
+* **Growable memory**: buffers can be used for cases where amount of incoming data is unknown beforehand. Buffers allocate a certain chunk of memory initially, which can be reallocated on demand to provide more space while keepin data region as a single continuous region.
+* **Paginated memory**: another way that buffers can grow is by allocating extra pages of memory on demand and linking them together. In this case memory chunks will not be continuous, but on the flip side previously written memory will maintain the same addresses making it useful for object pools. 
+* **Double buffers**: for cases when data is written by external party like DMA and its size is unknown, double buffer helpers enable moving data from a ring buffer to growable array easily
+* **Overhead reduction**: buffers can be passed and handed off from module to module directly. Regular data pointers and buffers can be used interchangibly and the system does the best effort thing automatically.
+* **Reference counting**: buffers know which module allocated them, and they track external modules that use their data. A buffer is only freed when all its users release their references to it.
+* **Event integration**: buffers assigned to events will automatically be freed once the event is processed by all receievers. This allows firing events with data into the queue without concerns for memory leaks.
 
 # Cooperation
 stm32app implements cheap asynchrony, prioritization of work, event-driven communication with queues and cooperation through easy to use primitives.
@@ -102,6 +113,13 @@ stm32app provides a primitive called thread - a combination of task, a queue and
   * 🟢 **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide. However just like with barebone FreeRTOS, the developer has to manually decide how much memory should be allocated for thread's stack and its optional queue.
 * 🟡 **Harder to follow**: Spreading work across tasks with multiple priorities can make the execution flow opaque and complicated. 
   * 🟢 **Task primitive**: stm32app offers a very lightweight approach to writing asynchronous code that contains all of its steps close to each other in a state machine. All the minutiae is done behind the scenes, and handling of input and switching priorities mid-way is separated from the logical flow of a task. This often makes the code even easier to read than even with more advanced languages async/await or couroutines.
+
+
+# Sharing resources
+Writing code for multiple threads can be tricky. Either though most stm32 code runs on a single process, interrupts and pre-emption can cause any task stop mid-way. The problems arise when multiple threads access and modify the shared resource. Usual solution is toHere's an overview of what different subsystem do to ensure thread-safety:
+
+* **Memory allocation**: FreeRTOS prevents interrupts from happening
+* **Buffer allocation**:  
 
 # Networking
 Internal changes of state can be broardcasted to network as individual values or packed into PDO actors (8 bytes). CANopen provides ability to snapshot and send data from multiple actors simultaneously by simulating synchronous messaging. Actors can acquire addresses automatically, then can be monitored via heartbeats and orchestrated to boot up at once. Master nodes can log errors on the network and report issues.

@@ -309,7 +309,7 @@ static app_signal_t timer_advance(module_timer_t *timer, uint32_t time) {
 }
 
 static void timer_interrupt(size_t index) {
-    module_timer_t *timer = module_timers[index];
+    module_timer_t *timer = (module_timer_t *) module_timers[index];
     if (timer_get_flag(timer->address, TIM_DIER_UIE)) {
         timer_clear_flag(timer->address, TIM_DIER_UIE);
         timer_advance(timer, timer->next_tick);
@@ -480,7 +480,7 @@ actor_class_t module_timer_class = {
     .property_write = timer_property_write,
 };
 
-void tim1_isr(void) {
+void tim1_cc_isr(void) {
     timer_interrupt(0);
 }
 void tim2_isr(void) {
@@ -495,18 +495,19 @@ void tim4_isr(void) {
 void tim5_isr(void) {
     timer_interrupt(4);
 }
-void tim6_isr(void) {
+void tim6_dac_isr(void) {
     timer_interrupt(5);
 }
 void tim7_isr(void) {
     timer_interrupt(6);
 }
-void tim8_isr(void) {
+
+void tim8_cc_isr(void) {
     timer_interrupt(7);
 }
-void tim9_isr(void) {
+/*void tim9_isr(void) {
     timer_interrupt(8);
 }
 void tim10_isr(void) {
     timer_interrupt(9);
-}
+}*/

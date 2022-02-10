@@ -1,4 +1,5 @@
 #include "circuit.h"
+#include "lib/gpio.h"
 
 static ODR_t circuit_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     device_circuit_t *circuit = stream->object;
@@ -44,7 +45,7 @@ static app_signal_t circuit_on_value(device_circuit_t *circuit, actor_t *actor, 
 }
 
 static app_signal_t circuit_start(device_circuit_t *circuit) {
-    actor_gpio_configure_input("Relay", circuit->properties->port, circuit->properties->pin, 0);
+    gpio_configure_input_analog(circuit->properties->port, circuit->properties->pin);
     // actor_gpio_set_state(device_circuit_get_state(circuit));
 
     return 0;

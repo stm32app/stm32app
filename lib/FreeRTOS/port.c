@@ -646,6 +646,9 @@ void vPortValidateInterruptPriority(void) {
          * The following links provide detailed information:
          * https://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html
          * https://www.FreeRTOS.org/FAQHelp.html */
+        if (ucCurrentPriority < ucMaxSysCallPriority) {
+            printf("Fail! %lu %lu\n", ucCurrentPriority, ucMaxSysCallPriority);
+        }
         configASSERT(ucCurrentPriority >= ucMaxSysCallPriority);
     }
 

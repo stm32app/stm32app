@@ -54,7 +54,8 @@ struct transport_spi {
     uint32_t rx_bytes_target;
     uint32_t tx_bytes_target;
     uint32_t tx_bytes_sent;
-    app_buffer_t rx_pool;      // pool that allocates growing memory chunk for recieved messages
+    app_buffer_t *ring_buffer;      
+    app_buffer_t *output_buffer;      // pool that allocates growing memory chunk for recieved messages
 };
 
 extern actor_class_t transport_spi_class;

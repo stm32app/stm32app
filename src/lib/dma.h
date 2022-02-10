@@ -1,12 +1,15 @@
+#ifndef INC_LIB_DMA
+#define INC_LIB_DMA
+
+
 /* Generalize dma api for STMF1 that dont support DMA streams with STMF2+ that do.
 The former need to configure stream to be the same as channel*/
 
 #include <core/actor.h>
+#include <core/types.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/rcc.h>
-#include <stddef.h>
-#include <stdint.h>
 
 #define DMA_UNITS 2
 #define DMA_CHANNELS 8
@@ -90,3 +93,6 @@ void *actor_dma_pack_source(uint8_t unit, uint8_t index);
 
 /* Check if pointer contains packed unit/index info */
 bool_t actor_dma_match_source(void *source, uint8_t unit, uint8_t index);
+
+
+#endif

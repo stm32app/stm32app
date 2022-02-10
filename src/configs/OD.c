@@ -223,7 +223,7 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .SDO_ClientTimeout = 0x01F4,
         .phase = 0x00,
         .nodeID = 0x00,
-        .bitrate = 0x000186A0
+        .bitrate = 0x03E8
     },
     .x6100_moduleTimer_1 = {
         .highestSub_indexSupported = 0x05,
@@ -1630,7 +1630,7 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataOrig = &OD_PERSIST_COMM.x6020_systemCANopen.bitrate,
             .subIndex = 10,
             .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 4
+            .dataLength = 2
         }
     },
     .o_6100_moduleTimer_1 = {

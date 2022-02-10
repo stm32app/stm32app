@@ -31,42 +31,40 @@ static app_signal_t i2c_validate(transport_i2c_properties_t *properties) {
 static void i2c_dma_tx_start(transport_i2c_t *i2c, uint8_t *data, uint32_t size) {
     actor_register_dma(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->actor);
 
-    log_printf("   > I2C%u\t", i2c->actor->seq + 1);
+    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
     log_printf("TX started\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
 
     actor_dma_tx_start((uint32_t) & (I2C_DR(i2c->address)), i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream,
-                       i2c->properties->dma_tx_channel, data, size, false);
+                       i2c->properties->dma_tx_channel, i2c->source_buffer->data, i2c->source_buffer->size, false);
 
-    volatile uint32_t s1 = I2C_SR1(i2c->address);
-    volatile uint32_t s2 = I2C_SR2(i2c->address);
     i2c_enable_dma(i2c->address);
 }
 
 static void i2c_dma_tx_stop(transport_i2c_t *i2c) {
-    log_printf("   > I2C%u\t", i2c->actor->seq + 1);
+    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
     log_printf("TX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
 
     i2c->incoming_signal = 0;
+    app_buffer_release(i2c->source_buffer, i2c->actor);
     actor_dma_tx_stop(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
     actor_unregister_dma(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream);
 }
 
-static void i2c_dma_rx_start(transport_i2c_t *i2c, uint8_t *data, uint32_t size) {
+static void i2c_dma_rx_start(transport_i2c_t *i2c, uint8_t *destination, uint32_t expected_size) {
     actor_register_dma(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->actor);
 
-    log_printf("   > I2C%u\t", i2c->actor->seq + 1);
+    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
     log_printf("RX started\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
 
     i2c_enable_dma(i2c->address);
-    app_double_buffer_start(&i2c->read, data, size);
 
+    app_buffer_t *input = app_double_buffer_get_input(i2c->ring_buffer, i2c->output_buffer);
     actor_dma_rx_start((uint32_t) & (I2C_DR(i2c->address)), i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream,
-                       i2c->properties->dma_rx_channel, app_double_buffer_get_buffer(&i2c->read), app_double_buffer_get_sufficent_buffer_size(&i2c->read),
-                       app_double_buffer_uses_ring_buffer(&i2c->read));
+                       i2c->properties->dma_rx_channel, input->data, input->allocated_size, input == i2c->ring_buffer);
 }
 
 static void i2c_dma_rx_stop(transport_i2c_t *i2c) {
-    log_printf("   > I2C%u\t", i2c->actor->seq + 1);
+    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
     log_printf("RX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
 
     i2c->incoming_signal = 0;
@@ -75,10 +73,13 @@ static void i2c_dma_rx_stop(transport_i2c_t *i2c) {
 }
 
 static app_signal_t i2c_construct(transport_i2c_t *i2c) {
-    i2c->read.growable_buffer_initial_size = i2c->properties->rx_pool_initial_size;
-    i2c->read.growable_buffer.block_size = i2c->properties->rx_pool_block_size;
-    i2c->read.growable_buffer.max_size = i2c->properties->rx_pool_max_size;
-    i2c->read.ring_buffer_size = i2c->properties->dma_rx_circular_buffer_size;
+    // ring buffer struct is allocated right away, but not its memory
+    // output buffer is allocated on demand
+    i2c->ring_buffer = app_buffer_allocate(i2c->actor);
+
+    if (!i2c->ring_buffer) {
+        return APP_SIGNAL_OUT_OF_MEMORY;
+    }
 
     switch (i2c->actor->seq) {
     case 0:
@@ -114,6 +115,24 @@ static app_signal_t i2c_construct(transport_i2c_t *i2c) {
 transport_i2c_t *i2c_units[I2C_UNITS] = {};
 
 static app_signal_t i2c_start(transport_i2c_t *i2c) {
+    i2c_peripheral_disable(i2c->address); /* disable i2c during setup */
+        
+
+    // make i2c unstuck (follows official errata solution)
+    gpio_configure_output_opendrain_pullup(i2c->properties->scl_port, i2c->properties->scl_pin, GPIO_FAST);
+    gpio_configure_output_opendrain_pullup(i2c->properties->sda_port, i2c->properties->sda_pin, GPIO_FAST);
+    uint16_t pins = (1 << i2c->properties->scl_pin) | (1 << i2c->properties->sda_pin);
+    gpio_set(GPIOX(i2c->properties->scl_port), pins);
+    while ((GPIO_ODR(GPIOX(i2c->properties->scl_port)) & pins) != pins);
+    gpio_configure_output_opendrain_pulldown(i2c->properties->scl_port, i2c->properties->scl_pin, GPIO_FAST);
+    gpio_configure_output_opendrain_pulldown(i2c->properties->sda_port, i2c->properties->sda_pin, GPIO_FAST);
+    gpio_clear(GPIOX(i2c->properties->scl_port), pins);
+    while ((GPIO_ODR(GPIOX(i2c->properties->scl_port)) & pins) != 0);
+    gpio_configure_output_opendrain_pullup(i2c->properties->scl_port, i2c->properties->scl_pin, GPIO_FAST);
+    gpio_configure_output_opendrain_pullup(i2c->properties->sda_port, i2c->properties->sda_pin, GPIO_FAST);
+    gpio_set(GPIOX(i2c->properties->scl_port), pins);
+    while ((GPIO_ODR(GPIOX(i2c->properties->scl_port)) & pins) != pins);
+
     log_printf("    > I2C%i SCL", i2c->actor->seq + 1);
     gpio_configure_af_opendrain(i2c->properties->scl_port, i2c->properties->scl_pin, GPIO_FAST, i2c->properties->af);
     log_printf("    > I2C%i SMBA", i2c->actor->seq + 1);
@@ -121,27 +140,39 @@ static app_signal_t i2c_start(transport_i2c_t *i2c) {
     log_printf("    > I2C%i SDA", i2c->actor->seq + 1);
     gpio_configure_af_opendrain(i2c->properties->sda_port, i2c->properties->sda_pin, GPIO_FAST, i2c->properties->af);
 
+    I2C_CR1(i2c->address) |= I2C_CR1_SWRST;
+    I2C_CR1(i2c->address) ^= I2C_CR1_SWRST;
+
     rcc_periph_clock_enable(i2c->clock);
-    i2c_peripheral_disable(i2c->address); /* disable i2c during setup */
     i2c_reset(i2c->address);
-    i2c_clear_stop(i2c->address);
+	//i2c_enable_analog_filter(i2c->address);
+	//i2c_set_digital_filter(i2c->address, 0);
 
+	i2c_set_speed(I2C1, i2c_speed_sm_100k, 8);
+    
     i2c_set_fast_mode(i2c->address);
-    // i2c_set_clock_frequency(i2c->address, i2c->properties->frequency);
+    i2c_set_clock_frequency(i2c->address, i2c->properties->frequency);
 
-    i2c_set_clock_frequency(i2c->address, 42);
-    i2c_set_ccr(i2c->address, 35);
-    i2c_set_trise(i2c->address, 43);
+    //i2c_set_clock_frequency(i2c->address, 42);
+    //i2c_set_ccr(i2c->address, 35);
+    //i2c_set_trise(i2c->address, 43);
     // i2c_set_speed(i2c->address, i2c_speed_sm_100k, i2c->actor->app->mcu->clock->apb1_frequency / 1000000);
 
     // i2c_set_ccr(i2c->address, 35);
     // i2c_set_trise(i2c->address, 43);
 
-    i2c_peripheral_enable(i2c->address);
-
     i2c_set_own_7bit_slave_address(i2c->address, i2c->properties->slave_address);
+
     i2c_units[i2c->actor->seq] = i2c;
-    i2c_enable_dma(i2c->address);
+
+    i2c_disable_ack(i2c->address);
+    i2c_enable_interrupt(i2c->address, I2C_CR2_ITEVTEN | I2C_CR2_ITERREN);
+    nvic_enable_irq(i2c->ev_irq);
+    nvic_set_priority(i2c->ev_irq, 10 << 4);
+    nvic_enable_irq(i2c->er_irq);
+    nvic_set_priority(i2c->er_irq, 11 << 4);
+    i2c_set_dma_last_transfer(i2c->address);
+
     return 0;
 }
 
@@ -190,41 +221,31 @@ static app_task_signal_t i2c_step_setup(app_task_t *task, uint8_t address, uint3
     transport_i2c_t *i2c = task->actor->object;
     switch (task->step_index) {
     case 0:
-        i2c_disable_ack(i2c->address);
         i2c_peripheral_enable(i2c->address);
-        i2c_enable_interrupt(i2c->address, I2C_CR2_ITEVTEN | I2C_CR2_ITERREN);
-        nvic_enable_irq(i2c->ev_irq);
-        nvic_set_priority(i2c->ev_irq, 5);
-        nvic_enable_irq(i2c->er_irq);
-        i2c_set_dma_last_transfer(i2c->address);
         i2c_send_start(i2c->address);
-        return APP_TASK_STEP_WAIT;
+        return APP_TASK_STEP_CONTINUE;
     case 1:
-        if (!I2C_EVENT_MASTER_MODE_SELECT(i2c->address)) {
-            return APP_TASK_STEP_LOOP;
-        } else {
-            return APP_TASK_STEP_CONTINUE;
-        }
-    case 2:
         if (!I2C_EVENT_MASTER_MODE_SELECT(i2c->address)) {
             return APP_TASK_STEP_LOOP;
         } else {
             i2c_send_7bit_address(i2c->address, address, I2C_WRITE);
             return APP_TASK_STEP_WAIT;
         }
-    case 3:
+    case 2:
         if (!I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED(i2c->address) && !I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address)) {
             return APP_TASK_STEP_LOOP;
         } else {
             I2C_DR(i2c->address) = memory_register;
             return APP_TASK_STEP_CONTINUE;
         }
-    default:
+    case 3:
         if (!I2C_EVENT_TXE(i2c->address)) {
             return APP_TASK_STEP_LOOP;
         } else {
-            return APP_TASK_STEP_COMPLETE;
+            return APP_TASK_STEP_SUCCESS;
         }
+    default:
+        return APP_TASK_STEP_SUCCESS;
     }
 }
 
@@ -233,65 +254,117 @@ static app_task_signal_t i2c_step_write_data(app_task_t *task, uint8_t address, 
     transport_i2c_t *i2c = task->actor->object;
     switch (task->step_index) {
     case 0:
+        nvic_disable_irq(i2c->ev_irq);
+        if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
+            return APP_TASK_STEP_QUIT_ISR;
+        } else {
+            i2c->source_buffer = app_buffer_source(i2c->actor, data, size);
+            if (!i2c->source_buffer) {
+                return APP_TASK_STEP_FAILURE;
+            } else {
+                return APP_TASK_STEP_CONTINUE;
+            }
+        }
+        return APP_TASK_STEP_QUIT_ISR;
+    case 1:
         i2c_dma_tx_start(i2c, data, size);
         return APP_TASK_STEP_CONTINUE;
-    case 1:
+    case 2:
         if (i2c->incoming_signal != APP_SIGNAL_DMA_TRANSFERRING) {
             return APP_TASK_STEP_LOOP;
         } else {
             i2c_dma_tx_stop(i2c);
+            nvic_enable_irq(i2c->ev_irq);
             return APP_TASK_STEP_CONTINUE;
         }
-    default:
+    case 3:
         if (!I2C_EVENT_BTF(i2c->address) && !I2C_EVENT_TXE(i2c->address)) {
             return APP_TASK_STEP_LOOP;
         } else {
             i2c_send_stop(i2c->address);
             i2c_peripheral_disable(i2c->address);
-            return APP_TASK_STEP_COMPLETE;
+            return APP_TASK_STEP_SUCCESS;
         }
+    case APP_TASK_STEP_FAILURE:
+        app_buffer_release(i2c->source_buffer, i2c->actor);
+        i2c->source_buffer = NULL;
+        break;
     }
+    return 0;
 }
 
 static app_task_signal_t i2c_step_read_data(app_task_t *task, uint8_t address, uint8_t *data, uint32_t size) {
     transport_i2c_t *i2c = task->actor->object;
     switch (task->step_index) {
     case 0:
+        nvic_disable_irq(i2c->ev_irq);
+        if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
+            return APP_TASK_STEP_QUIT_ISR;
+        } else {
+            i2c->output_buffer = app_double_buffer_target(i2c->ring_buffer, i2c->actor, data, size);
+            if (!i2c->output_buffer) {
+                return APP_TASK_STEP_FAILURE;
+            } else {
+                return APP_TASK_STEP_CONTINUE;
+            }
+        }
+    case 1:
         i2c_enable_ack(i2c->address);
         i2c_send_start(i2c->address);
+        nvic_enable_irq(i2c->ev_irq);
         return APP_TASK_STEP_CONTINUE;
-    case 1:
+    case 2:
         if (!I2C_EVENT_MASTER_MODE_SELECT(i2c->address)) {
             return APP_TASK_STEP_LOOP;
         } else {
             i2c_send_7bit_address(i2c->address, address, I2C_READ);
             return APP_TASK_STEP_CONTINUE;
         }
-    case 2:
+    case 3:
         if (!I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address)) {
             return APP_TASK_STEP_LOOP;
         } else {
             i2c_dma_rx_start(i2c, data, size);
             return APP_TASK_STEP_WAIT;
         }
-    default:
-        if (i2c->incoming_signal != APP_SIGNAL_DMA_TRANSFERRING) {
+    case 4:
+        if (i2c->incoming_signal != APP_SIGNAL_DMA_TRANSFERRING || i2c->output_buffer->size != size) {
             return APP_TASK_STEP_LOOP;
         } else {
             i2c_dma_rx_stop(i2c);
-            i2c_send_stop(i2c->address);
             i2c_peripheral_disable(i2c->address);
-            return APP_TASK_STEP_COMPLETE;
+            i2c_send_stop(i2c->address);
+            return APP_TASK_STEP_SUCCESS;
         }
+    case APP_TASK_STEP_FAILURE:
+        app_buffer_release(i2c->output_buffer, i2c->actor);
+        i2c->output_buffer = NULL;
+        break;
     }
+    return 0;
 }
 
-app_task_signal_t i2c_step_publish_response(app_task_t *task) {
+static app_task_signal_t i2c_step_publish_response(app_task_t *task) {
+    app_buffer_t *buffer;
     transport_i2c_t *i2c = task->actor->object;
-    app_event_t *response = &(app_event_t){.type = APP_EVENT_RESPONSE, .producer = i2c->actor, .consumer = task->inciting_event.producer};
-    app_double_buffer_stop(&i2c->read, &response->data, &response->size);
-    app_publish(task->actor->app, response);
-    return APP_TASK_STEP_COMPLETE;
+    switch (task->step_index) {
+    case 0:
+        buffer = app_double_buffer_detach(i2c->ring_buffer, &i2c->output_buffer, i2c->actor);
+
+        // if event was APP_EVENT_READ_TO_BUFFER, it is assumed that producer expect report instead of event
+        if (task->inciting_event.type == APP_EVENT_READ) {
+            app_publish(task->actor->app, &((app_event_t){.type = APP_EVENT_RESPONSE,
+                                                          .producer = i2c->actor,
+                                                          .consumer = task->inciting_event.producer,
+                                                          .data = (uint8_t *)buffer,
+                                                          .size = APP_BUFFER_DYNAMIC_SIZE}));
+        } else {
+            app_buffer_release(buffer, task->actor);
+        }
+        return APP_TASK_STEP_SUCCESS;
+
+    }
+    return 0;
 }
 
 static app_task_signal_t i2c_task_read(app_task_t *task) {
@@ -307,9 +380,8 @@ static app_task_signal_t i2c_task_read(app_task_t *task) {
         return i2c_step_read_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
     case 2:
         return i2c_step_publish_response(task);
-    case 3:
-        return APP_TASK_COMPLETE;
     }
+    return APP_TASK_SUCCESS;
 }
 static app_task_signal_t i2c_task_write(app_task_t *task) {
     app_task_signal_t error_signal = i2c_handle_error(task);
@@ -322,27 +394,32 @@ static app_task_signal_t i2c_task_write(app_task_t *task) {
         return i2c_step_setup(task, argument->slave_address, argument->memory_address);
     case 1:
         return i2c_step_write_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
-    default:
-        return APP_TASK_COMPLETE;
     }
+    return APP_TASK_SUCCESS;
 }
 
 static app_signal_t i2c_task_erase(app_task_t *task) {
+    return APP_TASK_SUCCESS;
 }
 
 /*
     I2C tasks execute their workload right from ISR bypassing the queue
 */
 static void i2c_notify(size_t index) {
+    log_printf("> I2C%i interrupt\n", index);
     transport_i2c_t *i2c = i2c_units[index - 1];
     if (i2c != NULL && i2c->task.handler) {
         app_task_execute(&i2c->task);
     }
     volatile uint32_t s1 = I2C_SR1(i2c->address);
     volatile uint32_t s2 = I2C_SR2(i2c->address);
+    log_printf("< I2C%i interrupt\n", index);
+    (void)s1;
+    (void)s2;
 }
 
 static app_signal_t i2c_on_report(transport_i2c_t *i2c, app_event_t *event) {
+    return 0;
 }
 
 static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_signal_t signal, void *source) {
@@ -350,10 +427,9 @@ static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_sign
     // DMA interrupts on buffer filling up half-way or all the way up
     case APP_SIGNAL_DMA_TRANSFERRING:
         if (actor_dma_match_source(source, i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream)) {
-            if (app_double_buffer_from_dma(&i2c->read, dma_get_number_of_data(dma_get_address(i2c->properties->dma_rx_unit),
-                                                                     i2c->properties->dma_rx_stream)) == APP_SIGNAL_INCOMPLETE) {
-                break;
-            }
+            uint16_t buffer_size = app_double_buffer_get_input_size(i2c->ring_buffer, i2c->output_buffer);
+            uint16_t bytes_left = dma_get_number_of_data(dma_get_address(i2c->properties->dma_rx_unit), i2c->properties->dma_rx_stream);
+            app_double_buffer_ingest_external_write(i2c->ring_buffer, i2c->output_buffer, buffer_size - bytes_left);
         }
         i2c->incoming_signal = signal;
         app_task_execute(&i2c->task);
@@ -367,15 +443,30 @@ static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_sign
 static app_signal_t i2c_tick_input(transport_i2c_t *i2c, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_READ:
-        return actor_event_handle_and_start_task(i2c->actor, event, &i2c->task, i2c->actor->app->threads->input, i2c_task_read);
+    case APP_EVENT_READ_TO_BUFFER:
+        return actor_event_handle_and_start_task(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_task_read);
     case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_task(i2c->actor, event, &i2c->task, i2c->actor->app->threads->input, i2c_task_write);
-    case APP_EVENT_THREAD_ALARM:
-        return app_task_execute(&i2c->task);
+        return actor_event_handle_and_start_task(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_task_write);
     default:
         return 0;
     }
 }
+
+static app_signal_t i2c_tick_medium_priority(transport_i2c_t *i2c, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
+    return app_task_execute_if_running_in_thread(&i2c->task, thread);
+}
+
+static app_signal_t i2c_on_buffer(transport_i2c_t *i2c, app_buffer_t *buffer, uint32_t size) {
+    if (buffer == i2c->ring_buffer) {
+        return app_buffer_reserve_with_limits(buffer, size, i2c->properties->dma_rx_circular_buffer_size, 0, 0);
+    } else if (buffer == i2c->output_buffer) {
+        return app_buffer_reserve_with_limits(buffer, size, i2c->properties->rx_pool_initial_size, i2c->properties->rx_pool_block_size,
+                                              i2c->properties->rx_pool_max_size);
+    } else {
+        return app_buffer_reserve_with_limits(buffer, size, 0, 0, 0);
+    }
+}
+
 actor_class_t transport_i2c_class = {
     .type = TRANSPORT_I2C,
     .size = sizeof(transport_i2c_t),
@@ -388,8 +479,10 @@ actor_class_t transport_i2c_class = {
     .on_report = (actor_on_report_t)i2c_on_report,
     .on_phase = (actor_on_phase_t)i2c_phase,
     .on_signal = (actor_on_signal_t)i2c_on_signal,
+    .on_buffer = (actor_on_buffer_t)i2c_on_buffer,
     .property_write = i2c_property_write,
     .tick_input = (actor_on_tick_t)i2c_tick_input,
+    .tick_medium_priority = (actor_on_tick_t)i2c_tick_medium_priority,
 };
 
 void i2c1_ev_isr(void) {

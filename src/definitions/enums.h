@@ -7,6 +7,8 @@ char* get_actor_phase_name (uint32_t v);
 char* get_app_signal_name (uint32_t v);
 // defined in ./src/core/app.h
 char* get_app_properties_properties_name (uint32_t v);
+// defined in ./src/core/buffer.h
+char* get_app_buffer_flag_name (uint32_t v);
 // defined in ./src/core/event.h
 char* get_app_event_type_name (uint32_t v);
 // defined in ./src/core/event.h

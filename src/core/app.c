@@ -1,5 +1,6 @@
 #include "app.h"
 #include "system/canopen.h"
+#include "core/buffer.h"
 
 // Count or initialize all actors in OD of given type
 size_t app_actor_type_enumerate(app_t *app, OD_t *od, actor_class_t *class,
@@ -127,3 +128,4 @@ int app_free(app_t **app) {
     free((*app)->actor);
     return 0;
 }
+

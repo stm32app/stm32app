@@ -41,8 +41,8 @@ struct module_timer {
     uint32_t address;
     uint16_t reset;
     uint16_t clock;
+    uint32_t peripheral_clock;
     uint8_t irq;
-    uint8_t peripheral_clock;
     uint8_t source;
 
     #ifdef DEBUG

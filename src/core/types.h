@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include "definitions/enums.h"
 #include "definitions/dictionary.h"
+#include "lib/debug.h"
+
 typedef uint_fast8_t bool_t;
 
 
@@ -36,24 +38,8 @@ typedef app_signal_t (*actor_on_phase_t)(void *object, actor_phase_t phase);
 typedef app_signal_t (*actor_on_value_t)(void *object, actor_t *actor, void *value, void *argument);
 typedef app_signal_t (*actor_on_link_t)(void *object, actor_t *actor, void *argument);
 typedef app_signal_t (*actor_on_signal_t)(void *object, actor_t *actor, app_signal_t signal, void *argument);
+typedef app_signal_t (*actor_on_buffer_t)(void *object, app_buffer_t *buffer, uint32_t size);
 typedef app_signal_t (*app_method_t)(void *object);
 
-#ifdef DEBUG
-#include <stdio.h>
-#define log_printf printf
-#define error_printf printf
-#else
-#define log_printf(...)
-#define error_printf(...)
-#endif
-
-#ifdef DEBUG
-#include <stdio.h>
-#define log_printf printf
-#define error_printf printf
-#else
-#define log_printf(...)
-#define error_printf(...)
-#endif
 
 #endif

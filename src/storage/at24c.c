@@ -41,100 +41,130 @@ static app_signal_t at24c_on_signal(storage_at24c_t *at24c, actor_t *actor, app_
     return 0;
 }
 
-static app_signal_t at24c_step_send_ack(transport_i2c_t *i2c, uint32_t address, uint32_t size) {
-}
-
-static app_signal_t at24c_step_wait_ack(transport_i2c_t *i2c, uint32_t address, uint32_t size) {
-}
-
-static app_task_signal_t at24c_step_read(app_task_t *task, uint8_t address, uint32_t size) {
+static app_task_signal_t at24c_step_read(app_task_t *task, uint8_t address, uint8_t *data, uint32_t size) {
     storage_at24c_t *at24c = task->actor->object;
-    uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, size, at24c->properties->page_size);
+    uint32_t bytes_on_page;
+
     switch (task->step_index) {
     case 0:
-        app_buffer_reserve(&at24c->read_buffer, size);
-        return APP_TASK_STEP_CONTINUE;
+        task->counter = 0;
+        at24c->target_buffer = app_buffer_target(task->actor, data, size);
+        if (at24c->target_buffer == NULL) {
+            return APP_TASK_FAILURE;
+        } else {
+            return APP_TASK_STEP_CONTINUE;
+        }
     case 1:
+        bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, size, at24c->properties->page_size);
         app_publish(task->actor->app, &((app_event_t){
-                                          .type = APP_EVENT_READ,
+                                          .type = APP_EVENT_READ_TO_BUFFER,
                                           .consumer = at24c->i2c->actor,
                                           .producer = task->actor,
-                                          .data = &at24c->read_buffer.data[at24c->read_buffer.size],
+                                          .data = &at24c->target_buffer->data[task->counter],
                                           .size = bytes_on_page,
-                                          .argument = i2c_pack_event_argument(at24c->properties->i2c_address, address),
+                                          .argument = i2c_pack_event_argument(at24c->properties->i2c_address, address + task->counter),
                                       }));
-        return APP_TASK_STEP_WAIT;
-    case 2:
-        configASSERT(task->awaited_event.size == bytes_on_page);
-        at24c->read_buffer.size += bytes_on_page;
-        if (at24c->read_buffer.size == size) {
-            return APP_TASK_STEP_COMPLETE;
+        task->counter += bytes_on_page;
+        if (task->counter == size) {
+            return APP_TASK_STEP_WAIT;
         } else {
-            return APP_TASK_STEP_RETRY;
+            return APP_TASK_STEP_LOOP;
         }
-    default:
-        return APP_TASK_STEP_COMPLETE;
+    case 2:
+        return APP_TASK_STEP_SUCCESS;
     }
+
+    return 0;
 }
 
 static app_signal_t at24c_step_write(app_task_t *task, uint8_t address, uint8_t *data, uint32_t size) {
     storage_at24c_t *at24c = task->actor->object;
-    uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, size, at24c->properties->page_size);
+    uint32_t bytes_on_page;
+
     switch (task->step_index) {
     case 0:
-        app_buffer_append(&at24c->write_buffer, data, size);
-        return APP_TASK_STEP_CONTINUE;
-        break;
+        task->counter = 0;
+        at24c->source_buffer = app_buffer_source_copy(task->actor, data, size);
+        if (at24c->source_buffer == NULL) {
+            return APP_TASK_FAILURE;
+        } else {
+            return APP_TASK_STEP_CONTINUE;
+        }
     case 1:
+        bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, size, at24c->properties->page_size);
         app_publish(task->actor->app, &((app_event_t){
                                           .type = APP_EVENT_WRITE,
                                           .consumer = at24c->i2c->actor,
                                           .producer = task->actor,
-                                          .data = &at24c->write_buffer.data[at24c->write_buffer.size],
+                                          .data = &at24c->source_buffer->data[task->counter],
                                           .size = bytes_on_page,
                                           .argument = i2c_pack_event_argument(at24c->properties->i2c_address, address + task->counter),
                                       }));
-        return APP_TASK_STEP_WAIT;
-    default:
-        at24c->read_buffer.size += bytes_on_page;
-        if (at24c->read_buffer.size == size) {
-            return APP_TASK_STEP_COMPLETE;
+        task->counter += bytes_on_page;
+        if (task->counter == size) {
+            return APP_TASK_STEP_WAIT;
         } else {
-            return APP_TASK_STEP_RETRY;
+            return APP_TASK_STEP_LOOP;
         }
+    case 2:
+        return APP_TASK_STEP_SUCCESS;
     }
+    return 0;
 }
-static app_signal_t at24c_task_diagnose(app_task_t *task) {
+static app_task_signal_t at24c_task_diagnose(app_task_t *task) {
+    storage_at24c_t *at24c = task->actor->object;
+    app_buffer_t *first_buffer;
+    bool_t ok;
+
     switch (task->phase_index) {
     case 0:
-        return at24c_step_read(task, 0x0010, 2);
+        return at24c_step_read(task, 0x0010, NULL, 2);
     case 1:
-        if (task->data == NULL)
-            task->data = ((uint8_t *)(uint32_t)task->awaited_event.data[0]);
         return at24c_step_write(task, 0x0010,
                                 &((uint8_t[]){
-                                    task->awaited_event.data[0] + 1,
-                                    task->awaited_event.data[1],
-                                }),
+                                    at24c->target_buffer->data[0] + 1,
+                                    at24c->target_buffer->data[1],
+                                })[0],
                                 2);
     case 2:
-        return at24c_step_read(task, 0x0010, 2);
-    default:
-        if (task->data + 1 == ((uint8_t *)(uint32_t)task->awaited_event.data[0])) {
+        if (task->step_index == 0) {
+            task->result = at24c->target_buffer;
+            at24c->target_buffer = NULL;
+        }
+        return at24c_step_read(task, 0x0010, NULL, 2);
+
+    case 3:
+        first_buffer = (app_buffer_t *)task->result;
+        ok = (first_buffer->data[0] + 1 == at24c->target_buffer->data[0] && first_buffer->data[1] == at24c->target_buffer->data[1] &&
+              first_buffer->size == at24c->target_buffer->size);
+
+        if (ok) {
             log_printf("  - Diagnostics OK: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
-            return APP_TASK_COMPLETE;
+            return APP_TASK_SUCCESS;
         } else {
             log_printf("  - Diagnostics ERROR: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
             return APP_TASK_FAILURE;
         }
+        break;
+
+    case APP_TASK_SUCCESS:
+    case APP_TASK_FAILURE:
+        app_buffer_release(at24c->target_buffer, task->actor);
+        app_buffer_release(at24c->source_buffer, task->actor);
+        app_buffer_release((app_buffer_t *)task->result, task->actor);
     }
+
+    return APP_TASK_SUCCESS;
 }
 
 static app_task_signal_t at24c_task_read(app_task_t *task) {
+    return APP_TASK_SUCCESS;
 }
 static app_task_signal_t at24c_task_write(app_task_t *task) {
+    return APP_TASK_SUCCESS;
 }
 static app_task_signal_t at24c_task_erase(app_task_t *task) {
+    return APP_TASK_SUCCESS;
 }
 
 static app_signal_t at24c_tick_input(storage_at24c_t *at24c, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
@@ -144,28 +174,41 @@ static app_signal_t at24c_tick_input(storage_at24c_t *at24c, app_event_t *event,
                                                   at24c_task_diagnose);
     case APP_EVENT_RESPONSE:
         return actor_event_handle_and_pass_to_task(at24c->actor, event, &at24c->task, at24c->task.thread, at24c->task.handler);
+
+    case APP_EVENT_READ:
+        return actor_event_receive_and_start_task(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+                                                  at24c_task_read);
+    case APP_EVENT_WRITE:
+        return actor_event_receive_and_start_task(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+                                                  at24c_task_write);
+    case APP_EVENT_ERASE:
+        return actor_event_receive_and_start_task(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+                                                  at24c_task_erase);
     default:
         return 0;
     }
 }
 
 static app_signal_t at24c_tick_high_priority(storage_at24c_t *at24c, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
-    if (event->type == APP_EVENT_THREAD_ALARM && at24c->task.thread == thread) {
-        return app_task_execute(&at24c->task);
-    }
-    return 0;
+    return app_task_execute_if_running_in_thread(&at24c->task, thread);
 }
 static app_signal_t at24c_tick_low_priority(storage_at24c_t *at24c, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
-    if ((event->type == APP_EVENT_THREAD_ALARM || event->type == APP_EVENT_THREAD_START) && at24c->task.thread == thread) {
-        return app_task_execute(&at24c->task);
-    }
-    return 0;
+    return app_task_execute_if_running_in_thread(&at24c->task, thread);
 }
 
 static app_signal_t at24c_on_report(storage_at24c_t *at24c, app_event_t *event) {
-    if (event->type == APP_EVENT_WRITE) {
-        free(event->data);
-        return app_task_execute(&at24c->task);
+    switch (event->type) {
+    case APP_EVENT_WRITE:
+    case APP_EVENT_READ_TO_BUFFER:
+        // return actor_event_handle_and_pass_to_task(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+        //                                        at24c->task.handler);
+
+        // app_task_execute(&at24c->task);
+
+        app_thread_actor_schedule(at24c->task.thread, at24c->actor, at24c->task.thread->current_time);
+        return 0;
+    default:
+        return 0;
     }
 }
 

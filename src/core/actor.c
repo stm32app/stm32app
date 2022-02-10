@@ -1,5 +1,6 @@
 #include "actor.h"
 #include "301/CO_ODinterface.h"
+#include "core/buffer.h"
 #include "system/canopen.h"
 
 int actor_send(actor_t *actor, actor_t *origin, void *value, void *argument) {
@@ -73,27 +74,51 @@ int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_tick, uint32_t
     }
 }
 
+static void actor_event_set_status(actor_t *actor, app_event_t *event, app_event_status_t status) {
+    // when actor accepted event that had `app_buffer_t` struct as a data,...
+    if (event->size == APP_BUFFER_DYNAMIC_SIZE) {
+        switch (status) {
+        // the semaphore is icnremented to prevent deallocation
+        case APP_EVENT_RECEIVED:
+        case APP_EVENT_HANDLED:
+        case APP_EVENT_DEFERRED:
+            // if previous status was deferred, the users counter was already incremented
+            if (event->status != APP_EVENT_DEFERRED) {
+                app_buffer_use((app_buffer_t *)event->data, actor);
+            }
+            break;
+        // when processing is done the user counter gets decremented
+        case APP_EVENT_FINALIZED:
+            app_buffer_release((app_buffer_t *)event->data, actor);
+            break;
+        default:
+            break;
+        }
+    }
+    event->status = status;
+}
+
 app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t *event, app_event_t *destination,
-                                                     app_event_status_t ready_status, app_event_status_t busy_status,
-                                                     actor_on_report_t handler) {
+                                                    app_event_status_t ready_status, app_event_status_t busy_status,
+                                                    actor_on_report_t handler) {
     // Check if destination can store the incoming event, otherwise actor will be considered busy
     if (destination == NULL || destination->type == APP_EVENT_IDLE) {
         event->consumer = actor;
-        event->status = ready_status;
+        actor_event_set_status(actor, event, ready_status);
         memcpy(destination, event, sizeof(app_event_t));
         if (handler != NULL) {
             return handler(actor->object, destination);
         }
         return APP_SIGNAL_OK;
     } else {
-        event->status = busy_status;
+        actor_event_set_status(actor, event, busy_status);
         return APP_SIGNAL_BUSY;
     }
 }
 
 app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event_t *event, app_task_t *task, app_thread_t *thread,
-                                                        actor_on_task_t handler, app_event_status_t ready_status,
-                                                        app_event_status_t busy_status) {
+                                                       actor_on_task_t handler, app_event_status_t ready_status,
+                                                       app_event_status_t busy_status) {
     app_signal_t signal = actor_event_accept_and_process_generic(actor, event, &task->inciting_event, ready_status, busy_status, NULL);
     if (signal == APP_SIGNAL_OK) {
         task->actor = actor;
@@ -103,17 +128,17 @@ app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event
         task->step_index = task->phase_index = 0;
         task->thread = thread;
         task->counter = 0;
-        log_printf("~ %s: New task for %s via #%s\n", get_actor_type_name(actor->class->type), app_thread_get_name(thread), get_app_event_type_name(event->type));
+        log_printf("| ├ Task start\t\t%s for %s\t\n", get_actor_type_name(actor->class->type), app_thread_get_name(thread));
         app_thread_actor_schedule(thread, actor, thread->current_time);
     }
     return signal;
 }
 
 app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_event_t *event, app_task_t *task, app_thread_t *thread,
-                                                          actor_on_task_t handler, app_event_status_t ready_status,
-                                                          app_event_status_t busy_status) {
+                                                         actor_on_task_t handler, app_event_status_t ready_status,
+                                                         app_event_status_t busy_status) {
     if (task->handler != handler) {
-        event->status = busy_status;
+        actor_event_set_status(actor, event, busy_status);
         return APP_SIGNAL_BUSY;
     }
     app_signal_t signal = actor_event_accept_and_process_generic(actor, event, &task->awaited_event, ready_status, busy_status, NULL);
@@ -124,17 +149,18 @@ app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_eve
 }
 
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase) {
-    #if DEBUG
+#if DEBUG
     log_printf("  - Device phase: 0x%x %s %s <= %s\n", actor_index(actor), get_actor_type_name(actor->class->type),
                get_actor_phase_name(phase), get_actor_phase_name(actor->previous_phase));
-        actor->previous_phase = phase;
-    #endif
+    actor->previous_phase = phase;
+#endif
 
     switch (phase) {
     case ACTOR_CONSTRUCTING:
         if (actor->class->construct != NULL) {
             if (actor->class->construct(actor->object)) {
-                return actor_set_phase(actor, ACTOR_DISABLED);
+                actor_set_phase(actor, ACTOR_DISABLED);
+                return;
             }
         }
         break;
@@ -151,36 +177,42 @@ void actor_on_phase_change(actor_t *actor, actor_phase_t phase) {
     case ACTOR_STARTING:
         actor->class->start(actor->object);
         if (actor_get_phase(actor) == ACTOR_STARTING) {
-            return actor_set_phase(actor, ACTOR_RUNNING);
+            actor_set_phase(actor, ACTOR_RUNNING);
+            return;
         }
         break;
     case ACTOR_STOPPING:
         actor->class->stop(actor->object);
         if (actor_get_phase(actor) == ACTOR_STOPPING) {
-            return actor_set_phase(actor, ACTOR_STOPPED);
+            actor_set_phase(actor, ACTOR_STOPPED);
+            return;
         }
         break;
     case ACTOR_PAUSING:
         if (actor->class->pause == NULL) {
-            return actor_set_phase(actor, ACTOR_STOPPING);
+            actor_set_phase(actor, ACTOR_STOPPING);
         } else {
             actor->class->pause(actor->object);
             if (actor_get_phase(actor) == ACTOR_PAUSING) {
-                return actor_set_phase(actor, ACTOR_PAUSED);
+                actor_set_phase(actor, ACTOR_PAUSED);
+                return;
             }
         }
         break;
     case ACTOR_RESUMING:
         if (actor->class->resume == NULL) {
-            return actor_set_phase(actor, ACTOR_STARTING);
+            actor_set_phase(actor, ACTOR_STARTING);
+            return;
         } else {
             actor->class->resume(actor->object);
             if (actor_get_phase(actor) == ACTOR_RESUMING) {
-                return actor_set_phase(actor, ACTOR_RUNNING);
+                actor_set_phase(actor, ACTOR_RUNNING);
+                return;
             }
         }
         break;
-    default: break;
+    default:
+        break;
     }
 
     if (actor->class->on_phase != NULL) {
@@ -198,7 +230,7 @@ void actor_event_subscribe(actor_t *actor, app_event_type_t type) {
 
 app_signal_t actor_event_report(actor_t *actor, app_event_t *event) {
     (void)actor;
-    if (event->producer && event->producer->class->on_report) {
+    if (event->producer && event->producer != actor && event->producer->class->on_report) {
         return event->producer->class->on_report(event->producer->object, event);
     } else {
         return APP_SIGNAL_OK;
@@ -208,10 +240,12 @@ app_signal_t actor_event_report(actor_t *actor, app_event_t *event) {
 app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
     if (event != NULL && event->type != APP_EVENT_IDLE) {
 
-        log_printf("~ %s: %s finalizing #%s of %s\n", app_get_current_thread_name(actor->app),
-                get_actor_type_name(actor->class->type), get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
-                
+        log_printf("│ │ ├ Finalize\t\t#%s of %s\n", get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
+
         actor_event_report(actor, event);
+
+        actor_event_set_status(actor, event, APP_EVENT_FINALIZED);
+
         memset(event, 0, sizeof(app_event_t));
     }
     return APP_SIGNAL_OK;
@@ -255,7 +289,7 @@ ODR_t actor_set_property(actor_t *actor, void *value, size_t size, uint8_t index
     // special case of phase handler
     if (index == actor->class->phase_subindex) {
         memcpy(odo->dataOrig, value, size);
-        actor_on_phase_change(actor, *((actor_phase_t *) value));
+        actor_on_phase_change(actor, *((actor_phase_t *)value));
         return ODR_OK;
     }
 
@@ -264,7 +298,7 @@ ODR_t actor_set_property(actor_t *actor, void *value, size_t size, uint8_t index
         memcpy(odo->dataOrig, value, size);
         return ODR_OK;
     }
- 
+
     OD_size_t count_written = 0;
     OD_stream_t stream = {
         .dataOrig = odo->dataOrig,

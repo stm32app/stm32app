@@ -70,12 +70,19 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#ifdef DEBUG
+#include "lib/debug.h"
+#define traceTASK_SWITCHED_OUT()  log_task_out()
+#define traceTASK_SWITCHED_IN() log_task_in()
+#endif
+
+
 /* Library includes. */
 /* #include "stm32f10x_lib.h" */
 
 /*-----------------------------------------------------------
  * Application specific definitions.
- *
+ *P
  * These definitions should be adjusted for your particular hardware and
  * application requirements.
  *
@@ -124,17 +131,19 @@ to exclude the API function. */
 #define INCLUDE_vTaskDelayUntil 1
 #define INCLUDE_vTaskDelay 1
 #define INCLUDE_uxTaskGetStackHighWaterMark 1
-/* This is the raw value as per the Cortex-M3 NVIC.  Values can be 255
-(lowest) to 0 (1?) (highest). */
-#define configKERNEL_INTERRUPT_PRIORITY 255
-/* !!!! configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to zero !!!!
-See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY 191 /* equivalent to 0xb0, or priority 11. */
 
+#define configPRIO_BITS 4
+#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY 0xf
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
 /* This is the value being used as per the ST library which permits 16
 priority values, 0 to 15.  This must correspond to the
 configKERNEL_INTERRUPT_PRIORITY setting.  Here 15 corresponds to the lowest
 NVIC value of 255. */
-#define configLIBRARY_KERNEL_INTERRUPT_PRIORITY 15
+/* This is the raw value as per the Cortex-M3 NVIC.  Values can be 255
+(lowest) to 0 (1?) (highest). */
+#define configKERNEL_INTERRUPT_PRIORITY ( configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
+/* !!!! configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to zero !!!!
+See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
 
 #endif /* FREERTOS_CONFIG_H */

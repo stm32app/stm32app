@@ -10,6 +10,7 @@ extern "C" {
 
 #include "CANopen.h"
 #include "FreeRTOS.h"
+#include "atomic.h"
 #include "core/actor.h"
 #include "core/thread.h"
 #include "core/types.h"
@@ -38,7 +39,7 @@ struct app {
     system_mcu_t *mcu;
     system_canopen_t *canopen;
     module_timer_t *timer;
-    app_thread_t *current_thread;
+    app_buffer_t *buffers;
 };
 
 enum app_signal {
@@ -83,6 +84,9 @@ actor_t *app_actor_find_by_type(app_t *app, uint16_t type);
 actor_t *app_actor_find_by_number(app_t *app, uint8_t number);
 /* Get numeric index of a actor in a global array */
 uint8_t app_actor_find_number(app_t *app, actor_t *actor);
+
+/* Create buffer that will hold other buffers in the app */
+app_buffer_t *app_buffer_pool_allocate(app_t *app);
 
 typedef enum app_properties_properties {
   CORE_APP_TIMER_INDEX = 0x1,

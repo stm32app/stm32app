@@ -89,6 +89,7 @@ struct actor_class {
     app_signal_t (*on_signal)(void *object, actor_t *origin, app_signal_t signal, void *arg); /* Send signal to actor */
     app_signal_t (*on_value)(void *object, actor_t *actor, void *value, void *arg);          /* Accept value from linked actor */
     app_signal_t (*on_link)(void *object, actor_t *origin, void *arg);                        /* Accept linking request*/
+    app_signal_t (*on_buffer)(void *object, app_buffer_t *buffer, uint32_t size);                        /* Accept linking request*/
 
     app_signal_t (*tick_input)(void *p, app_event_t *e, actor_tick_t *tick, app_thread_t *t);         /* Processing input events asap */
     app_signal_t (*tick_high_priority)(void *o, app_event_t *e, actor_tick_t *tick, app_thread_t *t); /* Important work that isnt input */
@@ -165,38 +166,38 @@ app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_eve
 /* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
 #define actor_event_handle_and_process(actor, event, destination, handler)                                                               \
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_DEFERRED, (actor_on_report_t)handler)
-/* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
+/* Consume event by starting a task if not busy, otherwise keep it enqueued for later without allowing others to take it  */
 #define actor_event_handle_and_start_task(actor, event, task, thread, handler)                                                           \
     actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
-/* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
+/* Consume event with a running task if not busy, otherwise keep it enqueued for later without allowing others to take it  */
 #define actor_event_handle_and_pass_to_task(actor, event, task, thread, handler)                                                         \
     actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
 
-/* Consume event if not busy, otherwise allow actors to process it if */
+/* Consume event if not busy, otherwise keep it enqueued for later unless other actors take it first  */
 #define actor_event_accept(actor, event, destination)                                                                                    \
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED, NULL)
-/* Consume event with a given handler if not busy, otherwise allow actors to process it if */
+/* Consume event with a given handler if not busy, otherwise keep it enqueued for later unless other actors take it first */
 #define actor_event_accept_and_process(actor, event, destination, handler)                                                               \
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED, (app_event_t)handler)
-/* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
+/* Consume event by starting a task if not busy, otherwise keep it enqueued for later unless other actors take it first  */
 #define actor_event_accept_and_start_task(actor, event, task, thread, handler)                                                           \
-    actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
-/* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
+    actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
+/* Consume event with a running task  if not busy, otherwise keep it enqueued for later unless other actors take it first */
 #define actor_event_accept_and_pass_to_task(actor, event, task, thread, handler)                                                         \
-    actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
+    actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
 
 /* Process event and let others receieve it too */
 #define actor_event_receive(actor, event, destination)                                                                                   \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIEVED, APP_EVENT_RECEIEVED, NULL)
+    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED, NULL)
 /* Process event with a given handler and let others receieve it too */
 #define actor_event_receive_and_process(actor, event, destination, handler)                                                              \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIEVED, APP_EVENT_RECEIEVED, (app_event_t)handler)
-/* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
+    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED, (app_event_t)handler)
+/* Consume even by starting a task if not busy, and let others receieve it too  */
 #define actor_event_receive_and_start_task(actor, event, task, thread, handler)                                                          \
-    actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
-/* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
+    actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
+/* Consume event with a running task  if not busy, and let others receieve it too  */
 #define actor_event_receive_and_pass_to_task(actor, event, task, thread, handler)                                                        \
-    actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
+    actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
 
 app_signal_t actor_event_report(actor_t *actor, app_event_t *event);
 app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event);

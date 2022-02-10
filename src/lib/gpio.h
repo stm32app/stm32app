@@ -1,3 +1,6 @@
+#ifndef INC_LIB_GPIO
+#define INC_LIB_GPIO
+
 #include "stdbool.h"
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
@@ -52,3 +55,5 @@ uint8_t gpio_get_speed_setting(uint8_t speed);
     gpio_configure_output_generic(port, pin, speed, af_index, 1, 2)
 
 /* EOF */
+
+#endif

@@ -280,7 +280,7 @@ typedef struct {
         uint16_t SDO_ClientTimeout;
         uint8_t phase;
         uint8_t nodeID;
-        uint32_t bitrate;
+        uint16_t bitrate;
     } x6020_systemCANopen;
     struct {
         uint8_t highestSub_indexSupported;

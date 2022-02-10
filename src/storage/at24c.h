@@ -26,6 +26,8 @@ struct storage_at24c {
     storage_at24c_properties_t *properties;
     transport_i2c_t *i2c;
     app_task_t task;
+    app_buffer_t *source_buffer;
+    app_buffer_t *target_buffer;
 };
 
 extern actor_class_t storage_at24c_class;

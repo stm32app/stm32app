@@ -1,3 +1,4 @@
+
 #ifdef APP_MOTHERSHIP
     #include "app/mothership.h"
     #include "OD.h"
@@ -26,6 +27,7 @@ static void app_boot(app_t **app) {
 int main(void) {
 #ifdef SEMIHOSTING
     initialise_monitor_handles();
+    dwt_enable_cycle_counter();
 #endif
     app_t *app;
     app_boot(&app); 

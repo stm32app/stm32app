@@ -2,7 +2,7 @@
 #include "core/actor.h"
 
 #define MAX_THREAD_SLEEP_TIME_LONG (((uint32_t)-1) / 2)
-#define MAX_THREAD_SLEEP_TIME 5000
+#define MAX_THREAD_SLEEP_TIME 60000
 #define IS_IN_ISR (SCB_ICSR & SCB_ICSR_VECTACTIVE)
 
 static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t tick_index);
@@ -43,7 +43,7 @@ void app_thread_execute(app_thread_t *thread) {
     size_t tick_index = app_thread_get_tick_index(thread);   // Which actor tick handles this thread
     size_t deferred_count = 0;                               // Counter of re-queued events
     actor_t *first_actor = app_thread_filter_actors(thread); // linked list of actors declaring the tick
-    app_event_t event = {.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_START};
+    app_event_t event = {.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
 
     if (first_actor == NULL) {
         log_printf("~ %s:  does not have any listener actors and will self-terminate\n", app_thread_get_name(thread));
@@ -75,7 +75,6 @@ void app_thread_execute(app_thread_t *thread) {
 static inline bool_t app_thread_should_notify_actor(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_tick_t *tick) {
     switch (event->type) {
     // Ticks get notified when thread starts and stops, so they can construct/destruct or schedule a periodical alarm
-    case APP_EVENT_THREAD_START:
     case APP_EVENT_THREAD_STOP:
         return true;
 
@@ -132,10 +131,10 @@ static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_ev
     app_signal_t signal;
 
     if (app_thread_should_notify_actor(thread, event, actor, tick)) {
-        log_printf("~ %s:  dispatching #%s from %s to %s\n", app_thread_get_name(thread), get_app_event_type_name(event->type),
-                   get_actor_type_name(event->producer->class->type), get_actor_type_name(actor->class->type));
+        log_printf("├ %-22s#%s from %s\n", 
+                   get_actor_type_name(actor->class->type), get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
 
-        if (event->type == APP_EVENT_THREAD_ALARM) {
+        if (event->type == APP_EVENT_THREAD_ALARM || event->type == APP_EVENT_THREAD_START) {
             tick->next_time = -1;
         }
         // Tick callback may change event status, set software timer or both
@@ -151,9 +150,11 @@ static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_ev
     // Device may request thread to wake up at specific time without waiting for external events by settings next_time of its ticks
     // - To wake up periodically actor should re-schedule its tick after each run
     // - To yield control until other events are processed actor should set schedule to current time of a thread
-    /*if (tick->next_time != 0 && thread->next_time > tick->next_time) {
+
+    // Fixme: breaks something :/
+    if (tick->next_time != 0 && thread->next_time > tick->next_time) {
         thread->next_time = tick->next_time;
-    }*/
+    }
 
     return signal;
 }
@@ -257,14 +258,6 @@ static inline bool_t app_thread_event_queue_shift(app_thread_t *thread, app_even
     return true;
 }
 
-static inline void app_thread_log_switch(app_thread_t *thread) {
-    if (thread != NULL && thread->actor->app->current_thread != thread) {
-        if (thread->actor->app->current_thread != NULL)
-            log_printf("~ %s <= %s\n", app_thread_get_name(thread), app_get_current_thread_name(thread->actor->app));
-        thread->actor->app->current_thread = thread;
-    }
-}
-
 /*
   A thread goes to sleep to allow tasks with lower priority to run, when it does not have any events that can be processed right now.
   - Publishing new events also sends the notification for the thread to wake up. If an event was published to the back of the queue that had
@@ -287,34 +280,30 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
 
         // threads are expected to receive external notifications in order to wake up
         if (timeout > 0) {
-            log_printf("~ %s:  will sleep for %ims\n", app_thread_get_name(thread), (int)timeout);
+            log_printf("├ Sleep for %ims\n", (int)timeout);
         }
 
         uint32_t notification = ulTaskNotifyTake(true, pdMS_TO_TICKS((uint32_t)timeout));
-
-#ifdef DEBUG
-        app_thread_log_switch(thread);
-#endif
 
         switch (notification) {
         case APP_SIGNAL_OK:
             // if no notification was recieved (value of signal being zero) within scheduled time,
             // it means that thread is woken up by schedule so synthetic wake up event is broadcasted
             *event = (app_event_t){.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
-            log_printf("~ %s:  woke up on alert after %lims\n", app_thread_get_name(thread),
-                       ((xTaskGetTickCount() - thread->current_time) * portTICK_PERIOD_MS));
+            log_printf("├ Wakeup\t\tafter %lims (timeout of %lims)\n", 
+                       ((xTaskGetTickCount() - thread->current_time) * portTICK_PERIOD_MS), timeout);
             stop = true;
             break;
 
         case APP_SIGNAL_RESCHEDULE:
             // something wants the thread to wake up earlier than its current schedule.
             // next_time must be already updated with new time, so the thread can just go into blocked state again
-            log_printf("~ %s:  will reschedule\n", app_thread_get_name(thread));
+            log_printf("├ Reschedule\n");
             break;
 
         case APP_SIGNAL_CATCHUP:
             // something tells thread that it is now ready to process messages that it asked to keep deferred
-            log_printf("~ %s:  got signal for catchup\n", app_thread_get_name(thread));
+            log_printf("├ Catchup\n");
             __attribute__((fallthrough));
         default:
             // event publishers set address of event in notification slot instead of a signal
@@ -322,7 +311,7 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
             if (thread->queue != NULL) {
                 // threads with queue that receieve notification expect a new message in queue
                 if (!xQueueReceive(thread->queue, event, 0)) {
-                    log_printf("~ %s:  was woken up by notification but its queue is empty\n", app_thread_get_name(thread));
+                    log_printf("├  Was woken up by notification but its queue is empty\n");
                     continue;
                 }
             } else if (notification > 50) {
@@ -343,8 +332,7 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
 }
 
 bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t overwrite) {
-    log_printf("~ %s:  notifying #%s with %s\n", app_get_current_thread_name(thread->actor->app),
-               value < 50 ? get_app_signal_name(value) : (char)value, app_thread_get_name(thread));
+    log_printf("│ │ ├ Notify\t\t%s with #%s\n", app_thread_get_name(thread), value < 50 ? get_app_signal_name(value) : (char *)(&value));
     if (IS_IN_ISR) {
         static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         bool_t result = xTaskNotifyFromISR(thread->task, value, overwrite ? eSetValueWithOverwrite : eSetValueWithoutOverwrite,
@@ -357,13 +345,11 @@ bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t ov
 }
 
 bool_t app_thread_publish_generic(app_thread_t *thread, app_event_t *event, bool_t to_front) {
-    log_printf("~ %s: %s publishing #%s for %s (%s)\n", app_get_current_thread_name(thread->actor->app),
-               get_actor_type_name(event->producer->class->type), get_app_event_type_name(event->type), 
+    log_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", get_app_event_type_name(event->type),
+               get_actor_type_name(event->producer->class->type),
                event->consumer ? get_actor_type_name(event->consumer->class->type) : "broadcast", app_thread_get_name(thread));
     bool_t result = false;
-#ifdef DEBUG
-    app_thread_t *current_thread = thread->actor->app->current_thread;
-#endif
+
     if (IS_IN_ISR) {
         static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         if (thread->queue == NULL || xQueueGenericSendFromISR(thread->queue, event, &xHigherPriorityTaskWoken, to_front)) {
@@ -375,9 +361,7 @@ bool_t app_thread_publish_generic(app_thread_t *thread, app_event_t *event, bool
             result = xTaskNotify(thread->task, (uint32_t)event, eSetValueWithOverwrite);
         }
     }
-#ifdef DEBUG
-    app_thread_log_switch(current_thread);
-#endif
+
     return result;
 }
 
@@ -387,9 +371,9 @@ void app_thread_schedule(app_thread_t *thread, uint32_t time) {
         // notification should be sent even if task has active status
         // i.e. a more important task may have taken over the less important task
         // while it was on its way to become blocked, creating a race condition
-        //eTaskState state = eTaskGetState(thread->task);
-        //if (state == eBlocked || state == eReady) {
-            app_thread_reschedule(thread);
+        // eTaskState state = eTaskGetState(thread->task);
+        // if (state == eBlocked || state == eReady) {
+        app_thread_reschedule(thread);
         //}
     }
 }
@@ -411,7 +395,7 @@ int actor_tick_allocate(actor_tick_t **destination, actor_on_tick_t callback) {
 }
 
 void actor_tick_initialize(actor_tick_t *tick) {
-    *tick = (actor_tick_t){.next_time = -1};
+    *tick = (actor_tick_t){};
 }
 
 void actor_tick_free(actor_tick_t **tick) {
@@ -545,9 +529,6 @@ char *app_thread_get_name(app_thread_t *thread) {
     return pcTaskGetTaskName(thread->task);
 }
 
-char *app_get_current_thread_name(app_t *app) {
-    return IS_IN_ISR ? "ISR" : app->current_thread == NULL ? "???" : pcTaskGetTaskName(app->current_thread->task);
-}
 
 int app_threads_free(app_t *app) {
     app_thread_free(&app->threads->input);

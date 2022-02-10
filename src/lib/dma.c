@@ -1,5 +1,5 @@
 #include "dma.h"
-#include "lib/app_buffer.h"
+#include "core/buffer.h"
 
 uint32_t dma_get_address(uint8_t index) {
     switch (index) {
@@ -118,6 +118,7 @@ void actor_unregister_dma(uint8_t unit, uint8_t index) {
 };
 
 void actors_dma_notify(uint8_t unit, uint8_t index) {
+    log_printf("> DMA%i interrupt\n", unit);
     volatile actor_t *actor = actors_dma[DMA_INDEX(unit, index)];
 
     if (dma_get_interrupt_flag(dma_get_address(unit), index, DMA_TEIF | DMA_DMEIF /* | DMA_FEIF*/)) {
@@ -135,6 +136,7 @@ void actors_dma_notify(uint8_t unit, uint8_t index) {
             dma_clear_interrupt_flags(dma_get_address(unit), index, DMA_HTIF | DMA_TCIF);
         }
     }
+    log_printf("< DMA%i interrupt\n", unit);
 }
 
 void *actor_dma_pack_source(uint8_t unit, uint8_t index) {
@@ -187,7 +189,7 @@ void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
 
     dma_enable_transfer_complete_interrupt(dma_address, stream);
 
-    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 3);
+    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 8 << 4);
     nvic_enable_irq(nvic_dma_get_channel_base(unit) + stream);
 
     dma_enable_stream(dma_address, stream);
@@ -232,7 +234,7 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
     dma_enable_transfer_error_interrupt(dma_address, stream);
     dma_enable_half_transfer_interrupt(dma_address, stream);
 
-    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 5);
+    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 8 << 4);
     nvic_enable_irq(nvic_dma_get_channel_base(unit) + stream);
 
     dma_enable_stream(dma_address, stream);

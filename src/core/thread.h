@@ -105,7 +105,6 @@ void app_thread_actor_schedule(app_thread_t *thread, actor_t *actor, uint32_t ti
 #define app_thread_actor_schedule(thread, actor, time) app_thread_tick_schedule(thread, actor_tick_for_thread(actor, thread), time);
 
 char *app_thread_get_name(app_thread_t *thread);
-char *app_get_current_thread_name(app_t *app);
 
 #ifdef __cplusplus
 }
