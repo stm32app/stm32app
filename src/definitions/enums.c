@@ -101,19 +101,19 @@ default: return "Unknown";
 }
 };
 
-char* get_app_task_signal_name (uint32_t v) {
+char* get_app_job_signal_name (uint32_t v) {
 switch (v) {
-case 0: return "APP_TASK_STEP_CONTINUE";
-case 1: return "APP_TASK_STEP_RETRY";
-case 2: return "APP_TASK_STEP_WAIT";
-case 3: return "APP_TASK_STEP_QUIT_ISR";
-case 4: return "APP_TASK_STEP_LOOP";
-case 5: return "APP_TASK_CONTINUE";
-case 6: return "APP_TASK_RETRY";
-case 252: return "APP_TASK_STEP_SUCCESS";
-case 253: return "APP_TASK_STEP_FAILURE";
-case 254: return "APP_TASK_SUCCESS";
-case 255: return "APP_TASK_FAILURE";
+case 0: return "APP_JOB_TASK_CONTINUE";
+case 1: return "APP_JOB_TASK_RETRY";
+case 2: return "APP_JOB_TASK_WAIT";
+case 3: return "APP_JOB_TASK_QUIT_ISR";
+case 4: return "APP_JOB_TASK_LOOP";
+case 5: return "APP_JOB_CONTINUE";
+case 6: return "APP_JOB_RETRY";
+case 252: return "APP_JOB_TASK_SUCCESS";
+case 253: return "APP_JOB_TASK_FAILURE";
+case 254: return "APP_JOB_SUCCESS";
+case 255: return "APP_JOB_FAILURE";
 default: return "Unknown";
 }
 };

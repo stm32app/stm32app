@@ -273,7 +273,7 @@ static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
         .data = (uint8_t *) buffer,
         .size = APP_BUFFER_DYNAMIC_SIZE
     }));
-    actor_tick_catchup(spi->actor, NULL);
+    actor_worker_catchup(spi->actor, NULL);
 
     return 0;
 }
@@ -350,7 +350,7 @@ static app_signal_t spi_on_signal(transport_spi_t *spi, actor_t *actor, app_sign
 
     return 0;
 }
-static app_signal_t spi_tick_input(transport_spi_t *spi, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
+static app_signal_t spi_worker_input(transport_spi_t *spi, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_READ:
         return actor_event_handle_and_process(spi->actor, event, &spi->processed_event, spi_on_read);
@@ -377,7 +377,7 @@ actor_class_t transport_spi_class = {
     .construct = (app_method_t)spi_construct,
     .destruct = (app_method_t)spi_destruct,
     .start = (app_method_t)spi_start,
-    .tick_input = (actor_on_tick_t)spi_tick_input,
+    .tick_input = (actor_on_worker_t)spi_worker_input,
     .on_report = (actor_on_report_t)spi_on_report,
     .on_signal = (actor_on_signal_t)spi_on_signal,
     .stop = (app_method_t)spi_stop,

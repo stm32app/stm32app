@@ -21,7 +21,7 @@ static app_signal_t timer_validate(module_timer_properties_t *properties) {
 static app_signal_t timer_construct(module_timer_t *timer) {
     timer->subscriptions = malloc(sizeof(module_timer_subscription_t) * timer->properties->initial_subscriptions_count);
     timer->next_time = -1;
-    timer->next_tick = timer->properties->period;
+    timer->next_worker = timer->properties->period;
 
     module_timers[timer->actor->seq] = timer;
 
@@ -255,10 +255,10 @@ static app_signal_t timer_schedule(module_timer_t *timer, uint32_t next_time) {
     uint32_t diff = (uint32_t)((int32_t)timer->next_time - (int32_t)timer->current_time);
     // when next tick is closer than a full period timer, needs to be advanced
     if (diff < timer->properties->period) {
-        timer->next_tick = diff;
-        timer_set_counter(timer->address, timer->properties->period - timer->next_tick);
+        timer->next_worker = diff;
+        timer_set_counter(timer->address, timer->properties->period - timer->next_worker);
     } else {
-        timer->next_tick = timer->properties->period;
+        timer->next_worker = timer->properties->period;
     }
     return 0;
 }
@@ -312,7 +312,7 @@ static void timer_interrupt(size_t index) {
     module_timer_t *timer = (module_timer_t *) module_timers[index];
     if (timer_get_flag(timer->address, TIM_DIER_UIE)) {
         timer_clear_flag(timer->address, TIM_DIER_UIE);
-        timer_advance(timer, timer->next_tick);
+        timer_advance(timer, timer->next_worker);
     }
 }
 
@@ -345,7 +345,7 @@ static module_timer_subscription_t *timer_get_subscription(module_timer_t *timer
 
 app_signal_t module_timer_timeout(module_timer_t *timer, actor_t *actor, void *argument, uint32_t timeout) {
     // ensure that current_time of a timer is up to date, adjust timers accordingly
-    timer_advance(timer, timer_get_counter(timer->address) - (timer->properties->period - timer->next_tick));
+    timer_advance(timer, timer_get_counter(timer->address) - (timer->properties->period - timer->next_worker));
 
     // update subscription
     module_timer_subscription_t *subscription = timer_get_subscription(timer, actor, argument);
@@ -388,7 +388,7 @@ app_signal_t module_timer_clear(module_timer_t *timer, actor_t *actor, void *arg
 
 static app_signal_t timer_stop_counting(module_timer_t *timer) {
     timer->next_time = -1;
-    timer->next_tick = timer->properties->period;
+    timer->next_worker = timer->properties->period;
     timer_disable_counter(timer->address);
     return 0;
 }

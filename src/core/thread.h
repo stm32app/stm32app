@@ -19,7 +19,7 @@ struct app_thread {
     uint32_t last_time;
     uint32_t current_time;
     uint32_t next_time;
-    // size_t index; /* Corresponding handler in actor_ticks struct */
+    // size_t index; /* Corresponding handler in actor_workers struct */
     TaskHandle_t task;
     QueueHandle_t queue;
     void *argument;
@@ -34,37 +34,37 @@ struct app_threads {
     app_thread_t *bg_priority;     /* A background thread of sorts for work that can be done in free time */
 };
 
-struct actor_tick {
+struct actor_worker {
     uint32_t last_time;    /* Previous time the tick fired */
     uint32_t next_time;    /* Next time tick will fire */
     actor_t *next_actor; /* Next actor having the same tick */
     actor_t *prev_actor; /* Previous actor handling the same tick*/
     app_thread_t *catchup; /* Did tick miss any messages? */
-    actor_on_tick_t callback;
+    actor_on_worker_t callback;
 };
 
-struct actor_ticks {
-    actor_tick_t *input;           /* Logic that processes input and immediate work */
-    actor_tick_t *high_priority;   /* Asynchronous work that needs to be done later */
-    actor_tick_t *medium_priority; /* Asynchronous work that needs to be done later */
-    actor_tick_t *low_priority;    /* Logic that runs periodically even when there is no input*/
-    actor_tick_t *bg_priority;     /* Lowest priority work that is done when there isn't anything more important */
+struct actor_workers {
+    actor_worker_t *input;           /* Logic that processes input and immediate work */
+    actor_worker_t *high_priority;   /* Asynchronous work that needs to be done later */
+    actor_worker_t *medium_priority; /* Asynchronous work that needs to be done later */
+    actor_worker_t *low_priority;    /* Logic that runs periodically even when there is no input*/
+    actor_worker_t *bg_priority;     /* Lowest priority work that is done when there isn't anything more important */
 };
 
-int actor_tick_allocate(actor_tick_t **destination, actor_on_tick_t callback);
-void actor_tick_free(actor_tick_t **tick);
+int actor_worker_allocate(actor_worker_t **destination, actor_on_worker_t callback);
+void actor_worker_free(actor_worker_t **tick);
 
-int actor_ticks_allocate(actor_t *actor);
-int actor_ticks_free(actor_t *actor);
+int actor_workers_allocate(actor_t *actor);
+int actor_workers_free(actor_t *actor);
 
 int app_thread_allocate(app_thread_t **thread, void *app_or_object, void (*callback)(void *ptr), const char *const name,
                         uint16_t stack_depth, size_t queue_size, size_t priority, void *argument);
-void actor_tick_initialize(actor_tick_t *tick);
+void actor_worker_initialize(actor_worker_t *tick);
 
 int app_thread_free(app_thread_t **thread);
 
 /* Find out numeric index of a tick that given standard thread handles  */
-size_t app_thread_get_tick_index(app_thread_t *thread);
+size_t app_thread_get_worker_index(app_thread_t *thread);
 
 int app_threads_allocate(app_t *app);
 
@@ -73,7 +73,7 @@ int app_threads_free(app_t *app);
 /* Find app actors that subscribe to given thread. Joins matching actor tick handlers in a linked list, a returns first actor as a list
  * head*/
 actor_t *app_thread_filter_actors(app_thread_t *thread);
-actor_tick_t *actor_tick_for_thread(actor_t *actor, app_thread_t *thread);
+actor_worker_t *actor_worker_for_thread(actor_t *actor, app_thread_t *thread);
 
 /*
 Callback methods that is invoked as FreeRTOS tasks.
@@ -90,7 +90,7 @@ bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t ov
 app_thread_t *app_thread_get_catchup_thread(app_thread_t *thread);
 
 void app_thread_schedule(app_thread_t *thread, uint32_t time);
-void app_thread_tick_schedule(app_thread_t *thread, actor_tick_t *tick, uint32_t time);
+void app_thread_worker_schedule(app_thread_t *thread, actor_worker_t *tick, uint32_t time);
 void app_thread_actor_schedule(app_thread_t *thread, actor_t *actor, uint32_t time);
 
 #define app_thread_catchup(thread) app_thread_notify_generic(app_thread_get_catchup_thread(thread), APP_SIGNAL_CATCHUP, false);
@@ -102,7 +102,7 @@ void app_thread_actor_schedule(app_thread_t *thread, actor_t *actor, uint32_t ti
 #define app_thread_publish(thread, event) app_thread_publish_generic(thread, event, 0)
 #define app_publish(app, event) app_thread_publish_generic(app->threads->input, event, 0);
 
-#define app_thread_actor_schedule(thread, actor, time) app_thread_tick_schedule(thread, actor_tick_for_thread(actor, thread), time);
+#define app_thread_actor_schedule(thread, actor, time) app_thread_worker_schedule(thread, actor_worker_for_thread(actor, thread), time);
 
 char *app_thread_get_name(app_thread_t *thread);
 

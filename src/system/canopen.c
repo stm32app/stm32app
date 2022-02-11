@@ -160,7 +160,7 @@ static app_signal_t canopen_link(system_canopen_t *canopen) {
     return 0;
 }
 
-static app_signal_t canopen_tick_high_priority(system_canopen_t *canopen, void *argument, actor_tick_t *tick, app_thread_t *thread) {
+static app_signal_t canopen_worker_high_priority(system_canopen_t *canopen, void *argument, actor_worker_t *tick, app_thread_t *thread) {
     (void)argument;
     tick->next_time = 0;
 
@@ -179,13 +179,13 @@ static app_signal_t canopen_tick_high_priority(system_canopen_t *canopen, void *
         indicator_led_set_duty_cycle(canopen->green_led, CO_LED_GREEN(canopen->instance->LEDs, CO_LED_CANopen) ? 255 : 0);
 
     if (us_until_next != (uint32_t)-1) {
-        app_thread_tick_schedule(thread, tick, thread->current_time + us_until_next / US_PER_TICK);
+        app_thread_worker_schedule(thread, tick, thread->current_time + us_until_next / US_PER_TICK);
     }
     return 0;
 }
 
 /* CANopen accepts its input from interrupts */
-static app_signal_t canopen_tick_input(system_canopen_t *canopen, void *argument, actor_tick_t *tick, app_thread_t *thread) {
+static app_signal_t canopen_worker_input(system_canopen_t *canopen, void *argument, actor_worker_t *tick, app_thread_t *thread) {
     (void)argument;
 
     uint32_t us_since_last = (thread->current_time - tick->last_time) * 1000;
@@ -207,7 +207,7 @@ static app_signal_t canopen_tick_input(system_canopen_t *canopen, void *argument
     }
     CO_UNLOCK_OD(canopen->instance->CANmodule);
     if (us_until_next != (uint32_t)-1) {
-        app_thread_tick_schedule(thread, tick, thread->current_time + us_until_next / US_PER_TICK);
+        app_thread_worker_schedule(thread, tick, thread->current_time + us_until_next / US_PER_TICK);
     }
     return 0;
 }
@@ -239,8 +239,8 @@ actor_class_t system_canopen_class = {
     .start = (app_method_t)canopen_start,
     .stop = (app_method_t)canopen_stop,
 
-    .tick_input = (actor_on_tick_t)canopen_tick_input,
-    .tick_high_priority = (actor_on_tick_t)canopen_tick_high_priority,
+    .tick_input = (actor_on_worker_t)canopen_worker_input,
+    .tick_high_priority = (actor_on_worker_t)canopen_worker_high_priority,
 
     .on_phase = (actor_on_phase_t)canopen_phase,
     .property_write = canopen_property_write,

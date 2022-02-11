@@ -58,7 +58,7 @@ struct actor {
     int16_t index;                  /* Actual OD address of this actor */
     actor_phase_t phase;           /* Current lifecycle phase of the actor */
     actor_class_t *class;          /* Per-class methods and callbacks */
-    actor_ticks_t *ticks;          /* Per-actor thread subscription */
+    actor_workers_t *ticks;          /* Per-actor thread subscription */
     app_t *app;                     /* Reference to root actor */
     OD_entry_t *entry;              /* OD entry containing propertiesuration for actor*/
     OD_extension_t entry_extension; /* OD IO handlers for properties changes */
@@ -83,7 +83,7 @@ struct actor_class {
     app_signal_t (*pause)(void *object);        /* Put actor to sleep temporarily */
     app_signal_t (*resume)(void *object);       /* Wake actor up from sleep */
 
-    app_signal_t (*on_task)(void *object, app_task_t *task);                                   /* Task has been complete */
+    app_signal_t (*on_job)(void *object, app_job_t *task);                                   /* Task has been complete */
     app_signal_t (*on_report)(void *object, app_event_t *event);                                /* Somebody processed the event */
     app_signal_t (*on_phase)(void *object, actor_phase_t phase);                              /* Handle phase change */
     app_signal_t (*on_signal)(void *object, actor_t *origin, app_signal_t signal, void *arg); /* Send signal to actor */
@@ -91,11 +91,11 @@ struct actor_class {
     app_signal_t (*on_link)(void *object, actor_t *origin, void *arg);                        /* Accept linking request*/
     app_signal_t (*on_buffer)(void *object, app_buffer_t *buffer, uint32_t size);                        /* Accept linking request*/
 
-    app_signal_t (*tick_input)(void *p, app_event_t *e, actor_tick_t *tick, app_thread_t *t);         /* Processing input events asap */
-    app_signal_t (*tick_high_priority)(void *o, app_event_t *e, actor_tick_t *tick, app_thread_t *t); /* Important work that isnt input */
-    app_signal_t (*tick_medium_priority)(void *p, app_event_t *e, actor_tick_t *tick, app_thread_t *t); /* Medmium importance periphery */
-    app_signal_t (*tick_low_priority)(void *p, app_event_t *e, actor_tick_t *tick, app_thread_t *t);    /* Low-importance periodical */
-    app_signal_t (*tick_bg_priority)(void *p, app_event_t *e, actor_tick_t *tick, app_thread_t *t);     /* Lowest priority work that i*/
+    app_signal_t (*tick_input)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);         /* Processing input events asap */
+    app_signal_t (*tick_high_priority)(void *o, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Important work that isnt input */
+    app_signal_t (*tick_medium_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Medmium importance periphery */
+    app_signal_t (*tick_low_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);    /* Low-importance periodical */
+    app_signal_t (*tick_bg_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);     /* Lowest priority work that i*/
 
     ODR_t (*property_read)(OD_stream_t *stream, void *buf, OD_size_t count, OD_size_t *countRead);
     ODR_t (*property_write)(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten);
@@ -125,7 +125,7 @@ ODR_t actor_set_property_numeric(actor_t *actor, uint32_t value, size_t size, ui
 // Default state machine for basic phases
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase);
 
-int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_tick, uint32_t *next_tick);
+int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_worker, uint32_t *next_worker);
 
 /* Find actor with given index and write it to the given pointer */
 int actor_link(actor_t *actor, void **destination, uint16_t index, void *arg);
@@ -152,12 +152,12 @@ app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t 
                                                      app_event_status_t ready_status, app_event_status_t busy_status,
                                                      actor_on_report_t handler);
 
-app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event_t *event, app_task_t *task, app_thread_t *thread,
-                                                        actor_on_task_t handler, app_event_status_t ready_status,
+app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
+                                                        actor_on_job_t handler, app_event_status_t ready_status,
                                                         app_event_status_t busy_status);
 
-app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_event_t *event, app_task_t *task, app_thread_t *thread,
-                                                          actor_on_task_t handler, app_event_status_t ready_status,
+app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
+                                                          actor_on_job_t handler, app_event_status_t ready_status,
                                                           app_event_status_t busy_status);
 
 /* Consume event if not busy, otherwise keep it enqueued for later without allowing others to take it  */
@@ -167,11 +167,11 @@ app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_eve
 #define actor_event_handle_and_process(actor, event, destination, handler)                                                               \
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_DEFERRED, (actor_on_report_t)handler)
 /* Consume event by starting a task if not busy, otherwise keep it enqueued for later without allowing others to take it  */
-#define actor_event_handle_and_start_task(actor, event, task, thread, handler)                                                           \
-    actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
+#define actor_event_handle_and_start_job(actor, event, task, thread, handler)                                                           \
+    actor_event_accept_and_start_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
 /* Consume event with a running task if not busy, otherwise keep it enqueued for later without allowing others to take it  */
-#define actor_event_handle_and_pass_to_task(actor, event, task, thread, handler)                                                         \
-    actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
+#define actor_event_handle_and_pass_to_job(actor, event, task, thread, handler)                                                         \
+    actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
 
 /* Consume event if not busy, otherwise keep it enqueued for later unless other actors take it first  */
 #define actor_event_accept(actor, event, destination)                                                                                    \
@@ -180,11 +180,11 @@ app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_eve
 #define actor_event_accept_and_process(actor, event, destination, handler)                                                               \
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED, (app_event_t)handler)
 /* Consume event by starting a task if not busy, otherwise keep it enqueued for later unless other actors take it first  */
-#define actor_event_accept_and_start_task(actor, event, task, thread, handler)                                                           \
-    actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
+#define actor_event_accept_and_start_job(actor, event, task, thread, handler)                                                           \
+    actor_event_accept_and_start_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
 /* Consume event with a running task  if not busy, otherwise keep it enqueued for later unless other actors take it first */
-#define actor_event_accept_and_pass_to_task(actor, event, task, thread, handler)                                                         \
-    actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
+#define actor_event_accept_and_pass_to_job(actor, event, task, thread, handler)                                                         \
+    actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
 
 /* Process event and let others receieve it too */
 #define actor_event_receive(actor, event, destination)                                                                                   \
@@ -193,16 +193,16 @@ app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_eve
 #define actor_event_receive_and_process(actor, event, destination, handler)                                                              \
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED, (app_event_t)handler)
 /* Consume even by starting a task if not busy, and let others receieve it too  */
-#define actor_event_receive_and_start_task(actor, event, task, thread, handler)                                                          \
-    actor_event_accept_and_start_task_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
+#define actor_event_receive_and_start_job(actor, event, task, thread, handler)                                                          \
+    actor_event_accept_and_start_job_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
 /* Consume event with a running task  if not busy, and let others receieve it too  */
-#define actor_event_receive_and_pass_to_task(actor, event, task, thread, handler)                                                        \
-    actor_event_accept_and_pass_to_task_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
+#define actor_event_receive_and_pass_to_job(actor, event, task, thread, handler)                                                        \
+    actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
 
 app_signal_t actor_event_report(actor_t *actor, app_event_t *event);
 app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event);
 
-app_signal_t actor_tick_catchup(actor_t *actor, actor_tick_t *tick);
+app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *tick);
 
 #ifdef __cplusplus
 }

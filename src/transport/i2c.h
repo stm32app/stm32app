@@ -51,7 +51,7 @@ struct transport_i2c{
 
 
     app_signal_t incoming_signal;
-    app_task_t task;
+    app_job_t task;
     uint16_t task_retries;
     
     app_buffer_t *ring_buffer;

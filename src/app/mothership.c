@@ -82,7 +82,7 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     return count;
 }
 
-static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
+static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     (void)tick;
     (void)thread;
     if (event->type == APP_EVENT_THREAD_ALARM && thread->current_time == 0) {
@@ -98,10 +98,8 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
     return 0;
 }
 
-static app_task_signal_t mothership_task_stats(app_task_t *task) {
-    if (task->phase_index == 0) {
-        HeapStats_t pxHeapStats;
-        vPortGetHeapStats( &pxHeapStats );
+static app_job_signal_t mothership_job_stats(app_job_t *task) {
+    if (task->step_index == 0) {
         log_printf("│ │ ├ Allocated buffers\n");
         for (app_buffer_t *page = task->actor->app->buffers; page; page = app_buffer_get_next_page(page, task->actor->app->buffers)) {
             for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(app_buffer_t)) {
@@ -111,25 +109,27 @@ static app_task_signal_t mothership_task_stats(app_task_t *task) {
                 }
             }
         }
-        log_printf("│ │ ├ Heap stats\t%ub/%ub free, %u lowest\n", pxHeapStats.xAvailableHeapSpaceInBytes, configTOTAL_HEAP_SIZE, pxHeapStats.xMinimumEverFreeBytesRemaining);
-        log_printf("│ │ │ ├ Blocks\t\t%ub min, %ub max, free %u\n", pxHeapStats.xSizeOfLargestFreeBlockInBytes, pxHeapStats.xSizeOfSmallestFreeBlockInBytes, pxHeapStats.xNumberOfFreeBlocks);
-        log_printf("│ │ │ ├ Operations\t%u allocations, %u frees\n", pxHeapStats.xNumberOfSuccessfulAllocations, pxHeapStats.xNumberOfSuccessfulFrees);
+        for (size_t i = 0; i < HEAP_NUM; i++) {
+            log_printf("│ │ ├ Heap #0x%lx\t%ub/%ub free, %u lowest\n", (uint32_t) multiRegionGetHeapStartAddress(i), multiRegionGetFreeHeapSize(i), multiRegionGetHeapSize(i), multiRegionGetMinimumEverFreeHeapSize(i));
+//            log_printf("│ │ │ ├ Blocks\t\t%ub min, %ub max, free %u\n", pxHeapStats.xSizeOfLargestFreeBlockInBytes, pxHeapStats.xSizeOfSmallestFreeBlockInBytes, pxHeapStats.xNumberOfFreeBlocks);
+//            log_printf("│ │ │ ├ Operations\t%u allocations, %u frees\n", pxHeapStats.xNumberOfSuccessfulAllocations, pxHeapStats.xNumberOfSuccessfulFrees);
 
+        }
     }
-    return APP_TASK_SUCCESS;
+    return APP_JOB_SUCCESS;
 }
 
-static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
+static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_THREAD_ALARM:
-        actor_event_receive_and_start_task(mothership->actor, event, &mothership->task, thread, mothership_task_stats);
+        actor_event_receive_and_start_job(mothership->actor, event, &mothership->task, thread, mothership_job_stats);
         
         break;
     default:
         break;
     }
 
-    app_task_execute_if_running_in_thread(&mothership->task, thread);
+    app_job_execute_if_running_in_thread(&mothership->task, thread);
     tick->next_time = thread->current_time + 5000;
     return 0;
 }
@@ -169,8 +169,8 @@ actor_class_t app_mothership_class = {
     .stop = (app_method_t)mothership_stop,
     .on_phase = (actor_on_phase_t)mothership_phase,
     .on_signal = (actor_on_signal_t)mothership_on_signal,
-    .tick_high_priority = (actor_on_tick_t)mothership_high_priority,
-    .tick_low_priority = (actor_on_tick_t)mothership_low_priority,
+    .tick_high_priority = (actor_on_worker_t)mothership_high_priority,
+    .tick_low_priority = (actor_on_worker_t)mothership_low_priority,
     .property_write = mothership_property_write,
     .on_buffer = (actor_on_buffer_t)mothership_on_buffer,
 };

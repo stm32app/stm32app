@@ -1,4 +1,3 @@
-
 #ifdef APP_MOTHERSHIP
     #include "app/mothership.h"
     #include "OD.h"
@@ -6,7 +5,9 @@
 
 extern void initialise_monitor_handles(void);
 
-static void app_boot(app_t **app) {
+static void app_boot(void *pvParameters) {
+    
+    app_t **app = (app_t **) pvParameters;
 #if APP_MOTHERSHIP
     log_printf("App - Mothership ...\n");
     log_printf("App - Enumerating actors ...\n");
@@ -20,6 +21,9 @@ static void app_boot(app_t **app) {
 
     log_printf("App - Starting...\n");
     app_set_phase(*app, ACTOR_STARTING);
+    
+    vTaskDelete(NULL);
+    
 }
 
 
@@ -30,9 +34,12 @@ int main(void) {
     dwt_enable_cycle_counter();
 #endif
     app_t *app;
-    app_boot(&app); 
-    log_printf("App - Starting tasks...\n");
+
     scb_set_priority_grouping(SCB_AIRCR_PRIGROUP_GROUP16_NOSUB);
+    xTaskCreate( app_boot, "Startup", 5000, &app, tskIDLE_PRIORITY + 10, NULL);
+
+    log_printf("App - Starting tasks...\n");
+    
     vTaskStartScheduler();
     while (true) { }
     return 0;

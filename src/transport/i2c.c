@@ -194,14 +194,14 @@ static app_signal_t i2c_phase(transport_i2c_t *i2c, actor_phase_t phase) {
     return 0;
 }
 
-static app_signal_t i2c_handle_error(app_task_t *task) {
+static app_signal_t i2c_handle_error(app_job_t *task) {
     transport_i2c_t *i2c = task->actor->object;
     if (I2C_EVENT_ERROR(i2c->address)) {
         if (i2c->task_retries > 3) {
-            return APP_TASK_FAILURE;
+            return APP_JOB_FAILURE;
         } else {
             i2c->task_retries++;
-            return APP_TASK_RETRY;
+            return APP_JOB_RETRY;
         }
     }
     return 0;
@@ -217,75 +217,75 @@ transport_i2c_event_argument_t *i2c_unpack_event_argument(void **argument) {
     return (transport_i2c_event_argument_t *)argument;
 }
 
-static app_task_signal_t i2c_step_setup(app_task_t *task, uint8_t address, uint32_t memory_register) {
+static app_job_signal_t i2c_task_setup(app_job_t *task, uint8_t address, uint32_t memory_register) {
     transport_i2c_t *i2c = task->actor->object;
-    switch (task->step_index) {
+    switch (task->task_index) {
     case 0:
         i2c_peripheral_enable(i2c->address);
         i2c_send_start(i2c->address);
-        return APP_TASK_STEP_CONTINUE;
+        return APP_JOB_TASK_CONTINUE;
     case 1:
         if (!I2C_EVENT_MASTER_MODE_SELECT(i2c->address)) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
             i2c_send_7bit_address(i2c->address, address, I2C_WRITE);
-            return APP_TASK_STEP_WAIT;
+            return APP_JOB_TASK_WAIT;
         }
     case 2:
         if (!I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED(i2c->address) && !I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address)) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
             I2C_DR(i2c->address) = memory_register;
-            return APP_TASK_STEP_CONTINUE;
+            return APP_JOB_TASK_CONTINUE;
         }
     case 3:
         if (!I2C_EVENT_TXE(i2c->address)) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
-            return APP_TASK_STEP_SUCCESS;
+            return APP_JOB_TASK_SUCCESS;
         }
     default:
-        return APP_TASK_STEP_SUCCESS;
+        return APP_JOB_TASK_SUCCESS;
     }
 }
 
-static app_task_signal_t i2c_step_write_data(app_task_t *task, uint8_t address, uint8_t *data, uint32_t size) {
+static app_job_signal_t i2c_task_write_data(app_job_t *task, uint8_t address, uint8_t *data, uint32_t size) {
     (void)address;
     transport_i2c_t *i2c = task->actor->object;
-    switch (task->step_index) {
+    switch (task->task_index) {
     case 0:
         nvic_disable_irq(i2c->ev_irq);
         if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
-            return APP_TASK_STEP_QUIT_ISR;
+            return APP_JOB_TASK_QUIT_ISR;
         } else {
             i2c->source_buffer = app_buffer_source(i2c->actor, data, size);
             if (!i2c->source_buffer) {
-                return APP_TASK_STEP_FAILURE;
+                return APP_JOB_TASK_FAILURE;
             } else {
-                return APP_TASK_STEP_CONTINUE;
+                return APP_JOB_TASK_CONTINUE;
             }
         }
-        return APP_TASK_STEP_QUIT_ISR;
+        return APP_JOB_TASK_QUIT_ISR;
     case 1:
         i2c_dma_tx_start(i2c, data, size);
-        return APP_TASK_STEP_CONTINUE;
+        return APP_JOB_TASK_CONTINUE;
     case 2:
         if (i2c->incoming_signal != APP_SIGNAL_DMA_TRANSFERRING) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
             i2c_dma_tx_stop(i2c);
             nvic_enable_irq(i2c->ev_irq);
-            return APP_TASK_STEP_CONTINUE;
+            return APP_JOB_TASK_CONTINUE;
         }
     case 3:
         if (!I2C_EVENT_BTF(i2c->address) && !I2C_EVENT_TXE(i2c->address)) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
             i2c_send_stop(i2c->address);
             i2c_peripheral_disable(i2c->address);
-            return APP_TASK_STEP_SUCCESS;
+            return APP_JOB_TASK_SUCCESS;
         }
-    case APP_TASK_STEP_FAILURE:
+    case APP_JOB_TASK_FAILURE:
         app_buffer_release(i2c->source_buffer, i2c->actor);
         i2c->source_buffer = NULL;
         break;
@@ -293,50 +293,50 @@ static app_task_signal_t i2c_step_write_data(app_task_t *task, uint8_t address, 
     return 0;
 }
 
-static app_task_signal_t i2c_step_read_data(app_task_t *task, uint8_t address, uint8_t *data, uint32_t size) {
+static app_job_signal_t i2c_task_read_data(app_job_t *task, uint8_t address, uint8_t *data, uint32_t size) {
     transport_i2c_t *i2c = task->actor->object;
-    switch (task->step_index) {
+    switch (task->task_index) {
     case 0:
         nvic_disable_irq(i2c->ev_irq);
         if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
-            return APP_TASK_STEP_QUIT_ISR;
+            return APP_JOB_TASK_QUIT_ISR;
         } else {
             i2c->output_buffer = app_double_buffer_target(i2c->ring_buffer, i2c->actor, data, size);
             if (!i2c->output_buffer) {
-                return APP_TASK_STEP_FAILURE;
+                return APP_JOB_TASK_FAILURE;
             } else {
-                return APP_TASK_STEP_CONTINUE;
+                return APP_JOB_TASK_CONTINUE;
             }
         }
     case 1:
         i2c_enable_ack(i2c->address);
         i2c_send_start(i2c->address);
         nvic_enable_irq(i2c->ev_irq);
-        return APP_TASK_STEP_CONTINUE;
+        return APP_JOB_TASK_CONTINUE;
     case 2:
         if (!I2C_EVENT_MASTER_MODE_SELECT(i2c->address)) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
             i2c_send_7bit_address(i2c->address, address, I2C_READ);
-            return APP_TASK_STEP_CONTINUE;
+            return APP_JOB_TASK_CONTINUE;
         }
     case 3:
         if (!I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address)) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
             i2c_dma_rx_start(i2c, data, size);
-            return APP_TASK_STEP_WAIT;
+            return APP_JOB_TASK_WAIT;
         }
     case 4:
         if (i2c->incoming_signal != APP_SIGNAL_DMA_TRANSFERRING || i2c->output_buffer->size != size) {
-            return APP_TASK_STEP_LOOP;
+            return APP_JOB_TASK_LOOP;
         } else {
             i2c_dma_rx_stop(i2c);
             i2c_peripheral_disable(i2c->address);
             i2c_send_stop(i2c->address);
-            return APP_TASK_STEP_SUCCESS;
+            return APP_JOB_TASK_SUCCESS;
         }
-    case APP_TASK_STEP_FAILURE:
+    case APP_JOB_TASK_FAILURE:
         app_buffer_release(i2c->output_buffer, i2c->actor);
         i2c->output_buffer = NULL;
         break;
@@ -344,10 +344,10 @@ static app_task_signal_t i2c_step_read_data(app_task_t *task, uint8_t address, u
     return 0;
 }
 
-static app_task_signal_t i2c_step_publish_response(app_task_t *task) {
+static app_job_signal_t i2c_task_publish_response(app_job_t *task) {
     app_buffer_t *buffer;
     transport_i2c_t *i2c = task->actor->object;
-    switch (task->step_index) {
+    switch (task->task_index) {
     case 0:
         buffer = app_double_buffer_detach(i2c->ring_buffer, &i2c->output_buffer, i2c->actor);
 
@@ -361,45 +361,45 @@ static app_task_signal_t i2c_step_publish_response(app_task_t *task) {
         } else {
             app_buffer_release(buffer, task->actor);
         }
-        return APP_TASK_STEP_SUCCESS;
+        return APP_JOB_TASK_SUCCESS;
 
     }
     return 0;
 }
 
-static app_task_signal_t i2c_task_read(app_task_t *task) {
-    app_task_signal_t error_signal = i2c_handle_error(task);
+static app_job_signal_t i2c_job_read(app_job_t *task) {
+    app_job_signal_t error_signal = i2c_handle_error(task);
     if (error_signal) {
         return error_signal;
     }
     transport_i2c_event_argument_t *argument = i2c_unpack_event_argument(&task->inciting_event.argument);
-    switch (task->phase_index) {
+    switch (task->step_index) {
     case 0:
-        return i2c_step_setup(task, argument->slave_address, argument->memory_address);
+        return i2c_task_setup(task, argument->slave_address, argument->memory_address);
     case 1:
-        return i2c_step_read_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
+        return i2c_task_read_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
     case 2:
-        return i2c_step_publish_response(task);
+        return i2c_task_publish_response(task);
     }
-    return APP_TASK_SUCCESS;
+    return APP_JOB_SUCCESS;
 }
-static app_task_signal_t i2c_task_write(app_task_t *task) {
-    app_task_signal_t error_signal = i2c_handle_error(task);
+static app_job_signal_t i2c_job_write(app_job_t *task) {
+    app_job_signal_t error_signal = i2c_handle_error(task);
     if (error_signal) {
         return error_signal;
     }
     transport_i2c_event_argument_t *argument = i2c_unpack_event_argument(&task->inciting_event.argument);
-    switch (task->phase_index) {
+    switch (task->step_index) {
     case 0:
-        return i2c_step_setup(task, argument->slave_address, argument->memory_address);
+        return i2c_task_setup(task, argument->slave_address, argument->memory_address);
     case 1:
-        return i2c_step_write_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
+        return i2c_task_write_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
     }
-    return APP_TASK_SUCCESS;
+    return APP_JOB_SUCCESS;
 }
 
-static app_signal_t i2c_task_erase(app_task_t *task) {
-    return APP_TASK_SUCCESS;
+static app_signal_t i2c_job_erase(app_job_t *task) {
+    return APP_JOB_SUCCESS;
 }
 
 /*
@@ -409,7 +409,7 @@ static void i2c_notify(size_t index) {
     log_printf("> I2C%i interrupt\n", index);
     transport_i2c_t *i2c = i2c_units[index - 1];
     if (i2c != NULL && i2c->task.handler) {
-        app_task_execute(&i2c->task);
+        app_job_execute(&i2c->task);
     }
     volatile uint32_t s1 = I2C_SR1(i2c->address);
     volatile uint32_t s2 = I2C_SR2(i2c->address);
@@ -432,7 +432,7 @@ static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_sign
             app_double_buffer_ingest_external_write(i2c->ring_buffer, i2c->output_buffer, buffer_size - bytes_left);
         }
         i2c->incoming_signal = signal;
-        app_task_execute(&i2c->task);
+        app_job_execute(&i2c->task);
         break;
     default:
         break;
@@ -440,20 +440,20 @@ static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_sign
     return 0;
 }
 
-static app_signal_t i2c_tick_input(transport_i2c_t *i2c, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
+static app_signal_t i2c_worker_input(transport_i2c_t *i2c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_READ:
     case APP_EVENT_READ_TO_BUFFER:
-        return actor_event_handle_and_start_task(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_task_read);
+        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_task(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_task_write);
+        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_job_write);
     default:
         return 0;
     }
 }
 
-static app_signal_t i2c_tick_medium_priority(transport_i2c_t *i2c, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
-    return app_task_execute_if_running_in_thread(&i2c->task, thread);
+static app_signal_t i2c_worker_medium_priority(transport_i2c_t *i2c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+    return app_job_execute_if_running_in_thread(&i2c->task, thread);
 }
 
 static app_signal_t i2c_on_buffer(transport_i2c_t *i2c, app_buffer_t *buffer, uint32_t size) {
@@ -481,8 +481,8 @@ actor_class_t transport_i2c_class = {
     .on_signal = (actor_on_signal_t)i2c_on_signal,
     .on_buffer = (actor_on_buffer_t)i2c_on_buffer,
     .property_write = i2c_property_write,
-    .tick_input = (actor_on_tick_t)i2c_tick_input,
-    .tick_medium_priority = (actor_on_tick_t)i2c_tick_medium_priority,
+    .tick_input = (actor_on_worker_t)i2c_worker_input,
+    .tick_medium_priority = (actor_on_worker_t)i2c_worker_medium_priority,
 };
 
 void i2c1_ev_isr(void) {

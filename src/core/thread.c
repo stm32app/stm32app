@@ -6,11 +6,11 @@
 #define IS_IN_ISR (SCB_ICSR & SCB_ICSR_VECTACTIVE)
 
 static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t tick_index);
-static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_tick_t *tick);
+static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_worker_t *tick);
 static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event, app_event_status_t previous_status);
 static void app_thread_event_await(app_thread_t *thread, app_event_t *event);
 static inline bool_t app_thread_event_queue_shift(app_thread_t *thread, app_event_t *event, size_t deferred_count);
-static inline actor_tick_t *actor_tick_by_index(actor_t *actor, size_t index);
+static inline actor_worker_t *actor_worker_by_index(actor_t *actor, size_t index);
 
 /* A generic RTOS task function that handles all typical propertiesurations of threads. It supports following features or combinations of
   them:
@@ -40,7 +40,7 @@ void app_thread_execute(app_thread_t *thread) {
     thread->current_time = xTaskGetTickCount();
     thread->last_time = thread->current_time;
     thread->next_time = thread->current_time + MAX_THREAD_SLEEP_TIME;
-    size_t tick_index = app_thread_get_tick_index(thread);   // Which actor tick handles this thread
+    size_t tick_index = app_thread_get_worker_index(thread);   // Which actor tick handles this thread
     size_t deferred_count = 0;                               // Counter of re-queued events
     actor_t *first_actor = app_thread_filter_actors(thread); // linked list of actors declaring the tick
     app_event_t event = {.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
@@ -72,7 +72,7 @@ void app_thread_execute(app_thread_t *thread) {
   Devices may indicate which types of events they want to be notified about. But there're also internal synthetic events that they receieve
   unconditionally.
 */
-static inline bool_t app_thread_should_notify_actor(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_tick_t *tick) {
+static inline bool_t app_thread_should_notify_actor(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_worker_t *tick) {
     switch (event->type) {
     // Ticks get notified when thread starts and stops, so they can construct/destruct or schedule a periodical alarm
     case APP_EVENT_THREAD_STOP:
@@ -98,11 +98,11 @@ static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t 
 
     // If event has no indicated reciepent, all actors that are subscribed to thread and event will need to be notified
     actor_t *actor = event->consumer ? event->consumer : first_actor;
-    actor_tick_t *tick;
+    actor_worker_t *tick;
     app_signal_t signal;
 
     while (actor) {
-        tick = actor_tick_by_index(actor, tick_index);
+        tick = actor_worker_by_index(actor, tick_index);
         signal = app_thread_event_actor_dispatch(thread, event, actor, tick);
 
         // let tick know that it has events to catch up later
@@ -127,7 +127,7 @@ static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t 
  * - keep event in the queue for later processing, but allow other actors to handle it before that
  * - wake up on software timer at specific time in future */
 
-static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_tick_t *tick) {
+static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_worker_t *tick) {
     app_signal_t signal;
 
     if (app_thread_should_notify_actor(thread, event, actor, tick)) {
@@ -379,28 +379,28 @@ void app_thread_schedule(app_thread_t *thread, uint32_t time) {
         //}
     }
 }
-void app_thread_tick_schedule(app_thread_t *thread, actor_tick_t *tick, uint32_t time) {
+void app_thread_worker_schedule(app_thread_t *thread, actor_worker_t *tick, uint32_t time) {
     tick->next_time = time;
     app_thread_schedule(thread, time);
 }
 
-int actor_tick_allocate(actor_tick_t **destination, actor_on_tick_t callback) {
+int actor_worker_allocate(actor_worker_t **destination, actor_on_worker_t callback) {
     if (callback != NULL) {
-        *destination = malloc(sizeof(actor_tick_t));
+        *destination = malloc(sizeof(actor_worker_t));
         if (*destination == NULL) {
             return APP_SIGNAL_OUT_OF_MEMORY;
         }
-        actor_tick_initialize(*destination);
+        actor_worker_initialize(*destination);
         (*destination)->callback = callback;
     }
     return 0;
 }
 
-void actor_tick_initialize(actor_tick_t *tick) {
-    *tick = (actor_tick_t){};
+void actor_worker_initialize(actor_worker_t *tick) {
+    *tick = (actor_worker_t){};
 }
 
-void actor_tick_free(actor_tick_t **tick) {
+void actor_worker_free(actor_worker_t **tick) {
     if (*tick != NULL) {
         free(*tick);
         *tick = NULL;
@@ -440,28 +440,28 @@ int app_thread_free(app_thread_t **thread) {
 }
 
 /* Returns specific member of app_threads_t struct by its numeric index*/
-static inline actor_tick_t *actor_tick_by_index(actor_t *actor, size_t index) {
-    return ((actor_tick_t **)actor->ticks)[index];
+static inline actor_worker_t *actor_worker_by_index(actor_t *actor, size_t index) {
+    return ((actor_worker_t **)actor->ticks)[index];
 }
 
-/* Returns specific member of actor_ticks_t struct by its numeric index*/
+/* Returns specific member of actor_workers_t struct by its numeric index*/
 static inline app_thread_t *app_thread_by_index(app_t *app, size_t index) {
     return ((app_thread_t **)app->threads)[index];
 }
 
 /* Returns actor tick handling given thread */
-actor_tick_t *actor_tick_for_thread(actor_t *actor, app_thread_t *thread) {
-    return actor_tick_by_index(actor, app_thread_get_tick_index(thread));
+actor_worker_t *actor_worker_for_thread(actor_t *actor, app_thread_t *thread) {
+    return actor_worker_by_index(actor, app_thread_get_worker_index(thread));
 }
 
 actor_t *app_thread_filter_actors(app_thread_t *thread) {
     app_t *app = thread->actor->app;
-    size_t tick_index = app_thread_get_tick_index(thread);
+    size_t tick_index = app_thread_get_worker_index(thread);
     actor_t *first_actor = NULL;
     actor_t *last_actor = NULL;
     for (size_t i = 0; i < app->actor_count; i++) {
         actor_t *actor = &app->actor[i];
-        actor_tick_t *tick = actor_tick_by_index(actor, tick_index);
+        actor_worker_t *tick = actor_worker_by_index(actor, tick_index);
         // Subscribed actors have corresponding tick handler
         if (tick == NULL) {
             continue;
@@ -474,7 +474,7 @@ actor_t *app_thread_filter_actors(app_thread_t *thread) {
 
         // double link the ticks for fast iteration
         if (last_actor != NULL) {
-            actor_tick_by_index(last_actor, tick_index)->next_actor = actor;
+            actor_worker_by_index(last_actor, tick_index)->next_actor = actor;
             tick->prev_actor = actor;
         }
 
@@ -484,7 +484,7 @@ actor_t *app_thread_filter_actors(app_thread_t *thread) {
     return first_actor;
 }
 
-size_t app_thread_get_tick_index(app_thread_t *thread) {
+size_t app_thread_get_worker_index(app_thread_t *thread) {
     for (size_t i = 0; i < sizeof(app_threads_t) / sizeof(app_thread_t *); i++) {
         if (app_thread_by_index(thread->actor->app, i) == thread) {
             // Both input and immediate threads invoke same input tick
@@ -498,21 +498,21 @@ size_t app_thread_get_tick_index(app_thread_t *thread) {
     return -1;
 }
 
-int actor_ticks_allocate(actor_t *actor) {
-    actor->ticks = malloc(sizeof(actor_ticks_t));
-    return actor_tick_allocate(&actor->ticks->input, actor->class->tick_input) ||
-           actor_tick_allocate(&actor->ticks->medium_priority, actor->class->tick_medium_priority) ||
-           actor_tick_allocate(&actor->ticks->high_priority, actor->class->tick_high_priority) ||
-           actor_tick_allocate(&actor->ticks->low_priority, actor->class->tick_low_priority) ||
-           actor_tick_allocate(&actor->ticks->bg_priority, actor->class->tick_bg_priority);
+int actor_workers_allocate(actor_t *actor) {
+    actor->ticks = malloc(sizeof(actor_workers_t));
+    return actor_worker_allocate(&actor->ticks->input, actor->class->tick_input) ||
+           actor_worker_allocate(&actor->ticks->medium_priority, actor->class->tick_medium_priority) ||
+           actor_worker_allocate(&actor->ticks->high_priority, actor->class->tick_high_priority) ||
+           actor_worker_allocate(&actor->ticks->low_priority, actor->class->tick_low_priority) ||
+           actor_worker_allocate(&actor->ticks->bg_priority, actor->class->tick_bg_priority);
 }
 
-int actor_ticks_free(actor_t *actor) {
-    actor_tick_free(&actor->ticks->input);
-    actor_tick_free(&actor->ticks->medium_priority);
-    actor_tick_free(&actor->ticks->high_priority);
-    actor_tick_free(&actor->ticks->low_priority);
-    actor_tick_free(&actor->ticks->bg_priority);
+int actor_workers_free(actor_t *actor) {
+    actor_worker_free(&actor->ticks->input);
+    actor_worker_free(&actor->ticks->medium_priority);
+    actor_worker_free(&actor->ticks->high_priority);
+    actor_worker_free(&actor->ticks->low_priority);
+    actor_worker_free(&actor->ticks->bg_priority);
     free(actor->ticks);
     return 0;
 }

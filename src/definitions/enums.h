@@ -14,7 +14,7 @@ char* get_app_event_type_name (uint32_t v);
 // defined in ./src/core/event.h
 char* get_app_event_status_name (uint32_t v);
 // defined in ./src/core/task.h
-char* get_app_task_signal_name (uint32_t v);
+char* get_app_job_signal_name (uint32_t v);
 // defined in ./src/definitions/dictionary.h
 char* get_actor_type_name (uint32_t v);
 // defined in ./src/device/circuit.h

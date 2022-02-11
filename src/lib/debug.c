@@ -35,14 +35,14 @@ void log_ccycnt_after(void) {
   lasttasksoffset += cycntoffset;
 }
 
-void log_task_in(void) {
+void log_job_in(void) {
   lasttaskswitch = DWT_CYCCNT;
   lasttasksoffset = 0;
   printf("\n");
   log_printf("%s\n", pcTaskGetName(xTaskGetCurrentTaskHandle()));
 }
 
-void log_task_out(void) {
+void log_job_out(void) {
   uint32_t cyccnt = DWT_CYCCNT;
   int32_t offset = (cyccnt - lasttaskswitch - lasttasksoffset);
   uint32_t us = offset / (F_CPU / 1e6);

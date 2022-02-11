@@ -72,8 +72,7 @@
 
 #ifdef DEBUG
 #include "lib/debug.h"
-#define traceTASK_SWITCHED_OUT()  log_task_out()
-#define traceTASK_SWITCHED_IN() log_task_in()
+
 #endif
 
 
@@ -119,7 +118,7 @@
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 0
 #define configMAX_CO_ROUTINE_PRIORITIES (2)
-// #define configTASK_NOTIFICATION_ARRAY_ENTRIES 5
+#define configTASK_NOTIFICATION_ARRAY_ENTRIES 5
 /* Set the following definitions to 1 to include the API function, or zero
 to exclude the API function. */
 

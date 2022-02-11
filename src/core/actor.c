@@ -53,19 +53,19 @@ int actor_allocate(actor_t *actor) {
 
     actor->entry_extension.object = actor->object;
 
-    return actor_ticks_allocate(actor);
+    return actor_workers_allocate(actor);
 }
 
 int actor_free(actor_t *actor) {
     free(actor->object);
-    return actor_ticks_free(actor);
+    return actor_workers_free(actor);
 }
 
-int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_tick, uint32_t *next_tick) {
-    if (*clock > time_since_last_tick) {
-        *clock -= time_since_last_tick;
-        if (*next_tick > *clock) {
-            *next_tick = *clock;
+int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_worker, uint32_t *next_worker) {
+    if (*clock > time_since_last_worker) {
+        *clock -= time_since_last_worker;
+        if (*next_worker > *clock) {
+            *next_worker = *clock;
         }
         return 1;
     } else {
@@ -116,8 +116,8 @@ app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t 
     }
 }
 
-app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event_t *event, app_task_t *task, app_thread_t *thread,
-                                                       actor_on_task_t handler, app_event_status_t ready_status,
+app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
+                                                       actor_on_job_t handler, app_event_status_t ready_status,
                                                        app_event_status_t busy_status) {
     app_signal_t signal = actor_event_accept_and_process_generic(actor, event, &task->inciting_event, ready_status, busy_status, NULL);
     if (signal == APP_SIGNAL_OK) {
@@ -125,7 +125,7 @@ app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event
         task->handler = handler;
         memcpy(&task->inciting_event, event, sizeof(app_event_t));
         memset(&task->awaited_event, 0, sizeof(app_event_t));
-        task->step_index = task->phase_index = 0;
+        task->task_index = task->step_index = 0;
         task->thread = thread;
         task->counter = 0;
         log_printf("| ├ Task start\t\t%s for %s\t\n", get_actor_type_name(actor->class->type), app_thread_get_name(thread));
@@ -134,8 +134,8 @@ app_signal_t actor_event_accept_and_start_task_generic(actor_t *actor, app_event
     return signal;
 }
 
-app_signal_t actor_event_accept_and_pass_to_task_generic(actor_t *actor, app_event_t *event, app_task_t *task, app_thread_t *thread,
-                                                         actor_on_task_t handler, app_event_status_t ready_status,
+app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
+                                                         actor_on_job_t handler, app_event_status_t ready_status,
                                                          app_event_status_t busy_status) {
     if (task->handler != handler) {
         actor_event_set_status(actor, event, busy_status);
@@ -252,7 +252,7 @@ app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
     return APP_SIGNAL_OK;
 }
 
-app_signal_t actor_tick_catchup(actor_t *actor, actor_tick_t *tick) {
+app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *tick) {
     if (tick == NULL)
         tick = actor->ticks->input;
     if (tick != NULL) {
