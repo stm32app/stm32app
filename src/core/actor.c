@@ -239,12 +239,13 @@ app_signal_t actor_event_report(actor_t *actor, app_event_t *event) {
 
 app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
     if (event != NULL && event->type != APP_EVENT_IDLE) {
+        if (event->type != APP_EVENT_THREAD_ALARM) {
+            log_printf("│ │ ├ Finalize\t\t#%s of %s\n", get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
 
-        log_printf("│ │ ├ Finalize\t\t#%s of %s\n", get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
+            actor_event_report(actor, event);
 
-        actor_event_report(actor, event);
-
-        actor_event_set_status(actor, event, APP_EVENT_FINALIZED);
+            actor_event_set_status(actor, event, APP_EVENT_FINALIZED);
+        }
 
         memset(event, 0, sizeof(app_event_t));
     }
@@ -254,10 +255,12 @@ app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
 app_signal_t actor_tick_catchup(actor_t *actor, actor_tick_t *tick) {
     if (tick == NULL)
         tick = actor->ticks->input;
-    app_thread_t *thread = tick->catchup;
-    if (thread) {
-        tick->catchup = NULL;
-        return app_thread_catchup(thread);
+    if (tick != NULL) {
+        app_thread_t *thread = tick->catchup;
+        if (thread) {
+            tick->catchup = NULL;
+            return app_thread_catchup(thread);
+        }
     }
     return APP_SIGNAL_OK;
 }

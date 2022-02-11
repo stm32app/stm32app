@@ -98,25 +98,38 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
     return 0;
 }
 
-static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
-    (void)tick;
-    (void)thread;
-    switch (event->type) {
-    case APP_EVENT_THREAD_ALARM:
-
-        for (app_buffer_t *page = mothership->buffers; page; page = app_buffer_get_next_page(page, mothership->buffers)) {
+static app_task_signal_t mothership_task_stats(app_task_t *task) {
+    if (task->phase_index == 0) {
+        HeapStats_t pxHeapStats;
+        vPortGetHeapStats( &pxHeapStats );
+        log_printf("│ │ ├ Allocated buffers\n");
+        for (app_buffer_t *page = task->actor->app->buffers; page; page = app_buffer_get_next_page(page, task->actor->app->buffers)) {
             for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(app_buffer_t)) {
                 app_buffer_t *buffer = (app_buffer_t *)&page->data[offset];
                 if (!(buffer->owner == NULL && buffer->data == NULL && buffer->allocated_size == 0)) {
-                    log_printf("BUFFER: %s - %lu/%lu\n", get_actor_type_name(buffer->owner->class->type), buffer->size, buffer->allocated_size);
+                    log_printf("│ │ │ ├ %-16s%lub/%lub\n", get_actor_type_name(buffer->owner->class->type), buffer->size, buffer->allocated_size);
                 }
             }
         }
+        log_printf("│ │ ├ Heap stats\t%ub/%ub free, %u lowest\n", pxHeapStats.xAvailableHeapSpaceInBytes, configTOTAL_HEAP_SIZE, pxHeapStats.xMinimumEverFreeBytesRemaining);
+        log_printf("│ │ │ ├ Blocks\t\t%ub min, %ub max, free %u\n", pxHeapStats.xSizeOfLargestFreeBlockInBytes, pxHeapStats.xSizeOfSmallestFreeBlockInBytes, pxHeapStats.xNumberOfFreeBlocks);
+        log_printf("│ │ │ ├ Operations\t%u allocations, %u frees\n", pxHeapStats.xNumberOfSuccessfulAllocations, pxHeapStats.xNumberOfSuccessfulFrees);
+
+    }
+    return APP_TASK_SUCCESS;
+}
+
+static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_event_t *event, actor_tick_t *tick, app_thread_t *thread) {
+    switch (event->type) {
+    case APP_EVENT_THREAD_ALARM:
+        actor_event_receive_and_start_task(mothership->actor, event, &mothership->task, thread, mothership_task_stats);
+        
         break;
     default:
-
         break;
     }
+
+    app_task_execute_if_running_in_thread(&mothership->task, thread);
     tick->next_time = thread->current_time + 5000;
     return 0;
 }

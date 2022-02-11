@@ -27,6 +27,8 @@ typedef struct app_mothership {
     system_canopen_t *canopen;
     module_timer_t *timer;
     app_buffer_t *buffers;
+    app_task_t task;
+    
 } app_mothership_t;
 
 

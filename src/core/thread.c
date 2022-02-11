@@ -185,8 +185,10 @@ static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event,
 
     switch (event->status) {
     case APP_EVENT_WAITING:
-        if (event->type != APP_EVENT_THREAD_ALARM)
+        if (event->type != APP_EVENT_THREAD_ALARM) {
             log_printf("No actors are listening to event: #%s\n", get_app_event_type_name(event->type));
+            actor_event_finalize(event->producer, event);
+        }
         break;
 
     // Some busy actor wants to handle event later, so the event has to be re-queued
