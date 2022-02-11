@@ -72,13 +72,13 @@ static app_signal_t spi_start(transport_spi_t *spi) {
     rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_SPI1EN);
     // SPI1_I2SCFGR = 0; // disable i2s??
 
-    log_printf("    > SPI%i SS\n", spi->actor->seq + 1);
+    debug_printf("    > SPI%i SS\n", spi->actor->seq + 1);
     gpio_configure_output_pullup(spi->properties->ss_port, spi->properties->ss_pin, GPIO_FAST);
-    log_printf("    > SPI%i SCK", spi->actor->seq + 1);
+    debug_printf("    > SPI%i SCK", spi->actor->seq + 1);
     gpio_configure_af_pullup(spi->properties->sck_port, spi->properties->sck_pin, GPIO_FAST, 5);
-    log_printf("    > SPI%i MOSI", spi->actor->seq + 1);
+    debug_printf("    > SPI%i MOSI", spi->actor->seq + 1);
     gpio_configure_af_pullup(spi->properties->mosi_port, spi->properties->mosi_pin, GPIO_FAST, 5);
-    log_printf("    > SPI%i MISO", spi->actor->seq + 1);
+    debug_printf("    > SPI%i MISO", spi->actor->seq + 1);
 
     gpio_mode_setup(GPIOX(spi->properties->miso_port), GPIO_MODE_AF, GPIO_PUPD_NONE, 1 << spi->properties->miso_pin);
     gpio_set_af(GPIOX(spi->properties->miso_port), GPIO_AF5, 1 << spi->properties->miso_pin);
@@ -165,8 +165,8 @@ static app_signal_t spi_dma_write(transport_spi_t *spi, uint8_t *data) {
     actor_register_dma(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream, spi->actor);
     uint32_t tx_bytes_required = spi_dma_get_required_tx_bytes(spi);
 
-    log_printf("   > SPI%u\t", spi->actor->seq + 1);
-    log_printf("TX started\tDMA%u(%u/%u)\t%lub payload\t%lub total\n", spi->properties->dma_tx_unit, spi->properties->dma_tx_stream,
+    debug_printf("   > SPI%u\t", spi->actor->seq + 1);
+    debug_printf("TX started\tDMA%u(%u/%u)\t%lub payload\t%lub total\n", spi->properties->dma_tx_unit, spi->properties->dma_tx_stream,
                spi->properties->dma_tx_channel, spi->tx_bytes_target, tx_bytes_required);
 
     actor_dma_tx_start((uint32_t) & (SPI_DR(spi->address)), spi->properties->dma_tx_unit, spi->properties->dma_tx_stream,
@@ -186,8 +186,8 @@ static app_signal_t spi_dma_read(transport_spi_t *spi) {
     uint16_t buffer_size = spi_dma_get_effectve_rx_circular_buffer_size(spi);
     uint32_t rx_bytes_required = spi_dma_get_required_rx_bytes(spi);
 
-    log_printf("   > SPI%u\t", spi->actor->seq + 1);
-    log_printf("RX started\tDMA%u(%u/%u)\t%lub payload\t%lub total\n", spi->properties->dma_rx_unit, spi->properties->dma_rx_stream,
+    debug_printf("   > SPI%u\t", spi->actor->seq + 1);
+    debug_printf("RX started\tDMA%u(%u/%u)\t%lub payload\t%lub total\n", spi->properties->dma_rx_unit, spi->properties->dma_rx_stream,
                spi->properties->dma_rx_channel, spi->rx_bytes_target, rx_bytes_required);
     actor_dma_rx_start((uint32_t) & (SPI_DR(spi->address)), spi->properties->dma_rx_unit, spi->properties->dma_rx_stream,
                        spi->properties->dma_rx_channel, spi->dma_rx_circular_buffer, buffer_size,
@@ -248,9 +248,9 @@ static app_signal_t spi_dma_transceive(transport_spi_t *spi, uint8_t *data, size
 
 /* Send the resulting read contents back via a queue */
 static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
-    log_printf("   > SPI%u\t", spi->actor->seq + 1);
+    debug_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_tx_stop(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream, spi->properties->dma_tx_channel);
-    log_printf("   > SPI%u\t", spi->actor->seq + 1);
+    debug_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_rx_stop(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->properties->dma_rx_channel);
     module_timer_clear(spi->actor->app->timer, spi->actor, (void *)ACTOR_REQUESTING);
 

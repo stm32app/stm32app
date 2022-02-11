@@ -46,7 +46,7 @@ void app_thread_execute(app_thread_t *thread) {
     app_event_t event = {.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
 
     if (first_actor == NULL) {
-        log_printf("~ %s:  does not have any listener actors and will self-terminate\n", app_thread_get_name(thread));
+        debug_printf("~ %s:  does not have any listener actors and will self-terminate\n", app_thread_get_name(thread));
         vTaskDelete(NULL);
         portYIELD();
     }
@@ -131,7 +131,7 @@ static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_ev
     app_signal_t signal;
 
     if (app_thread_should_notify_actor(thread, event, actor, tick)) {
-        log_printf("├ %-22s#%s from %s\n", 
+        debug_printf("├ %-22s#%s from %s\n", 
                    get_actor_type_name(actor->class->type), get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
 
         if (event->type == APP_EVENT_THREAD_ALARM || event->type == APP_EVENT_THREAD_START) {
@@ -186,7 +186,7 @@ static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event,
     switch (event->status) {
     case APP_EVENT_WAITING:
         if (event->type != APP_EVENT_THREAD_ALARM) {
-            log_printf("No actors are listening to event: #%s\n", get_app_event_type_name(event->type));
+            debug_printf("No actors are listening to event: #%s\n", get_app_event_type_name(event->type));
             actor_event_finalize(event->producer, event);
         }
         break;
@@ -212,7 +212,7 @@ static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event,
                     return 1;
                 }
             } else {
-                log_printf("The queue doesnt have any room for deferred event #%s\n", get_app_event_type_name(event->type));
+                debug_printf("The queue doesnt have any room for deferred event #%s\n", get_app_event_type_name(event->type));
             }
         } else {
             // Threads without a queue will leave event stored in the only available notification slot
@@ -282,7 +282,7 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
 
         // threads are expected to receive external notifications in order to wake up
         if (timeout > 0) {
-            log_printf("├ Sleep for %ims\n", (int)timeout);
+            debug_printf("├ Sleep for %ims\n", (int)timeout);
         }
 
         uint32_t notification = ulTaskNotifyTake(true, pdMS_TO_TICKS((uint32_t)timeout));
@@ -292,7 +292,7 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
             // if no notification was recieved (value of signal being zero) within scheduled time,
             // it means that thread is woken up by schedule so synthetic wake up event is broadcasted
             *event = (app_event_t){.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
-            log_printf("├ Wakeup\t\tafter %lims (timeout of %lims)\n", 
+            debug_printf("├ Wakeup\t\tafter %lims (timeout of %lims)\n", 
                        ((xTaskGetTickCount() - thread->current_time) * portTICK_PERIOD_MS), timeout);
             stop = true;
             break;
@@ -300,12 +300,12 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
         case APP_SIGNAL_RESCHEDULE:
             // something wants the thread to wake up earlier than its current schedule.
             // next_time must be already updated with new time, so the thread can just go into blocked state again
-            log_printf("├ Reschedule\n");
+            debug_printf("├ Reschedule\n");
             break;
 
         case APP_SIGNAL_CATCHUP:
             // something tells thread that it is now ready to process messages that it asked to keep deferred
-            log_printf("├ Catchup\n");
+            debug_printf("├ Catchup\n");
             __attribute__((fallthrough));
         default:
             // event publishers set address of event in notification slot instead of a signal
@@ -313,7 +313,7 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
             if (thread->queue != NULL) {
                 // threads with queue that receieve notification expect a new message in queue
                 if (!xQueueReceive(thread->queue, event, 0)) {
-                    log_printf("├  Was woken up by notification but its queue is empty\n");
+                    debug_printf("├  Was woken up by notification but its queue is empty\n");
                     continue;
                 }
             } else if (notification > 50) {
@@ -334,7 +334,7 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
 }
 
 bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t overwrite) {
-    log_printf("│ │ ├ Notify\t\t%s with #%s\n", app_thread_get_name(thread), value < 50 ? get_app_signal_name(value) : (char *)(&value));
+    debug_printf("│ │ ├ Notify\t\t%s with #%s\n", app_thread_get_name(thread), value < 50 ? get_app_signal_name(value) : (char *)(&value));
     if (IS_IN_ISR) {
         static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         bool_t result = xTaskNotifyFromISR(thread->task, value, overwrite ? eSetValueWithOverwrite : eSetValueWithoutOverwrite,
@@ -347,7 +347,7 @@ bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t ov
 }
 
 bool_t app_thread_publish_generic(app_thread_t *thread, app_event_t *event, bool_t to_front) {
-    log_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", get_app_event_type_name(event->type),
+    debug_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", get_app_event_type_name(event->type),
                get_actor_type_name(event->producer->class->type),
                event->consumer ? get_actor_type_name(event->consumer->class->type) : "broadcast", app_thread_get_name(thread));
     bool_t result = false;

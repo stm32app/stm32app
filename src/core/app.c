@@ -78,7 +78,7 @@ uint8_t app_actor_find_number(app_t *app, actor_t *actor) {
 }
 
 void app_set_phase(app_t *app, actor_phase_t phase) {
-    log_printf("Devices - phase %s\n", get_actor_phase_name(phase));
+    debug_printf("Devices - phase %s\n", get_actor_phase_name(phase));
     for (size_t i = 0; i < app->actor_count; i++) {
         if (app->actor[i].phase != ACTOR_DISABLED) {
             actor_set_phase(&app->actor[i], phase);

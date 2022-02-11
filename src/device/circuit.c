@@ -11,10 +11,10 @@ static ODR_t circuit_property_write(OD_stream_t *stream, const void *buf, OD_siz
     }
     switch (stream->subIndex) {
     case DEVICE_CIRCUIT_DUTY_CYCLE:
-        log_printf("OD - Circuit [%X] duty cycle:  %i\n", circuit->actor->seq, circuit->properties->duty_cycle);
+        debug_printf("OD - Circuit [%X] duty cycle:  %i\n", circuit->actor->seq, circuit->properties->duty_cycle);
         break;
     case DEVICE_CIRCUIT_CONSUMERS:
-        log_printf("OD - Circuit [%X] consumers: %i\n", circuit->actor->seq, circuit->properties->consumers);
+        debug_printf("OD - Circuit [%X] consumers: %i\n", circuit->actor->seq, circuit->properties->consumers);
         break;
     }
     return result;

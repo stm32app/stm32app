@@ -38,7 +38,7 @@ void log_ccycnt_after(void) {
 void log_job_in(void) {
   lasttaskswitch = DWT_CYCCNT;
   lasttasksoffset = 0;
-  printf("\n");
+  _log_printf("\n");
   log_printf("%s\n", pcTaskGetName(xTaskGetCurrentTaskHandle()));
 }
 
@@ -48,11 +48,11 @@ void log_job_out(void) {
   uint32_t us = offset / (F_CPU / 1e6);
   log_printf("└ ");
   if (us >= 1000) {
-    printf("%lu.%2lums\t", us / 1000, us % 1000 / 10);
+    _log_printf("%lu.%2lums\t", us / 1000, us % 1000 / 10);
   } else {
-    printf("%luus\t", us);
+    _log_printf("%luus\t", us);
   }
-  printf("total \n");
+  _log_printf("total \n");
 }
 
 void hard_fault_handler_inside(struct scb_exception_stack_frame *frame)
@@ -122,18 +122,20 @@ __attribute__((naked)) void my_hard_fault_handler(void)
     "bkpt #0               \n"
   );
 };
-
+void vApplicationIdleHook( void ) {
+  printf("Idle!\n");
+}
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
     (void)xTask;      /* unused*/
     (void)pcTaskName; /* may be unused*/
-    log_printf("System - Stack overflow! %s", pcTaskName);
+    printf("System - Stack overflow! %s", pcTaskName);
     while (1) {
     __asm("BKPT #0\n") ; // Break into the debugger
     }
 }
 
 void vApplicationMallocFailedHook(void) {
-    log_printf("System - Malloc failed!");
+    printf("System - Malloc failed!");
     while (1) {
     __asm("BKPT #0\n") ; // Break into the debugger
     }

@@ -18,7 +18,7 @@ uint8_t gpio_get_speed_setting(uint8_t speed) {
 }
 
 void gpio_configure_input_generic(uint8_t port, uint8_t pin, uint8_t analog, uint8_t pullup) {
-    log_printf("\t[%c%u]\tinput\t%s\t%s\n", (char)(65 + port - 1), pin,
+    debug_printf("\t[%c%u]\tinput\t%s\t%s\n", (char)(65 + port - 1), pin,
             analog == 0 ? "float" : "analog",
                pullup == 0   ? ""
                : pullup == 1 ? "Pullup"
@@ -33,7 +33,7 @@ void gpio_configure_input_generic(uint8_t port, uint8_t pin, uint8_t analog, uin
 }
 
 void gpio_configure_output_generic(uint8_t port, uint8_t pin, uint8_t speed, uint8_t af_index, uint8_t opendrain, uint8_t pullup) {
-    log_printf("\t[%c%u]\toutput\t%s\t%s%c\t%s\n", 
+    debug_printf("\t[%c%u]\toutput\t%s\t%s%c\t%s\n", 
                (char)(65 + port - 1), pin,
                opendrain ? "Open Drain" : "Push Pull", af_index == (uint8_t)-1 ? "" : "AF",
                af_index == (uint8_t)-1 ? ' ' : (char)(48 + af_index),

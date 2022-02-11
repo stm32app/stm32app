@@ -143,7 +143,7 @@ static app_signal_t adc_receive(module_adc_t *adc, actor_t *actor, void *value, 
     (void)actor;
     (void)value;
     if (adc_integrate_samples(adc) == 0) {
-        log_printf("ADC%i - Measurement ready %lu\n", adc->actor->seq, adc->values[1]);
+        debug_printf("ADC%i - Measurement ready %lu\n", adc->actor->seq, adc->values[1]);
         for (size_t i = 0; i < adc->channel_count; i++) {
             size_t channelIndex = adc->channels[i];
             actor_send(adc->actor, adc->subscribers[channelIndex], (void *)adc->values[i], (void *)channel);
@@ -153,7 +153,7 @@ static app_signal_t adc_receive(module_adc_t *adc, actor_t *actor, void *value, 
 }
 
 /*
-static app_signal_t adc_high_priority(module_adc_t *adc), uint32_t time_passed, uint32_t *next_worker) {
+static app_signal_t adc_high_priority(module_adc_t *adc), uint32_t time_passed, uint32_t *next_tick) {
 
 }*/
 
@@ -166,7 +166,7 @@ actor_class_t module_adc_class = {
     .destruct = (app_method_t)adc_destruct,
     .on_link = (actor_on_link_t)adc_accept,
     .on_value = (actor_on_value_t)adc_receive,
-    //.high_priority = (int (*)(void *, uint32_t time_passed, uint32_t *next_worker))module_adc_high_priority,
+    //.high_priority = (int (*)(void *, uint32_t time_passed, uint32_t *next_tick))module_adc_high_priority,
     .on_phase = (actor_on_phase_t)adc_phase,
     .start = (app_method_t)adc_start,
     .stop = (app_method_t)adc_stop,

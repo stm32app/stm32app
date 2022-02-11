@@ -36,7 +36,7 @@ struct module_timer {
 
     uint32_t current_time; // timestamp that gets updated on every interrupt/timer subscription
     uint32_t next_time;    // next subscription time (-1 if there arent any)
-    uint32_t next_worker;   // scheduled interval (usually equals to timer period)
+    uint32_t next_tick;   // scheduled interval (usually equals to timer period)
 
     uint32_t address;
     uint16_t reset;

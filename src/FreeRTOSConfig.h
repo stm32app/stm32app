@@ -70,11 +70,6 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#ifdef DEBUG
-#include "lib/debug.h"
-
-#endif
-
 
 /* Library includes. */
 /* #include "stm32f10x_lib.h" */
@@ -95,14 +90,14 @@
 #define xPortSysTickHandler sys_tick_handler
 
 #define INCLUDE_eTaskGetState 1
-#define configMAX_PRIORITIES (8)
+#define configMAX_PRIORITIES (6)
 #ifdef DEBUG
 #define configCHECK_FOR_STACK_OVERFLOW 2
 #define configUSE_MALLOC_FAILED_HOOK 1
 #endif
 
 #define configUSE_PREEMPTION 1
-#define configUSE_IDLE_HOOK 0
+#define configUSE_IDLE_HOOK 1
 #define configUSE_TICK_HOOK 0
 #define configCPU_CLOCK_HZ F_CPU
 #define configSYSTICK_CLOCK_HZ (configCPU_CLOCK_HZ / 8) /* fix for vTaskDelay() */
@@ -144,5 +139,9 @@ NVIC value of 255. */
 /* !!!! configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to zero !!!!
 See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
+
+#ifdef DEBUG
+#include "lib/debug.h"
+#endif
 
 #endif /* FREERTOS_CONFIG_H */

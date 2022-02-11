@@ -33,7 +33,7 @@ static app_signal_t led_construct(indicator_led_t *led) {
 }
 
 static app_signal_t led_start(indicator_led_t *led) {
-    log_printf("    > LED%i", led->actor->seq + 1);
+    debug_printf("    > LED%i", led->actor->seq + 1);
     gpio_configure_output_pulldown(led->properties->port, led->properties->pin, GPIO_MEDIUM);
     (void)led;
     return 0;

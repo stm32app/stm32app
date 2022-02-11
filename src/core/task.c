@@ -9,14 +9,14 @@ app_signal_t app_job_execute(app_job_t *task) {
   configASSERT(task);
   configASSERT(task->handler);
   bool_t halt = false;
-  log_printf("| ├ Task \t\t#%s at %u:%u for %s\n", get_app_event_type_name(task->inciting_event.type), task->step_index, task->task_index, get_actor_type_name(task->actor->class->type));
+  debug_printf("| ├ Task \t\t#%s at %u:%u for %s\n", get_app_event_type_name(task->inciting_event.type), task->step_index, task->task_index, get_actor_type_name(task->actor->class->type));
   while (!halt) {
     app_job_signal_t task_signal = app_job_advance(task, task->handler(task));
     switch (task_signal) {
       case APP_JOB_SUCCESS:
       case APP_JOB_FAILURE:
         if (task->step_index == task_signal) {
-          log_printf("│ │ ├ %s\t\t%u:%u\n", task_signal == APP_JOB_SUCCESS ? "Success" : "Failure", task->step_index, task->task_index);
+          debug_printf("│ │ ├ %s\t\t%u:%u\n", task_signal == APP_JOB_SUCCESS ? "Success" : "Failure", task->step_index, task->task_index);
           if (task->actor->class->on_job != NULL) {
             task->actor->class->on_job(task->actor->object, task);
           }
@@ -29,13 +29,13 @@ app_signal_t app_job_execute(app_job_t *task) {
       case APP_JOB_TASK_QUIT_ISR:
         if (IS_IN_ISR) {
           app_thread_actor_schedule(task->thread, task->actor, task->thread->current_time);
-          log_printf("│ │ └ Yield from ISR\t%u:%u\n", task->step_index, task->task_index);
+          debug_printf("│ │ └ Yield from ISR\t%u:%u\n", task->step_index, task->task_index);
           return 0;
         }
         break;
       case APP_JOB_TASK_SUCCESS:
         if (task->task_index != task_signal) {
-          log_printf("│ │ ├ Step complete\t%u:%u\n", task->step_index, task->task_index);
+          debug_printf("│ │ ├ Step complete\t%u:%u\n", task->step_index, task->task_index);
         }
         break;
       case APP_JOB_TASK_RETRY:
@@ -49,7 +49,7 @@ app_signal_t app_job_execute(app_job_t *task) {
         halt = true;
     }
   }
-  log_printf("│ │ └ Yield\t\t%u:%u\n", task->step_index, task->task_index);
+  debug_printf("│ │ └ Yield\t\t%u:%u\n", task->step_index, task->task_index);
   return 0;
 }
 

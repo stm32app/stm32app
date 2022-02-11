@@ -20,7 +20,7 @@ app_buffer_t *app_buffer_target(actor_t *owner, uint8_t *data, uint32_t size) {
         buffer = (app_buffer_t *)data;
         app_buffer_reference(buffer);
     } else {
-        log_printf("│ │ ├ Allocate\t\t%s takes buffer of size %lu\n", get_actor_type_name(owner->class->type), size);
+        debug_printf("│ │ ├ Allocate\t\t%s takes buffer of size %lu\n", get_actor_type_name(owner->class->type), size);
         buffer = app_buffer_take_from_pool(owner);
         if (buffer != NULL) {
             buffer->owner = owner;
@@ -256,7 +256,7 @@ app_buffer_t *app_buffer_take_from_pool(actor_t *actor) {
 }
 
 void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor) {
-    log_printf("│ │ ├ Release\t\t%s buffer of size %lu/%lu\n", get_actor_type_name(actor->class->type), buffer->size, buffer->allocated_size);
+    debug_printf("│ │ ├ Release\t\t%s buffer of size %lu/%lu\n", get_actor_type_name(actor->class->type), buffer->size, buffer->allocated_size);
     for (app_buffer_t *page = buffer; page; page = app_buffer_get_next_page(page, buffer)) {
         // data is only freed when managed buffer is freed
         if (!(buffer->flags & APP_BUFFER_UNMANAGED)) {

@@ -21,7 +21,7 @@ static app_signal_t timer_validate(module_timer_properties_t *properties) {
 static app_signal_t timer_construct(module_timer_t *timer) {
     timer->subscriptions = malloc(sizeof(module_timer_subscription_t) * timer->properties->initial_subscriptions_count);
     timer->next_time = -1;
-    timer->next_worker = timer->properties->period;
+    timer->next_tick = timer->properties->period;
 
     module_timers[timer->actor->seq] = timer;
 
@@ -255,10 +255,10 @@ static app_signal_t timer_schedule(module_timer_t *timer, uint32_t next_time) {
     uint32_t diff = (uint32_t)((int32_t)timer->next_time - (int32_t)timer->current_time);
     // when next tick is closer than a full period timer, needs to be advanced
     if (diff < timer->properties->period) {
-        timer->next_worker = diff;
-        timer_set_counter(timer->address, timer->properties->period - timer->next_worker);
+        timer->next_tick = diff;
+        timer_set_counter(timer->address, timer->properties->period - timer->next_tick);
     } else {
-        timer->next_worker = timer->properties->period;
+        timer->next_tick = timer->properties->period;
     }
     return 0;
 }
@@ -273,7 +273,7 @@ static app_signal_t timer_notify(module_timer_t *timer) {
         if (diff <= 0) {
             actor_t *actor = subscription->actor;
             void *argument = subscription->argument;
-            log_printf("~ Timeout for 0x%x %s (argument: %lu)\n", actor_index(actor), get_actor_type_name(actor->class->type), (uint32_t)argument);
+            debug_printf("~ Timeout for 0x%x %s (argument: %lu)\n", actor_index(actor), get_actor_type_name(actor->class->type), (uint32_t)argument);
             *subscription = (module_timer_subscription_t){};
             actor_signal(actor, timer->actor, APP_SIGNAL_TIMEOUT, argument);
         }
@@ -312,7 +312,7 @@ static void timer_interrupt(size_t index) {
     module_timer_t *timer = (module_timer_t *) module_timers[index];
     if (timer_get_flag(timer->address, TIM_DIER_UIE)) {
         timer_clear_flag(timer->address, TIM_DIER_UIE);
-        timer_advance(timer, timer->next_worker);
+        timer_advance(timer, timer->next_tick);
     }
 }
 
@@ -345,7 +345,7 @@ static module_timer_subscription_t *timer_get_subscription(module_timer_t *timer
 
 app_signal_t module_timer_timeout(module_timer_t *timer, actor_t *actor, void *argument, uint32_t timeout) {
     // ensure that current_time of a timer is up to date, adjust timers accordingly
-    timer_advance(timer, timer_get_counter(timer->address) - (timer->properties->period - timer->next_worker));
+    timer_advance(timer, timer_get_counter(timer->address) - (timer->properties->period - timer->next_tick));
 
     // update subscription
     module_timer_subscription_t *subscription = timer_get_subscription(timer, actor, argument);
@@ -388,7 +388,7 @@ app_signal_t module_timer_clear(module_timer_t *timer, actor_t *actor, void *arg
 
 static app_signal_t timer_stop_counting(module_timer_t *timer) {
     timer->next_time = -1;
-    timer->next_worker = timer->properties->period;
+    timer->next_tick = timer->properties->period;
     timer_disable_counter(timer->address);
     return 0;
 }
@@ -437,10 +437,15 @@ static app_signal_t timer_start(module_timer_t *timer) {
     timer_update_on_overflow(timer->address);
 
     nvic_enable_irq(timer->irq);
+    nvic_set_priority(timer->irq, 12 << 4);
     timer_enable_irq(timer->address, TIM_DIER_UIE);
     // timer_enable_irq(timer->address, TIM_DIER_TIE);
     // timer_enable_irq(timer->address, TIM_DIER_BIE);
 
+    if (timer_get_next_subscription(timer) == NULL) {
+        actor_set_phase(timer->actor, ACTOR_IDLE);
+    }
+    
     return 0;
 }
 
@@ -454,13 +459,6 @@ static app_signal_t timer_on_phase(module_timer_t *timer, actor_phase_t phase) {
     case ACTOR_RUNNING: return timer_start_counting(timer); break;
 
     case ACTOR_IDLE: return timer_stop_counting(timer); break;
-
-    case ACTOR_STARTING:
-    case ACTOR_RESUMING:
-        if (timer_get_next_subscription(timer) == NULL) {
-            actor_set_phase(timer->actor, ACTOR_IDLE);
-        }
-        break;
 
     default: break;
     }

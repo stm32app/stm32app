@@ -139,10 +139,10 @@ static app_job_signal_t at24c_job_diagnose(app_job_t *task) {
               first_buffer->size == at24c->target_buffer->size);
 
         if (ok) {
-            log_printf("  - Diagnostics OK: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
+            debug_printf("  - Diagnostics OK: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
             return APP_JOB_SUCCESS;
         } else {
-            log_printf("  - Diagnostics ERROR: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
+            debug_printf("  - Diagnostics ERROR: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
             return APP_JOB_FAILURE;
         }
         break;

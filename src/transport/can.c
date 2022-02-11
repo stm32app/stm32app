@@ -16,9 +16,9 @@ static app_signal_t can_construct(transport_can_t *can) {
 }
 
 static app_signal_t can_start(transport_can_t *can) {
-    log_printf("    > CAN%i TX ", can->actor->seq + 1);
+    debug_printf("    > CAN%i TX ", can->actor->seq + 1);
     gpio_configure_output(can->properties->tx_port, can->properties->tx_pin, 0);
-    log_printf("    > CAN%i RX ", can->actor->seq + 1);
+    debug_printf("    > CAN%i RX ", can->actor->seq + 1);
     gpio_configure_input(can->properties->rx_port, can->properties->rx_pin);
 
 #ifdef STM32F1

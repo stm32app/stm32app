@@ -31,7 +31,7 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
         return 0;
     } else {
         *destination = NULL;
-        log_printf("    ! Device 0x%x (%s) could not find actor 0x%x\n", actor_index(actor), get_actor_type_name(actor->class->type),
+        debug_printf("    ! Device 0x%x (%s) could not find actor 0x%x\n", actor_index(actor), get_actor_type_name(actor->class->type),
                    index);
         actor_set_phase(actor, ACTOR_DISABLED);
         actor_error_report(actor, CO_EM_INCONSISTENT_OBJECT_DICT, CO_EMC_ADDITIONAL_MODUL);
@@ -61,11 +61,11 @@ int actor_free(actor_t *actor) {
     return actor_workers_free(actor);
 }
 
-int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_worker, uint32_t *next_worker) {
-    if (*clock > time_since_last_worker) {
-        *clock -= time_since_last_worker;
-        if (*next_worker > *clock) {
-            *next_worker = *clock;
+int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_tick, uint32_t *next_tick) {
+    if (*clock > time_since_last_tick) {
+        *clock -= time_since_last_tick;
+        if (*next_tick > *clock) {
+            *next_tick = *clock;
         }
         return 1;
     } else {
@@ -128,7 +128,7 @@ app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_
         task->task_index = task->step_index = 0;
         task->thread = thread;
         task->counter = 0;
-        log_printf("| ├ Task start\t\t%s for %s\t\n", get_actor_type_name(actor->class->type), app_thread_get_name(thread));
+        debug_printf("| ├ Task start\t\t%s for %s\t\n", get_actor_type_name(actor->class->type), app_thread_get_name(thread));
         app_thread_actor_schedule(thread, actor, thread->current_time);
     }
     return signal;
@@ -150,7 +150,7 @@ app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_even
 
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase) {
 #if DEBUG
-    log_printf("  - Device phase: 0x%x %s %s <= %s\n", actor_index(actor), get_actor_type_name(actor->class->type),
+    debug_printf("  - Device phase: 0x%x %s %s <= %s\n", actor_index(actor), get_actor_type_name(actor->class->type),
                get_actor_phase_name(phase), get_actor_phase_name(actor->previous_phase));
     actor->previous_phase = phase;
 #endif
@@ -240,7 +240,7 @@ app_signal_t actor_event_report(actor_t *actor, app_event_t *event) {
 app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
     if (event != NULL && event->type != APP_EVENT_IDLE) {
         if (event->type != APP_EVENT_THREAD_ALARM) {
-            log_printf("│ │ ├ Finalize\t\t#%s of %s\n", get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
+            debug_printf("│ │ ├ Finalize\t\t#%s of %s\n", get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
 
             actor_event_report(actor, event);
 

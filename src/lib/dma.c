@@ -118,7 +118,7 @@ void actor_unregister_dma(uint8_t unit, uint8_t index) {
 };
 
 void actors_dma_notify(uint8_t unit, uint8_t index) {
-    log_printf("> DMA%i interrupt\n", unit);
+    debug_printf("> DMA%i interrupt\n", unit);
     volatile actor_t *actor = actors_dma[DMA_INDEX(unit, index)];
 
     if (dma_get_interrupt_flag(dma_get_address(unit), index, DMA_TEIF | DMA_DMEIF /* | DMA_FEIF*/)) {
@@ -136,7 +136,7 @@ void actors_dma_notify(uint8_t unit, uint8_t index) {
             dma_clear_interrupt_flags(dma_get_address(unit), index, DMA_HTIF | DMA_TCIF);
         }
     }
-    log_printf("< DMA%i interrupt\n", unit);
+    debug_printf("< DMA%i interrupt\n", unit);
 }
 
 void *actor_dma_pack_source(uint8_t unit, uint8_t index) {

@@ -212,7 +212,7 @@ static void screen_epaper_init_mode(screen_epaper_t *epaper, uint8_t mode) {
         screen_epaper_send_command(epaper, 0x3C); // BorderWavefrom
         screen_epaper_send_data(epaper, 0x01);
     } else {
-        log_printf("error, the Mode is epaper_2IN13_FULL or epaper_2IN13_PART");
+        debug_printf("error, the Mode is epaper_2IN13_FULL or epaper_2IN13_PART");
     }*/
 }
 

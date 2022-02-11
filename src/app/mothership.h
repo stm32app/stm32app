@@ -29,6 +29,7 @@ typedef struct app_mothership {
     app_buffer_t *buffers;
     app_job_t task;
 
+    bool_t initialized;
 } app_mothership_t;
 
 

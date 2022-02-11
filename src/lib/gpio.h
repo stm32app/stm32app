@@ -4,6 +4,7 @@
 #include "stdbool.h"
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
+#include "core/types.h"
 
 #define GPIOX(n) (GPIO_PORT_A_BASE + (n - 1) * 0x0400)
 
@@ -14,7 +15,6 @@
 
 #define RCC_GPIOX(n) (RCC_GPIOA + n - 1)
 
-#include "core/types.h"
 
 
 void gpio_enable_port(uint8_t port);

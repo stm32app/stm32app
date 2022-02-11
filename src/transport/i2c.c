@@ -31,8 +31,8 @@ static app_signal_t i2c_validate(transport_i2c_properties_t *properties) {
 static void i2c_dma_tx_start(transport_i2c_t *i2c, uint8_t *data, uint32_t size) {
     actor_register_dma(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->actor);
 
-    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
-    log_printf("TX started\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
+    debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
+    debug_printf("TX started\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
 
     actor_dma_tx_start((uint32_t) & (I2C_DR(i2c->address)), i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream,
                        i2c->properties->dma_tx_channel, i2c->source_buffer->data, i2c->source_buffer->size, false);
@@ -41,8 +41,8 @@ static void i2c_dma_tx_start(transport_i2c_t *i2c, uint8_t *data, uint32_t size)
 }
 
 static void i2c_dma_tx_stop(transport_i2c_t *i2c) {
-    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
-    log_printf("TX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
+    debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
+    debug_printf("TX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
 
     i2c->incoming_signal = 0;
     app_buffer_release(i2c->source_buffer, i2c->actor);
@@ -53,8 +53,8 @@ static void i2c_dma_tx_stop(transport_i2c_t *i2c) {
 static void i2c_dma_rx_start(transport_i2c_t *i2c, uint8_t *destination, uint32_t expected_size) {
     actor_register_dma(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->actor);
 
-    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
-    log_printf("RX started\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
+    debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
+    debug_printf("RX started\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
 
     i2c_enable_dma(i2c->address);
 
@@ -64,8 +64,8 @@ static void i2c_dma_rx_start(transport_i2c_t *i2c, uint8_t *destination, uint32_
 }
 
 static void i2c_dma_rx_stop(transport_i2c_t *i2c) {
-    log_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
-    log_printf("RX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
+    debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
+    debug_printf("RX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
 
     i2c->incoming_signal = 0;
     actor_dma_rx_stop(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
@@ -133,11 +133,11 @@ static app_signal_t i2c_start(transport_i2c_t *i2c) {
     gpio_set(GPIOX(i2c->properties->scl_port), pins);
     while ((GPIO_ODR(GPIOX(i2c->properties->scl_port)) & pins) != pins);
 
-    log_printf("    > I2C%i SCL", i2c->actor->seq + 1);
+    debug_printf("    > I2C%i SCL", i2c->actor->seq + 1);
     gpio_configure_af_opendrain(i2c->properties->scl_port, i2c->properties->scl_pin, GPIO_FAST, i2c->properties->af);
-    log_printf("    > I2C%i SMBA", i2c->actor->seq + 1);
+    debug_printf("    > I2C%i SMBA", i2c->actor->seq + 1);
     gpio_configure_af_opendrain(i2c->properties->smba_port, i2c->properties->smba_pin, GPIO_FAST, i2c->properties->af);
-    log_printf("    > I2C%i SDA", i2c->actor->seq + 1);
+    debug_printf("    > I2C%i SDA", i2c->actor->seq + 1);
     gpio_configure_af_opendrain(i2c->properties->sda_port, i2c->properties->sda_pin, GPIO_FAST, i2c->properties->af);
 
     I2C_CR1(i2c->address) |= I2C_CR1_SWRST;
@@ -406,14 +406,14 @@ static app_signal_t i2c_job_erase(app_job_t *task) {
     I2C tasks execute their workload right from ISR bypassing the queue
 */
 static void i2c_notify(size_t index) {
-    log_printf("> I2C%i interrupt\n", index);
+    debug_printf("> I2C%i interrupt\n", index);
     transport_i2c_t *i2c = i2c_units[index - 1];
     if (i2c != NULL && i2c->task.handler) {
         app_job_execute(&i2c->task);
     }
     volatile uint32_t s1 = I2C_SR1(i2c->address);
     volatile uint32_t s2 = I2C_SR2(i2c->address);
-    log_printf("< I2C%i interrupt\n", index);
+    debug_printf("< I2C%i interrupt\n", index);
     (void)s1;
     (void)s2;
 }

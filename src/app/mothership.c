@@ -85,14 +85,14 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
 static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     (void)tick;
     (void)thread;
-    if (event->type == APP_EVENT_THREAD_ALARM && thread->current_time == 0) {
+    if (event->type == APP_EVENT_THREAD_ALARM && !mothership->initialized) {
+        mothership->initialized = true;
         // test simple timeout
         module_timer_timeout(mothership->timer, mothership->actor, (void *)123, 1000000);
-        // test w25 via spi
 
+        
         return app_publish(mothership->actor->app, &((app_event_t){
-                                                       .type = APP_EVENT_DIAGNOSE, .producer = mothership->actor,
-                                                       //.consumer = app_actor_find_by_type((app_t *) mothership, STORAGE_AT24C)
+                                                       .type = APP_EVENT_DIAGNOSE, .producer = mothership->actor
                                                    }));
     }
     return 0;
@@ -100,19 +100,19 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
 
 static app_job_signal_t mothership_job_stats(app_job_t *task) {
     if (task->step_index == 0) {
-        log_printf("│ │ ├ Allocated buffers\n");
+        debug_printf("│ │ ├ Allocated buffers\n");
         for (app_buffer_t *page = task->actor->app->buffers; page; page = app_buffer_get_next_page(page, task->actor->app->buffers)) {
             for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(app_buffer_t)) {
                 app_buffer_t *buffer = (app_buffer_t *)&page->data[offset];
                 if (!(buffer->owner == NULL && buffer->data == NULL && buffer->allocated_size == 0)) {
-                    log_printf("│ │ │ ├ %-16s%lub/%lub\n", get_actor_type_name(buffer->owner->class->type), buffer->size, buffer->allocated_size);
+                    debug_printf("│ │ │ ├ %-16s%lub/%lub\n", get_actor_type_name(buffer->owner->class->type), buffer->size, buffer->allocated_size);
                 }
             }
         }
         for (size_t i = 0; i < HEAP_NUM; i++) {
-            log_printf("│ │ ├ Heap #0x%lx\t%ub/%ub free, %u lowest\n", (uint32_t) multiRegionGetHeapStartAddress(i), multiRegionGetFreeHeapSize(i), multiRegionGetHeapSize(i), multiRegionGetMinimumEverFreeHeapSize(i));
-//            log_printf("│ │ │ ├ Blocks\t\t%ub min, %ub max, free %u\n", pxHeapStats.xSizeOfLargestFreeBlockInBytes, pxHeapStats.xSizeOfSmallestFreeBlockInBytes, pxHeapStats.xNumberOfFreeBlocks);
-//            log_printf("│ │ │ ├ Operations\t%u allocations, %u frees\n", pxHeapStats.xNumberOfSuccessfulAllocations, pxHeapStats.xNumberOfSuccessfulFrees);
+            debug_printf("│ │ ├ Heap #0x%lx\t%ub/%ub free, %u lowest\n", (uint32_t) multiRegionGetHeapStartAddress(i), multiRegionGetFreeHeapSize(i), multiRegionGetHeapSize(i), multiRegionGetMinimumEverFreeHeapSize(i));
+//            debug_printf("│ │ │ ├ Blocks\t\t%ub min, %ub max, free %u\n", pxHeapStats.xSizeOfLargestFreeBlockInBytes, pxHeapStats.xSizeOfSmallestFreeBlockInBytes, pxHeapStats.xNumberOfFreeBlocks);
+//            debug_printf("│ │ │ ├ Operations\t%u allocations, %u frees\n", pxHeapStats.xNumberOfSuccessfulAllocations, pxHeapStats.xNumberOfSuccessfulFrees);
 
         }
     }
@@ -139,7 +139,7 @@ static app_signal_t mothership_on_signal(app_mothership_t mothership, actor_t *a
     (void)actor;
     (void)signal;
     (void)argument;
-    log_printf("Got signal!\n");
+    //printf("Got signal!\n");
     return 0;
 };
 

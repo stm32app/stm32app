@@ -21,18 +21,18 @@ static app_signal_t canopen_construct(system_canopen_t *canopen) {
     uint32_t heapMemoryUsed = 0;
     canopen->instance = CO_new(NULL, &heapMemoryUsed);
     if (canopen->instance == NULL) {
-        log_printf("Error: Can't allocate memory\n");
+        debug_printf("Error: Can't allocate memory\n");
         return APP_SIGNAL_OUT_OF_MEMORY;
     } else {
         if (heapMemoryUsed == 0) {
-            log_printf("Config - Static memory\n");
+            debug_printf("Config - Static memory\n");
         } else {
-            log_printf("Config - On heap (%ubytes)\n", (unsigned int)heapMemoryUsed);
+            debug_printf("Config - On heap (%ubytes)\n", (unsigned int)heapMemoryUsed);
         }
     }
 
     /*
-        log_printf("Config - Storage...\n");
+        debug_printf("Config - Storage...\n");
 
         CO_ReturnError_t err;
         err = CO_storageAbstract_init(&CO_storage, canopen->instance->CANmodule, NULL, OD_ENTRY_H1010_storeParameters,
@@ -57,7 +57,7 @@ static app_signal_t canopen_destruct(system_canopen_t *canopen) {
 }
 
 static bool_t system_canopen_store_lss(system_canopen_t *canopen, uint8_t node_id, uint16_t bitrate) {
-    log_printf("Config - Store LSS #%i @ %ikbps...\n", node_id, bitrate);
+    debug_printf("Config - Store LSS #%i @ %ikbps...\n", node_id, bitrate);
     system_canopen_set_node_id(canopen, node_id);
     system_canopen_set_bitrate(canopen, bitrate);
     return 0;
@@ -68,7 +68,7 @@ static app_signal_t canopen_start(system_canopen_t *canopen) {
     uint32_t errInfo = 0;
 
     /* Enter CAN propertiesuration. */
-    log_printf("Config - Communication...\n");
+    debug_printf("Config - Communication...\n");
     canopen->instance->CANmodule->CANnormal = false;
     CO_CANsetConfigurationMode(canopen->instance);
     CO_CANmodule_disable(canopen->instance->CANmodule);
@@ -120,9 +120,9 @@ static app_signal_t canopen_start(system_canopen_t *canopen) {
                          canopen->properties->node_id, &errInfo);
 
     if (err == CO_ERROR_OD_PARAMETERS) {
-        log_printf("CANopen - Error in Object Dictionary entry 0x%lX\n", errInfo);
+        debug_printf("CANopen - Error in Object Dictionary entry 0x%lX\n", errInfo);
     } else {
-        log_printf("CANopen - Initialization failed: %d  0x%lX\n", err, errInfo);
+        debug_printf("CANopen - Initialization failed: %d  0x%lX\n", err, errInfo);
     }
 
     /* Emergency errors */
@@ -147,7 +147,7 @@ static app_signal_t canopen_start(system_canopen_t *canopen) {
 }
 
 static app_signal_t canopen_stop(system_canopen_t *canopen) {
-    log_printf("Config - Unloading...\n");
+    debug_printf("Config - Unloading...\n");
     CO_CANsetConfigurationMode((void *)&canopen->instance);
     CO_delete(canopen->instance);
     return 0;
