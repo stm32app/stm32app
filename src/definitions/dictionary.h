@@ -1,4 +1,5 @@
 
+typedef struct transport_sdio transport_sdio_t /* Secure input/output protocol*/;
 typedef struct device_circuit device_circuit_t /* */;
 typedef struct system_mcu system_mcu_t /* */;
 typedef struct system_canopen system_canopen_t /* CANOpen framework*/;
@@ -14,6 +15,7 @@ typedef struct storage_w25 storage_w25_t /* Winbond flash storage device over SP
 typedef struct storage_flash storage_flash_t /* Internal flash storage*/;
 typedef struct memory_sram memory_sram_t /* */;
 typedef struct storage_at24c storage_at24c_t /* I2C-based EEPROM*/;
+typedef struct storage_sdcard storage_sdcard_t /* I2C-based EEPROM*/;
 typedef struct input_sensor input_sensor_t /* A sensor that measures a single analog value (i.e. current meter, tank level meter)*/;
 typedef struct control_touchscreen control_touchscreen_t /* */;
 typedef struct screen_epaper screen_epaper_t /* E-ink screen with low power consumption and low update frequency*/;
@@ -21,6 +23,7 @@ typedef struct indicator_led indicator_led_t /* */;
 typedef struct signal_beeper signal_beeper_t /* */;
 
 enum actor_type {
+    TRANSPORT_SDIO = 0x62A0, /* Secure input/output protocol*/
     CORE_APP = 0x3000, /* Configuration of global object*/
     DEVICE_CIRCUIT = 0x4000, /* */
     SYSTEM_MCU = 0x6000, /* */
@@ -37,6 +40,7 @@ enum actor_type {
     STORAGE_FLASH = 0x7200, /* Internal flash storage*/
     MEMORY_SRAM = 0x7300, /* */
     STORAGE_AT24C = 0x7400, /* I2C-based EEPROM*/
+    STORAGE_SDCARD = 0x7440, /* I2C-based EEPROM*/
     INPUT_SENSOR = 0x8000, /* A sensor that measures a single analog value (i.e. current meter, tank level meter)*/
     CONTROL_TOUCHSCREEN = 0x8100, /* */
     SCREEN_EPAPER = 0x9000, /* E-ink screen with low power consumption and low update frequency*/

@@ -20,13 +20,15 @@ struct app_job {
 
     void *result;
 
-    size_t step_index;
-    size_t task_index;
+    size_t job_phase;
+    size_t task_phase;
 
     actor_on_job_t handler;
 };
 
 enum app_job_signal {
+    APP_JOB_HALT,
+
     APP_JOB_TASK_CONTINUE,
     APP_JOB_TASK_RETRY,
     APP_JOB_TASK_WAIT,
@@ -40,8 +42,8 @@ enum app_job_signal {
     APP_JOB_FAILURE = 255,
 };
 
-app_signal_t app_job_execute(app_job_t *task);
-app_job_signal_t app_job_advance(app_job_t *task, app_job_signal_t signal);
-app_signal_t app_job_finalize(app_job_t *task);
-app_signal_t app_job_execute_if_running_in_thread(app_job_t *task, app_thread_t *thread);
+app_signal_t app_job_execute(app_job_t *job);
+app_job_signal_t app_job_advance(app_job_t *job, app_job_signal_t signal);
+app_signal_t app_job_finalize(app_job_t *job);
+app_signal_t app_job_execute_if_running_in_thread(app_job_t *job, app_thread_t *thread);
 #endif

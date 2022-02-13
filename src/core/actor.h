@@ -83,7 +83,7 @@ struct actor_class {
     app_signal_t (*pause)(void *object);        /* Put actor to sleep temporarily */
     app_signal_t (*resume)(void *object);       /* Wake actor up from sleep */
 
-    app_signal_t (*on_job)(void *object, app_job_t *task);                                   /* Task has been complete */
+    app_signal_t (*on_job)(void *object, app_job_t *job);                                   /* Task has been complete */
     app_signal_t (*on_report)(void *object, app_event_t *event);                                /* Somebody processed the event */
     app_signal_t (*on_phase)(void *object, actor_phase_t phase);                              /* Handle phase change */
     app_signal_t (*on_signal)(void *object, actor_t *origin, app_signal_t signal, void *arg); /* Send signal to actor */
@@ -91,11 +91,11 @@ struct actor_class {
     app_signal_t (*on_link)(void *object, actor_t *origin, void *arg);                        /* Accept linking request*/
     app_signal_t (*on_buffer)(void *object, app_buffer_t *buffer, uint32_t size);                        /* Accept linking request*/
 
-    app_signal_t (*tick_input)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);         /* Processing input events asap */
-    app_signal_t (*tick_high_priority)(void *o, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Important work that isnt input */
-    app_signal_t (*tick_medium_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Medmium importance periphery */
-    app_signal_t (*tick_low_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);    /* Low-importance periodical */
-    app_signal_t (*tick_bg_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);     /* Lowest priority work that i*/
+    app_signal_t (*worker_input)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);         /* Processing input events asap */
+    app_signal_t (*worker_high_priority)(void *o, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Important work that isnt input */
+    app_signal_t (*worker_medium_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Medmium importance periphery */
+    app_signal_t (*worker_low_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);    /* Low-importance periodical */
+    app_signal_t (*worker_bg_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);     /* Lowest priority work that i*/
 
     ODR_t (*property_read)(OD_stream_t *stream, void *buf, OD_size_t count, OD_size_t *countRead);
     ODR_t (*property_write)(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten);
@@ -103,14 +103,24 @@ struct actor_class {
     uint32_t property_write_handlers; // bit mask of properties that have custom writer logic
 };
 
-// Faster version of OD_set_value that has assumptions:
+// Faster versions of OD_set_value that has assumptions:
 // - Value is not streamed
 // - Address is record
 // - There're no gaps in record definition
-// - If value hasnt changed, there is no need to run callback
-ODR_t actor_set_property(actor_t *actor, void *value, size_t size, uint8_t index);
-void *actor_get_property_pointer(actor_t *actor, void *value, size_t size, uint8_t index);
-ODR_t actor_set_property_numeric(actor_t *actor, uint32_t value, size_t size, uint8_t index);
+// - If value hasnt changed, there is no need to run setters
+ODR_t actor_set_property(actor_t *actor, uint8_t index, void *value, size_t size);
+// Copy number by value, still needs size in bytes to be given (runs setters)
+ODR_t actor_set_property_numeric(actor_t *actor, uint8_t index, uint32_t value, size_t size);
+// Write value with trailing NULL character
+ODR_t actor_set_property_string(actor_t *actor, uint8_t index, uint8_t *data, size_t size);
+// Run getters to stream property (will initialize stream if needed)
+ODR_t actor_compute_property_stream(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size, OD_stream_t *stream, OD_size_t *count_read) ;
+// Run getters to compute property and store it in given buffer (or fall back to internal memory)
+ODR_t actor_compute_property_into_buffer(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size);
+// Run getters for the property
+ODR_t actor_compute_property(actor_t *actor, uint8_t index);
+// Return pointer to value (runs getters)
+void *actor_get_property_pointer(actor_t *actor, uint8_t index);
 
 #define actor_class_property_mask(class, property) (property - class->phase_subindex + 1)
 
@@ -121,7 +131,7 @@ ODR_t actor_set_property_numeric(actor_t *actor, uint32_t value, size_t size, ui
 // Optimized getter for actor phase
 #define actor_get_phase(actor) actor_get_properties(actor)[actor->class->phase_offset]
 // Optimized setter for actor phase (will not trigger observers)
-#define actor_set_phase(actor, phase) actor_set_property_numeric(actor, (uint32_t) phase, sizeof(actor_phase_t), (actor)->class->phase_subindex) 
+#define actor_set_phase(actor, phase) actor_set_property_numeric(actor, (actor)->class->phase_subindex, (uint32_t) phase, sizeof(actor_phase_t)) 
 // Default state machine for basic phases
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase);
 
@@ -152,11 +162,11 @@ app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t 
                                                      app_event_status_t ready_status, app_event_status_t busy_status,
                                                      actor_on_report_t handler);
 
-app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
+app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
                                                         actor_on_job_t handler, app_event_status_t ready_status,
                                                         app_event_status_t busy_status);
 
-app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
+app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
                                                           actor_on_job_t handler, app_event_status_t ready_status,
                                                           app_event_status_t busy_status);
 

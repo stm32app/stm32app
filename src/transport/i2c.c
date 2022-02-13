@@ -194,15 +194,10 @@ static app_signal_t i2c_phase(transport_i2c_t *i2c, actor_phase_t phase) {
     return 0;
 }
 
-static app_signal_t i2c_handle_error(app_job_t *task) {
-    transport_i2c_t *i2c = task->actor->object;
+static app_signal_t i2c_handle_error(app_job_t *job) {
+    transport_i2c_t *i2c = job->actor->object;
     if (I2C_EVENT_ERROR(i2c->address)) {
-        if (i2c->task_retries > 3) {
-            return APP_JOB_FAILURE;
-        } else {
-            i2c->task_retries++;
-            return APP_JOB_RETRY;
-        }
+        return APP_JOB_TASK_FAILURE;
     }
     return 0;
 }
@@ -217,9 +212,9 @@ transport_i2c_event_argument_t *i2c_unpack_event_argument(void **argument) {
     return (transport_i2c_event_argument_t *)argument;
 }
 
-static app_job_signal_t i2c_task_setup(app_job_t *task, uint8_t address, uint32_t memory_register) {
-    transport_i2c_t *i2c = task->actor->object;
-    switch (task->task_index) {
+static app_job_signal_t i2c_task_setup(app_job_t *job, uint8_t address, uint32_t memory_register) {
+    transport_i2c_t *i2c = job->actor->object;
+    switch (job->task_phase) {
     case 0:
         i2c_peripheral_enable(i2c->address);
         i2c_send_start(i2c->address);
@@ -244,15 +239,17 @@ static app_job_signal_t i2c_task_setup(app_job_t *task, uint8_t address, uint32_
         } else {
             return APP_JOB_TASK_SUCCESS;
         }
-    default:
-        return APP_JOB_TASK_SUCCESS;
+    case APP_JOB_TASK_FAILURE:
+        i2c_peripheral_disable(i2c->address);
+        break;
     }
+    return 0;
 }
 
-static app_job_signal_t i2c_task_write_data(app_job_t *task, uint8_t address, uint8_t *data, uint32_t size) {
+static app_job_signal_t i2c_task_write_data(app_job_t *job, uint8_t address, uint8_t *data, uint32_t size) {
     (void)address;
-    transport_i2c_t *i2c = task->actor->object;
-    switch (task->task_index) {
+    transport_i2c_t *i2c = job->actor->object;
+    switch (job->task_phase) {
     case 0:
         nvic_disable_irq(i2c->ev_irq);
         if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
@@ -286,6 +283,7 @@ static app_job_signal_t i2c_task_write_data(app_job_t *task, uint8_t address, ui
             return APP_JOB_TASK_SUCCESS;
         }
     case APP_JOB_TASK_FAILURE:
+        i2c_peripheral_disable(i2c->address);
         app_buffer_release(i2c->source_buffer, i2c->actor);
         i2c->source_buffer = NULL;
         break;
@@ -293,9 +291,9 @@ static app_job_signal_t i2c_task_write_data(app_job_t *task, uint8_t address, ui
     return 0;
 }
 
-static app_job_signal_t i2c_task_read_data(app_job_t *task, uint8_t address, uint8_t *data, uint32_t size) {
-    transport_i2c_t *i2c = task->actor->object;
-    switch (task->task_index) {
+static app_job_signal_t i2c_task_read_data(app_job_t *job, uint8_t address, uint8_t *data, uint32_t size) {
+    transport_i2c_t *i2c = job->actor->object;
+    switch (job->task_phase) {
     case 0:
         nvic_disable_irq(i2c->ev_irq);
         if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
@@ -337,6 +335,7 @@ static app_job_signal_t i2c_task_read_data(app_job_t *task, uint8_t address, uin
             return APP_JOB_TASK_SUCCESS;
         }
     case APP_JOB_TASK_FAILURE:
+        i2c_peripheral_disable(i2c->address);
         app_buffer_release(i2c->output_buffer, i2c->actor);
         i2c->output_buffer = NULL;
         break;
@@ -344,61 +343,68 @@ static app_job_signal_t i2c_task_read_data(app_job_t *task, uint8_t address, uin
     return 0;
 }
 
-static app_job_signal_t i2c_task_publish_response(app_job_t *task) {
+static app_job_signal_t i2c_task_publish_response(app_job_t *job) {
     app_buffer_t *buffer;
-    transport_i2c_t *i2c = task->actor->object;
-    switch (task->task_index) {
+    transport_i2c_t *i2c = job->actor->object;
+    switch (job->task_phase) {
     case 0:
         buffer = app_double_buffer_detach(i2c->ring_buffer, &i2c->output_buffer, i2c->actor);
 
         // if event was APP_EVENT_READ_TO_BUFFER, it is assumed that producer expect report instead of event
-        if (task->inciting_event.type == APP_EVENT_READ) {
-            app_publish(task->actor->app, &((app_event_t){.type = APP_EVENT_RESPONSE,
+        if (job->inciting_event.type == APP_EVENT_READ) {
+            app_publish(job->actor->app, &((app_event_t){.type = APP_EVENT_RESPONSE,
                                                           .producer = i2c->actor,
-                                                          .consumer = task->inciting_event.producer,
+                                                          .consumer = job->inciting_event.producer,
                                                           .data = (uint8_t *)buffer,
                                                           .size = APP_BUFFER_DYNAMIC_SIZE}));
         } else {
-            app_buffer_release(buffer, task->actor);
+            app_buffer_release(buffer, job->actor);
         }
         return APP_JOB_TASK_SUCCESS;
-
     }
     return 0;
 }
 
-static app_job_signal_t i2c_job_read(app_job_t *task) {
-    app_job_signal_t error_signal = i2c_handle_error(task);
+
+static app_signal_t i2c_job_retry(app_job_t *job, uint8_t attempts) {
+    return APP_JOB_FAILURE;
+}
+static app_job_signal_t i2c_job_read(app_job_t *job) {
+    app_job_signal_t error_signal = i2c_handle_error(job);
     if (error_signal) {
         return error_signal;
     }
-    transport_i2c_event_argument_t *argument = i2c_unpack_event_argument(&task->inciting_event.argument);
-    switch (task->step_index) {
+    transport_i2c_event_argument_t *argument = i2c_unpack_event_argument(&job->inciting_event.argument);
+    switch (job->job_phase) {
     case 0:
-        return i2c_task_setup(task, argument->slave_address, argument->memory_address);
+        return i2c_task_setup(job,argument->slave_address, argument->memory_address);
     case 1:
-        return i2c_task_read_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
+        return i2c_task_read_data(job,argument->slave_address, job->inciting_event.data, job->inciting_event.size);
     case 2:
-        return i2c_task_publish_response(task);
+        return i2c_task_publish_response(job);
+    case APP_JOB_FAILURE:
+        return i2c_job_retry(job, 3);
     }
     return APP_JOB_SUCCESS;
 }
-static app_job_signal_t i2c_job_write(app_job_t *task) {
-    app_job_signal_t error_signal = i2c_handle_error(task);
+static app_job_signal_t i2c_job_write(app_job_t *job) {
+    app_job_signal_t error_signal = i2c_handle_error(job);
     if (error_signal) {
         return error_signal;
     }
-    transport_i2c_event_argument_t *argument = i2c_unpack_event_argument(&task->inciting_event.argument);
-    switch (task->step_index) {
+    transport_i2c_event_argument_t *argument = i2c_unpack_event_argument(&job->inciting_event.argument);
+    switch (job->job_phase) {
     case 0:
-        return i2c_task_setup(task, argument->slave_address, argument->memory_address);
+        return i2c_task_setup(job,argument->slave_address, argument->memory_address);
     case 1:
-        return i2c_task_write_data(task, argument->slave_address, task->inciting_event.data, task->inciting_event.size);
+        return i2c_task_write_data(job,argument->slave_address, job->inciting_event.data, job->inciting_event.size);
+    case APP_JOB_FAILURE:
+        return i2c_job_retry(job, 3);
     }
     return APP_JOB_SUCCESS;
 }
 
-static app_signal_t i2c_job_erase(app_job_t *task) {
+static app_signal_t i2c_job_erase(app_job_t *job) {
     return APP_JOB_SUCCESS;
 }
 
@@ -408,8 +414,8 @@ static app_signal_t i2c_job_erase(app_job_t *task) {
 static void i2c_notify(size_t index) {
     debug_printf("> I2C%i interrupt\n", index);
     transport_i2c_t *i2c = i2c_units[index - 1];
-    if (i2c != NULL && i2c->task.handler) {
-        app_job_execute(&i2c->task);
+    if (i2c != NULL && i2c->job.handler) {
+        app_job_execute(&i2c->job);
     }
     volatile uint32_t s1 = I2C_SR1(i2c->address);
     volatile uint32_t s2 = I2C_SR2(i2c->address);
@@ -432,7 +438,7 @@ static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_sign
             app_double_buffer_ingest_external_write(i2c->ring_buffer, i2c->output_buffer, buffer_size - bytes_left);
         }
         i2c->incoming_signal = signal;
-        app_job_execute(&i2c->task);
+        app_job_execute(&i2c->job);
         break;
     default:
         break;
@@ -444,16 +450,16 @@ static app_signal_t i2c_worker_input(transport_i2c_t *i2c, app_event_t *event, a
     switch (event->type) {
     case APP_EVENT_READ:
     case APP_EVENT_READ_TO_BUFFER:
-        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_job_read);
+        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->job, i2c->actor->app->threads->medium_priority, i2c_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->task, i2c->actor->app->threads->medium_priority, i2c_job_write);
+        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->job, i2c->actor->app->threads->medium_priority, i2c_job_write);
     default:
         return 0;
     }
 }
 
 static app_signal_t i2c_worker_medium_priority(transport_i2c_t *i2c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
-    return app_job_execute_if_running_in_thread(&i2c->task, thread);
+    return app_job_execute_if_running_in_thread(&i2c->job, thread);
 }
 
 static app_signal_t i2c_on_buffer(transport_i2c_t *i2c, app_buffer_t *buffer, uint32_t size) {
@@ -481,8 +487,8 @@ actor_class_t transport_i2c_class = {
     .on_signal = (actor_on_signal_t)i2c_on_signal,
     .on_buffer = (actor_on_buffer_t)i2c_on_buffer,
     .property_write = i2c_property_write,
-    .tick_input = (actor_on_worker_t)i2c_worker_input,
-    .tick_medium_priority = (actor_on_worker_t)i2c_worker_medium_priority,
+    .worker_input = (actor_on_worker_t)i2c_worker_input,
+    .worker_medium_priority = (actor_on_worker_t)i2c_worker_medium_priority,
 };
 
 void i2c1_ev_isr(void) {

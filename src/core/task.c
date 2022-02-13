@@ -4,84 +4,87 @@
 
 #define IS_IN_ISR (SCB_ICSR & SCB_ICSR_VECTACTIVE)
 
-app_signal_t app_job_execute(app_job_t *task) {
-  CM_ATOMIC_CONTEXT();
-  configASSERT(task);
-  configASSERT(task->handler);
+app_signal_t app_job_execute(app_job_t *job) {
+  cm_disable_interrupts();
+  configASSERT(job);
+  configASSERT(job->handler);
   bool_t halt = false;
-  debug_printf("| ├ Task \t\t#%s at %u:%u for %s\n", get_app_event_type_name(task->inciting_event.type), task->step_index, task->task_index, get_actor_type_name(task->actor->class->type));
+  debug_printf("| ├ Task \t\t#%s at %u:%u for %s\n", get_app_event_type_name(job->inciting_event.type), job->job_phase, job->task_phase, get_actor_type_name(job->actor->class->type));
   while (!halt) {
-    app_job_signal_t task_signal = app_job_advance(task, task->handler(task));
-    switch (task_signal) {
+    app_job_signal_t job_signal = app_job_advance(job, job->handler(job));
+    switch (job_signal) {
       case APP_JOB_SUCCESS:
       case APP_JOB_FAILURE:
-        if (task->step_index == task_signal) {
-          debug_printf("│ │ ├ %s\t\t%u:%u\n", task_signal == APP_JOB_SUCCESS ? "Success" : "Failure", task->step_index, task->task_index);
-          if (task->actor->class->on_job != NULL) {
-            task->actor->class->on_job(task->actor->object, task);
+        if (job->job_phase == job_signal) {
+          debug_printf("│ │ ├ %s\t\t%u:%u\n", job_signal == APP_JOB_SUCCESS ? "Success" : "Failure", job->job_phase, job->task_phase);
+          if (job->actor->class->on_job != NULL) {
+            job->actor->class->on_job(job->actor->object, job);
           }
         } else {
-          app_job_finalize(task);
-          actor_worker_catchup(task->actor, NULL);
+          app_job_finalize(job);
+          actor_worker_catchup(job->actor, NULL);
           halt = true;
         }
         break;
       case APP_JOB_TASK_QUIT_ISR:
         if (IS_IN_ISR) {
-          app_thread_actor_schedule(task->thread, task->actor, task->thread->current_time);
-          debug_printf("│ │ └ Yield from ISR\t%u:%u\n", task->step_index, task->task_index);
+          app_thread_actor_schedule(job->thread, job->actor, job->thread->current_time);
+          debug_printf("│ │ └ Yield from ISR\t%u:%u\n", job->job_phase, job->task_phase);
+          cm_enable_interrupts();
           return 0;
         }
         break;
       case APP_JOB_TASK_SUCCESS:
-        if (task->task_index != task_signal) {
-          debug_printf("│ │ ├ Step complete\t%u:%u\n", task->step_index, task->task_index);
+        if (job->task_phase != job_signal) {
+          debug_printf("│ │ ├ Step complete\t%u:%u\n", job->job_phase, job->task_phase);
         }
         break;
       case APP_JOB_TASK_RETRY:
       case APP_JOB_TASK_CONTINUE:
+      case APP_JOB_TASK_FAILURE:
         break;   
       case APP_JOB_TASK_WAIT:
-        actor_event_finalize(task->actor, &task->awaited_event);  // free up room for a new event
+        actor_event_finalize(job->actor, &job->awaited_event);  // free up room for a new event
         halt = true;
         break;
       default:
         halt = true;
     }
   }
-  debug_printf("│ │ └ Yield\t\t%u:%u\n", task->step_index, task->task_index);
+  debug_printf("│ │ └ Yield\t\t%u:%u\n", job->job_phase, job->task_phase);
+  cm_enable_interrupts();
   return 0;
 }
 
-app_signal_t app_job_finalize(app_job_t *task) {
-  actor_event_finalize(task->actor, &task->inciting_event);
-  actor_event_finalize(task->actor, &task->awaited_event);
-  task->handler = NULL;
+app_signal_t app_job_finalize(app_job_t *job) {
+  actor_event_finalize(job->actor, &job->inciting_event);
+  actor_event_finalize(job->actor, &job->awaited_event);
+  job->handler = NULL;
   return 0;
 }
 
-app_job_signal_t app_job_advance(app_job_t *task, app_job_signal_t signal) {
-  switch (task->step_index) {
+app_job_signal_t app_job_advance(app_job_t *job, app_job_signal_t signal) {
+  switch (job->job_phase) {
     case APP_JOB_FAILURE:
-      task->step_index = 0;
+      job->job_phase = 0;
       return APP_JOB_FAILURE;
 
     case APP_JOB_SUCCESS:
-      task->step_index = 0;
+      job->job_phase = 0;
       return APP_JOB_SUCCESS;
 
     default:
       break;
   }
 
-  switch (task->task_index) {
+  switch (job->task_phase) {
     case APP_JOB_TASK_FAILURE:
-      task->step_index = APP_JOB_FAILURE;
+      job->job_phase = APP_JOB_FAILURE;
       return APP_JOB_FAILURE;
 
     case APP_JOB_TASK_SUCCESS:
-      task->step_index++;
-      task->task_index = 0;
+      job->job_phase++;
+      job->task_phase = 0;
       return APP_JOB_TASK_SUCCESS;
 
     default:
@@ -90,35 +93,37 @@ app_job_signal_t app_job_advance(app_job_t *task, app_job_signal_t signal) {
 
   switch (signal) {
     case APP_JOB_SUCCESS:
-      task->step_index = APP_JOB_SUCCESS;
+      job->job_phase = APP_JOB_SUCCESS;
       break;
       
     case APP_JOB_FAILURE:
-      task->step_index = APP_JOB_FAILURE;
+      job->job_phase = APP_JOB_FAILURE;
       break;
 
     case APP_JOB_RETRY:
-      task->task_index = 0;
-      task->step_index = 0;
+      job->task_phase = 0;
+      job->job_phase = 0;
       break;
 
     case APP_JOB_TASK_RETRY:
-      task->task_index = 0;
+      job->task_phase = 0;
       break;
 
     case APP_JOB_TASK_WAIT:
     case APP_JOB_TASK_CONTINUE:
-      task->task_index++;
+      job->task_phase++;
       break;
       
     case APP_JOB_TASK_SUCCESS:
-      task->task_index = APP_JOB_TASK_SUCCESS;
+      job->task_phase = APP_JOB_TASK_SUCCESS;
       break;
 
     case APP_JOB_TASK_FAILURE:
-      task->task_index = APP_JOB_TASK_FAILURE;
+      debug_printf("│ │ ├ Got failure\t%u:%u\n", job->job_phase, job->task_phase);
+      job->task_phase = APP_JOB_TASK_FAILURE;
       break;
       
+    case APP_JOB_HALT:
     case APP_JOB_TASK_LOOP:
     case APP_JOB_TASK_QUIT_ISR:
        break;
@@ -126,9 +131,9 @@ app_job_signal_t app_job_advance(app_job_t *task, app_job_signal_t signal) {
   return signal;
 }
 
-app_signal_t app_job_execute_if_running_in_thread(app_job_t *task, app_thread_t *thread) {
-  if (task != NULL && task->handler != NULL && task->thread == thread) {
-    return app_job_execute(task);
+app_signal_t app_job_execute_if_running_in_thread(app_job_t *job, app_thread_t *thread) {
+  if (job != NULL && job->handler != NULL && job->thread == thread) {
+    return app_job_execute(job);
   }
   return 0;
 }

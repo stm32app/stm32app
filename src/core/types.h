@@ -31,7 +31,7 @@ typedef enum app_job_signal app_job_signal_t;   /* Commands to advance step mach
 typedef struct actor_blank actor_blank_t; /* Example blank actor */
 typedef struct app_buffer app_buffer_t; /* Growable owned buffer */
 typedef struct app_double_buffer app_double_buffer_t; /* Typical read operation for peripheral*/
-typedef app_job_signal_t (*actor_on_job_t)(app_job_t *task);
+typedef app_job_signal_t (*actor_on_job_t)(app_job_t *job);
 typedef app_signal_t (*actor_on_report_t)(void *object, app_event_t *event);
 typedef app_signal_t (*actor_on_worker_t)(void *object, app_event_t *event, actor_worker_t *tick, app_thread_t *thread);
 typedef app_signal_t (*actor_on_phase_t)(void *object, actor_phase_t phase);

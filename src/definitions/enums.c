@@ -43,7 +43,9 @@ case 12: return "APP_SIGNAL_BUSY";
 case 13: return "APP_SIGNAL_NOT_FOUND";
 case 14: return "APP_SIGNAL_UNCONFIGURED";
 case 15: return "APP_SIGNAL_INCOMPLETE";
-case 16: return "APP_SIGNAL_OUT_OF_MEMORY";
+case 16: return "APP_SIGNAL_CORRUPTED";
+case 17: return "APP_SIGNAL_NO_RESPONSE";
+case 18: return "APP_SIGNAL_OUT_OF_MEMORY";
 default: return "Unknown";
 }
 };
@@ -103,12 +105,12 @@ default: return "Unknown";
 
 char* get_app_job_signal_name (uint32_t v) {
 switch (v) {
-case 0: return "APP_JOB_TASK_CONTINUE";
-case 1: return "APP_JOB_TASK_RETRY";
-case 2: return "APP_JOB_TASK_WAIT";
-case 3: return "APP_JOB_TASK_QUIT_ISR";
-case 4: return "APP_JOB_TASK_LOOP";
-case 5: return "APP_JOB_CONTINUE";
+case 0: return "APP_JOB_HALT";
+case 1: return "APP_JOB_TASK_CONTINUE";
+case 2: return "APP_JOB_TASK_RETRY";
+case 3: return "APP_JOB_TASK_WAIT";
+case 4: return "APP_JOB_TASK_QUIT_ISR";
+case 5: return "APP_JOB_TASK_LOOP";
 case 6: return "APP_JOB_RETRY";
 case 252: return "APP_JOB_TASK_SUCCESS";
 case 253: return "APP_JOB_TASK_FAILURE";
@@ -120,6 +122,7 @@ default: return "Unknown";
 
 char* get_actor_type_name (uint32_t v) {
 switch (v) {
+case 25248: return "TRANSPORT_SDIO";
 case 12288: return "CORE_APP";
 case 16384: return "DEVICE_CIRCUIT";
 case 24576: return "SYSTEM_MCU";
@@ -136,6 +139,7 @@ case 28928: return "STORAGE_W25";
 case 29184: return "STORAGE_FLASH";
 case 29440: return "MEMORY_SRAM";
 case 29696: return "STORAGE_AT24C";
+case 29760: return "STORAGE_SDCARD";
 case 32768: return "INPUT_SENSOR";
 case 33024: return "CONTROL_TOUCHSCREEN";
 case 36864: return "SCREEN_EPAPER";
@@ -364,6 +368,43 @@ case 3: return "TRANSPORT_MODBUS_RTS_PIN";
 case 4: return "TRANSPORT_MODBUS_SLAVE_ADDRESS";
 case 5: return "TRANSPORT_MODBUS_TIMEOUT";
 case 6: return "TRANSPORT_MODBUS_PHASE";
+default: return "Unknown";
+}
+};
+
+char* get_transport_sdio_properties_properties_name (uint32_t v) {
+switch (v) {
+case 1: return "TRANSPORT_SDIO_DMA_UNIT";
+case 2: return "TRANSPORT_SDIO_DMA_STREAM";
+case 3: return "TRANSPORT_SDIO_DMA_CHANNEL";
+case 4: return "TRANSPORT_SDIO_AF";
+case 5: return "TRANSPORT_SDIO_D0_PORT";
+case 6: return "TRANSPORT_SDIO_D0_PIN";
+case 7: return "TRANSPORT_SDIO_D1_PORT";
+case 8: return "TRANSPORT_SDIO_D1_PIN";
+case 9: return "TRANSPORT_SDIO_D2_PORT";
+case 10: return "TRANSPORT_SDIO_D2_PIN";
+case 11: return "TRANSPORT_SDIO_D3_PORT";
+case 12: return "TRANSPORT_SDIO_D3_PIN";
+case 13: return "TRANSPORT_SDIO_CK_PORT";
+case 14: return "TRANSPORT_SDIO_CK_PIN";
+case 15: return "TRANSPORT_SDIO_CMD_PORT";
+case 16: return "TRANSPORT_SDIO_CMD_PIN";
+case 17: return "TRANSPORT_SDIO_PHASE";
+case 18: return "TRANSPORT_SDIO_CAPACITY";
+case 19: return "TRANSPORT_SDIO_BLOCK_SIZE";
+case 20: return "TRANSPORT_SDIO_BLOCK_COUNT";
+case 21: return "TRANSPORT_SDIO_MAX_BUS_CLOCK_FREQUENCY";
+case 22: return "TRANSPORT_SDIO_CSD_VERSION";
+case 23: return "TRANSPORT_SDIO_RELATIVE_CARD_ADDRESS";
+case 24: return "TRANSPORT_SDIO_MANUFACTURER_ID";
+case 25: return "TRANSPORT_SDIO_OEM_ID";
+case 26: return "TRANSPORT_SDIO_PRODUCT_NAME";
+case 27: return "TRANSPORT_SDIO_PRODUCT_REVISION";
+case 28: return "TRANSPORT_SDIO_SERIAL_NUMBER";
+case 29: return "TRANSPORT_SDIO_MANUFACTURING_DATE";
+case 30: return "TRANSPORT_SDIO_VERSION";
+case 31: return "TRANSPORT_SDIO_HIGH_CAPACITY";
 default: return "Unknown";
 }
 };

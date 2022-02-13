@@ -15,7 +15,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModifiedBy="" fileModificationDate="2022-02-04" fileModificationTime="20:48:59.5936591+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModifiedBy="" fileModificationDate="2022-02-12" fileModificationTime="22:42:11.8985369+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <q1:DeviceIdentity>
         <q1:vendorName>2</q1:vendorName>
         <q1:vendorID>3</q1:vendorID>
@@ -737,7 +737,7 @@
               <USINT />
             </q1:varDeclaration>
             <q1:varDeclaration name="Bitrate" uniqueID="UID_RECSUB_60200A">
-              <UDINT />
+              <UINT />
             </q1:varDeclaration>
           </q1:struct>
           <q1:struct name="Module Timer 1" uniqueID="UID_REC_6100">
@@ -1131,6 +1131,104 @@
               <USINT />
             </q1:varDeclaration>
           </q1:struct>
+          <q1:struct name="Transport SDIO" uniqueID="UID_REC_62A0">
+            <q1:varDeclaration name="Highest sub-index supported" uniqueID="UID_RECSUB_62A000">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="DMA Unit" uniqueID="UID_RECSUB_62A001">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="DMA Stream" uniqueID="UID_RECSUB_62A002">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="DMA Channel" uniqueID="UID_RECSUB_62A003">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="AF" uniqueID="UID_RECSUB_62A004">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D0 Port" uniqueID="UID_RECSUB_62A005">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D0 Pin" uniqueID="UID_RECSUB_62A006">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D1 Port" uniqueID="UID_RECSUB_62A007">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D1 Pin" uniqueID="UID_RECSUB_62A008">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D2 Port" uniqueID="UID_RECSUB_62A009">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D2 Pin" uniqueID="UID_RECSUB_62A00A">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D3 Port" uniqueID="UID_RECSUB_62A00B">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="D3 Pin" uniqueID="UID_RECSUB_62A00C">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="CK Port" uniqueID="UID_RECSUB_62A00D">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="CK Pin" uniqueID="UID_RECSUB_62A00E">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="CMD Port" uniqueID="UID_RECSUB_62A00F">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="CMD Pin" uniqueID="UID_RECSUB_62A010">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Phase" uniqueID="UID_RECSUB_62A011">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Capacity" uniqueID="UID_RECSUB_62A012">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Block size" uniqueID="UID_RECSUB_62A013">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Block count" uniqueID="UID_RECSUB_62A014">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Max Bus Clock Frequency" uniqueID="UID_RECSUB_62A015">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="CSD Version" uniqueID="UID_RECSUB_62A016">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Relative Card Address" uniqueID="UID_RECSUB_62A017">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Manufacturer ID" uniqueID="UID_RECSUB_62A018">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="OEM ID" uniqueID="UID_RECSUB_62A019">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Product Name" uniqueID="UID_RECSUB_62A01A">
+              <STRING />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Product Revision" uniqueID="UID_RECSUB_62A01B">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Serial Number " uniqueID="UID_RECSUB_62A01C">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Manufacturing Date" uniqueID="UID_RECSUB_62A01D">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Version" uniqueID="UID_RECSUB_62A01E">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="High Capacity" uniqueID="UID_RECSUB_62A01F">
+              <BOOL />
+            </q1:varDeclaration>
+          </q1:struct>
           <q1:struct name="Module ADC 1" uniqueID="UID_REC_6300">
             <q1:varDeclaration name="Highest sub-index supported" uniqueID="UID_RECSUB_630000">
               <USINT />
@@ -1297,6 +1395,29 @@
               <UINT />
             </q1:varDeclaration>
             <q1:varDeclaration name="Phase" uniqueID="UID_RECSUB_740006">
+              <USINT />
+            </q1:varDeclaration>
+          </q1:struct>
+          <q1:struct name="Storage SDCard" uniqueID="UID_REC_7440">
+            <q1:varDeclaration name="Highest sub-index supported" uniqueID="UID_RECSUB_744000">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="I2C Index" uniqueID="UID_RECSUB_744001">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="I2C Address" uniqueID="UID_RECSUB_744002">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Start address" uniqueID="UID_RECSUB_744003">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Page Size" uniqueID="UID_RECSUB_744004">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Size" uniqueID="UID_RECSUB_744005">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Phase" uniqueID="UID_RECSUB_744006">
               <USINT />
             </q1:varDeclaration>
           </q1:struct>
@@ -3305,8 +3426,8 @@ Can be paired with Hall Sensor to measure current for taking metrics via ADC. Ap
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_60200A" access="readWrite">
             <description lang="en">Negotiated bitrate</description>
-            <UDINT />
-            <q1:defaultValue value="100000" />
+            <UINT />
+            <q1:defaultValue value="1000" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_6100">
             <description lang="en">TIM1 timer</description>
@@ -3766,7 +3887,7 @@ Can be used for DAC</description>
           <q1:parameter uniqueID="UID_SUB_626009" access="readWrite">
             <label lang="en">DMA Tx Stream</label>
             <USINT />
-            <q1:defaultValue value="7" />
+            <q1:defaultValue value="6" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_62600A" access="readWrite">
             <label lang="en">DMA Tx Channel</label>
@@ -3991,6 +4112,173 @@ Can be used for DAC</description>
           <q1:parameter uniqueID="UID_SUB_628007" access="readWrite">
             <description lang="en">in us</description>
             <USINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_OBJ_62A0">
+            <description lang="en">Secure input/output protocol</description>
+            <q1:dataTypeIDRef uniqueIDRef="UID_REC_62A0" />
+            <q1:property name="CO_countLabel" value="TRANSPORT_I2C" />
+            <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A000">
+            <label lang="en">Highest sub-index supported</label>
+            <USINT />
+            <q1:defaultValue value="0x1F" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A001" access="readWrite">
+            <label lang="en">DMA Unit</label>
+            <USINT />
+            <q1:defaultValue value="2" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A002" access="readWrite">
+            <label lang="en">DMA Stream</label>
+            <USINT />
+            <q1:defaultValue value="6" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A003" access="readWrite">
+            <label lang="en">DMA Channel</label>
+            <USINT />
+            <q1:defaultValue value="4" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A004" access="readWrite">
+            <label lang="en">AF</label>
+            <USINT />
+            <q1:defaultValue value="12" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A005" access="readWrite">
+            <label lang="en">D0 Port</label>
+            <USINT />
+            <q1:defaultValue value="3" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A006" access="readWrite">
+            <label lang="en">D0 Pin</label>
+            <USINT />
+            <q1:defaultValue value="8" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A007" access="readWrite">
+            <label lang="en">D1 Port</label>
+            <USINT />
+            <q1:defaultValue value="3" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A008" access="readWrite">
+            <label lang="en">D1 Pin</label>
+            <USINT />
+            <q1:defaultValue value="9" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A009" access="readWrite">
+            <label lang="en">D2 Port</label>
+            <USINT />
+            <q1:defaultValue value="3" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A00A" access="readWrite">
+            <label lang="en">D2 Pin</label>
+            <USINT />
+            <q1:defaultValue value="10" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A00B" access="readWrite">
+            <label lang="en">D3 Port</label>
+            <USINT />
+            <q1:defaultValue value="3" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A00C" access="readWrite">
+            <label lang="en">D3 Pin</label>
+            <USINT />
+            <q1:defaultValue value="11" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A00D" access="readWrite">
+            <label lang="en">CK Port</label>
+            <USINT />
+            <q1:defaultValue value="3" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A00E" access="readWrite">
+            <label lang="en">CK Pin</label>
+            <USINT />
+            <q1:defaultValue value="12" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A00F" access="readWrite">
+            <label lang="en">CMD Port</label>
+            <USINT />
+            <q1:defaultValue value="4" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A010" access="readWrite">
+            <label lang="en">CMD Pin</label>
+            <USINT />
+            <q1:defaultValue value="2" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A011" access="readWrite">
+            <label lang="en">Phase</label>
+            <USINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A012" access="readWrite">
+            <label lang="en">Capacity</label>
+            <UDINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A013" access="readWrite">
+            <label lang="en">Block size</label>
+            <UDINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A014" access="readWrite">
+            <label lang="en">Block count</label>
+            <UDINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A015" access="readWrite">
+            <label lang="en">Max Bus Clock Frequency</label>
+            <UDINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A016" access="readWrite">
+            <label lang="en">CSD Version</label>
+            <USINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A017" access="readWrite">
+            <label lang="en">Relative Card Address</label>
+            <UINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A018" access="readWrite">
+            <label lang="en">Manufacturer ID</label>
+            <USINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A019" access="readWrite">
+            <label lang="en">OEM ID</label>
+            <UINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A01A" access="readWrite">
+            <label lang="en">Product Name</label>
+            <STRING />
+            <q1:defaultValue value="0" />
+            <q1:property name="CO_stringLengthMin" value="5" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A01B" access="readWrite">
+            <label lang="en">Product Revision</label>
+            <USINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A01C" access="readWrite">
+            <label lang="en">Serial Number </label>
+            <UDINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A01D" access="readWrite">
+            <label lang="en">Manufacturing Date</label>
+            <UINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A01E" access="readWrite">
+            <description lang="en">2 or 1</description>
+            <USINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_62A01F" access="readWrite">
+            <description lang="en">1 for SDHC/SDXC card</description>
+            <BOOL />
             <q1:defaultValue value="0" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_6300">
@@ -4298,6 +4586,47 @@ Can be used for DAC</description>
             <USINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
+          <q1:parameter uniqueID="UID_OBJ_7440">
+            <description lang="en">I2C-based EEPROM</description>
+            <q1:dataTypeIDRef uniqueIDRef="UID_REC_7440" />
+            <q1:property name="CO_countLabel" value="STORAGE_AT24C" />
+            <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_744000">
+            <label lang="en">Highest sub-index supported</label>
+            <USINT />
+            <q1:defaultValue value="0x06" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_744001" access="readWrite">
+            <label lang="en">I2C Index</label>
+            <UINT />
+            <q1:defaultValue value="0x6260" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_744002" access="readWrite">
+            <label lang="en">I2C Address</label>
+            <USINT />
+            <q1:defaultValue value="0x50" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_744003" access="readWrite">
+            <label lang="en">Start address</label>
+            <UINT />
+            <q1:defaultValue value="8" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_744004" access="readWrite">
+            <label lang="en">Page Size</label>
+            <UINT />
+            <q1:defaultValue value="8" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_744005" access="readWrite">
+            <label lang="en">Size</label>
+            <UINT />
+            <q1:defaultValue value="2048" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_744006" access="readWrite">
+            <label lang="en">Phase</label>
+            <USINT />
+            <q1:defaultValue value="0" />
+          </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_8000">
             <description lang="en">A sensor that measures a single analog value (i.e. current meter, tank level meter)</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_8000" />
@@ -4598,7 +4927,7 @@ Can be used for DAC</description>
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModificationDate="2022-02-04" fileModificationTime="20:48:59.5936591+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModificationDate="2022-02-12" fileModificationTime="22:42:11.8985369+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <ApplicationLayers>
         <q2:CANopenObjectList>
           <CANopenObject index="1000" name="Device type" objectType="7" PDOmapping="no" uniqueIDRef="UID_OBJ_1000" />
@@ -5099,6 +5428,40 @@ Can be used for DAC</description>
             <CANopenSubObject subIndex="06" name="Timeout" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_628006" />
             <CANopenSubObject subIndex="07" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_628007" />
           </CANopenObject>
+          <CANopenObject index="62A0" name="Transport SDIO" objectType="9" uniqueIDRef="UID_OBJ_62A0" subNumber="32">
+            <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A000" />
+            <CANopenSubObject subIndex="01" name="DMA Unit" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A001" />
+            <CANopenSubObject subIndex="02" name="DMA Stream" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A002" />
+            <CANopenSubObject subIndex="03" name="DMA Channel" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A003" />
+            <CANopenSubObject subIndex="04" name="AF" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A004" />
+            <CANopenSubObject subIndex="05" name="D0 Port" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A005" />
+            <CANopenSubObject subIndex="06" name="D0 Pin" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A006" />
+            <CANopenSubObject subIndex="07" name="D1 Port" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A007" />
+            <CANopenSubObject subIndex="08" name="D1 Pin" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A008" />
+            <CANopenSubObject subIndex="09" name="D2 Port" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A009" />
+            <CANopenSubObject subIndex="0A" name="D2 Pin" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A00A" />
+            <CANopenSubObject subIndex="0B" name="D3 Port" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A00B" />
+            <CANopenSubObject subIndex="0C" name="D3 Pin" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A00C" />
+            <CANopenSubObject subIndex="0D" name="CK Port" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A00D" />
+            <CANopenSubObject subIndex="0E" name="CK Pin" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A00E" />
+            <CANopenSubObject subIndex="0F" name="CMD Port" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A00F" />
+            <CANopenSubObject subIndex="10" name="CMD Pin" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A010" />
+            <CANopenSubObject subIndex="11" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A011" />
+            <CANopenSubObject subIndex="12" name="Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A012" />
+            <CANopenSubObject subIndex="13" name="Block size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A013" />
+            <CANopenSubObject subIndex="14" name="Block count" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A014" />
+            <CANopenSubObject subIndex="15" name="Max Bus Clock Frequency" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A015" />
+            <CANopenSubObject subIndex="16" name="CSD Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A016" />
+            <CANopenSubObject subIndex="17" name="Relative Card Address" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A017" />
+            <CANopenSubObject subIndex="18" name="Manufacturer ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A018" />
+            <CANopenSubObject subIndex="19" name="OEM ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A019" />
+            <CANopenSubObject subIndex="1A" name="Product Name" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01A" />
+            <CANopenSubObject subIndex="1B" name="Product Revision" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01B" />
+            <CANopenSubObject subIndex="1C" name="Serial Number " objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01C" />
+            <CANopenSubObject subIndex="1D" name="Manufacturing Date" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01D" />
+            <CANopenSubObject subIndex="1E" name="Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01E" />
+            <CANopenSubObject subIndex="1F" name="High Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01F" />
+          </CANopenObject>
           <CANopenObject index="6300" name="Module ADC 1" objectType="9" uniqueIDRef="UID_OBJ_6300" subNumber="7">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_630000" />
             <CANopenSubObject subIndex="01" name="Interval" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_630001" />
@@ -5165,6 +5528,15 @@ Can be used for DAC</description>
             <CANopenSubObject subIndex="04" name="Page Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_740004" />
             <CANopenSubObject subIndex="05" name="Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_740005" />
             <CANopenSubObject subIndex="06" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_740006" />
+          </CANopenObject>
+          <CANopenObject index="7440" name="Storage SDCard" objectType="9" uniqueIDRef="UID_OBJ_7440" subNumber="7">
+            <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_744000" />
+            <CANopenSubObject subIndex="01" name="I2C Index" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_744001" />
+            <CANopenSubObject subIndex="02" name="I2C Address" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_744002" />
+            <CANopenSubObject subIndex="03" name="Start address" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_744003" />
+            <CANopenSubObject subIndex="04" name="Page Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_744004" />
+            <CANopenSubObject subIndex="05" name="Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_744005" />
+            <CANopenSubObject subIndex="06" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_744006" />
           </CANopenObject>
           <CANopenObject index="8000" name="Input Sensor 1" objectType="9" uniqueIDRef="UID_OBJ_8000" subNumber="7">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_800000" />

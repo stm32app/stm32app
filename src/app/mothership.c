@@ -14,6 +14,7 @@
 #include "indicator/led.h"
 #include "transport/i2c.h"
 #include "transport/spi.h"
+#include "transport/sdio.h"
 //#include "transport/usart.h"
 
 static ODR_t mothership_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
@@ -71,6 +72,7 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     count += app_actor_type_enumerate(app, od, &transport_can_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_spi_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_i2c_class, destination, count);
+    count += app_actor_type_enumerate(app, od, &transport_sdio_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_w25_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_at24c_class, destination, count);
     count += app_actor_type_enumerate(app, od, &indicator_led_class, destination, count);
@@ -98,10 +100,10 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
     return 0;
 }
 
-static app_job_signal_t mothership_job_stats(app_job_t *task) {
-    if (task->step_index == 0) {
+static app_job_signal_t mothership_job_stats(app_job_t *job) {
+    if (job->job_phase == 0) {
         debug_printf("│ │ ├ Allocated buffers\n");
-        for (app_buffer_t *page = task->actor->app->buffers; page; page = app_buffer_get_next_page(page, task->actor->app->buffers)) {
+        for (app_buffer_t *page = job->actor->app->buffers; page; page = app_buffer_get_next_page(page, job->actor->app->buffers)) {
             for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(app_buffer_t)) {
                 app_buffer_t *buffer = (app_buffer_t *)&page->data[offset];
                 if (!(buffer->owner == NULL && buffer->data == NULL && buffer->allocated_size == 0)) {
@@ -122,14 +124,14 @@ static app_job_signal_t mothership_job_stats(app_job_t *task) {
 static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_THREAD_ALARM:
-        actor_event_receive_and_start_job(mothership->actor, event, &mothership->task, thread, mothership_job_stats);
+        actor_event_receive_and_start_job(mothership->actor, event, &mothership->job, thread, mothership_job_stats);
         
         break;
     default:
         break;
     }
 
-    app_job_execute_if_running_in_thread(&mothership->task, thread);
+    app_job_execute_if_running_in_thread(&mothership->job, thread);
     tick->next_time = thread->current_time + 5000;
     return 0;
 }
@@ -169,8 +171,8 @@ actor_class_t app_mothership_class = {
     .stop = (app_method_t)mothership_stop,
     .on_phase = (actor_on_phase_t)mothership_phase,
     .on_signal = (actor_on_signal_t)mothership_on_signal,
-    .tick_high_priority = (actor_on_worker_t)mothership_high_priority,
-    .tick_low_priority = (actor_on_worker_t)mothership_low_priority,
+    .worker_high_priority = (actor_on_worker_t)mothership_high_priority,
+    .worker_low_priority = (actor_on_worker_t)mothership_low_priority,
     .property_write = mothership_property_write,
     .on_buffer = (actor_on_buffer_t)mothership_on_buffer,
 };

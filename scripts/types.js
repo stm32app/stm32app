@@ -68,11 +68,8 @@ od.replace(/\{\s*([^}]+?)\s*\}[^}]+?x([3-9].*?)_([a-z]+)([A-Z][^_\s,;]+)/g, (mat
   var foundPhase = false;
   struct.split(/;/).map((pair, attributeIndex) => {
     if (!pair) return;
-    const [dataType, attribute] = pair.trim().split('[')[0].split(' ')
-    
-    
-    
-    
+    const [, dataTypeBasic, attribute, arrayLength] = pair.trim().match(/([^\s]+)\s+([^\[]+)(\[[^]+\])?/)
+    const dataType = dataTypeBasic;
 
 
     const constant = `${type.toUpperCase()}_${name.toUpperCase()}_${attribute.toUpperCase()}`
@@ -91,17 +88,14 @@ od.replace(/\{\s*([^}]+?)\s*\}[^}]+?x([3-9].*?)_([a-z]+)([A-Z][^_\s,;]+)/g, (mat
 ODR_t ${type}_${name}_set_${attribute}(${type}_${name}_t *${name}, ${dataType} value); // 0x${attributeOD}: ${name} ${attribute}
 ${dataType} ${type}_${name}_get_${attribute}(${type}_${name}_t *${name}); // 0x${attributeOD}: ${name} ${attribute}`)
 
-//accessors.push(`OD_ACCESSORS(${type}, ${name}, ${subtype}, ${attribute}, ${constant}, ${dataType}, ${shorttype}) /* 0x${attributeOD}: ${JSON.stringify(attributeDefinition)} */`);
-
-// slower version
-//accessors.push(`/* 0x${attributeOD}: ${attributeDefinition.description} */
-//#define ${type}_${name}_set_${attribute}(${name}, value) OD_set_${shorttype}(${name}->actor->${subtype}, ${constant}, value, false)`);
+if (arrayLength) {
 accessors.push(`/* 0x${attributeOD}: ${attributeDefinition.description} */
-#define ${type}_${name}_set_${attribute}(${name}, value) actor_set_property_numeric(${name}->actor, (uint32_t) value, sizeof(${dataType}), ${constant})`);
-
-// slower version
-//accessors.push(`#define ${type}_${name}_get_${attribute}(${name}) *((${dataType} *) OD_getPtr(${name}->actor->${subtype}, ${constant}, 0, NULL))`);
-accessors.push(`#define ${type}_${name}_get_${attribute}(${name}) *((${dataType} *) actor_get_property_pointer(${name}->actor, &(uint8_t[sizeof(${dataType})]{}), sizeof(${dataType}), ${constant})`);
+#define ${type}_${name}_set_${attribute}(${name}, value, size) actor_set_property${dataType == 'char' ? '_string' : ''}(${name}->actor, ${constant}, value, size)`);
+} else {
+accessors.push(`/* 0x${attributeOD}: ${attributeDefinition.description} */
+#define ${type}_${name}_set_${attribute}(${name}, value) actor_set_property_numeric(${name}->actor, ${constant}, (uint32_t) (value), sizeof(${dataType}))`);
+}
+accessors.push(`#define ${type}_${name}_get_${attribute}(${name}) *((${dataType} *) actor_get_property_pointer(${name}->actor, ${constant})`);
 
 if (!'USE MACROS?')    accessors.push(
 `/* 0x${attributeOD}: ${name} ${attribute} */

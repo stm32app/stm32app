@@ -32,7 +32,7 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
     } else {
         *destination = NULL;
         debug_printf("    ! Device 0x%x (%s) could not find actor 0x%x\n", actor_index(actor), get_actor_type_name(actor->class->type),
-                   index);
+                     index);
         actor_set_phase(actor, ACTOR_DISABLED);
         actor_error_report(actor, CO_EM_INCONSISTENT_OBJECT_DICT, CO_EMC_ADDITIONAL_MODUL);
         return 1;
@@ -103,7 +103,9 @@ app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t 
                                                     actor_on_report_t handler) {
     // Check if destination can store the incoming event, otherwise actor will be considered busy
     if (destination == NULL || destination->type == APP_EVENT_IDLE) {
-        event->consumer = actor;
+        if (ready_status >= APP_EVENT_HANDLED) {
+            event->consumer = actor;
+        }
         actor_event_set_status(actor, event, ready_status);
         memcpy(destination, event, sizeof(app_event_t));
         if (handler != NULL) {
@@ -116,32 +118,32 @@ app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t 
     }
 }
 
-app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
-                                                       actor_on_job_t handler, app_event_status_t ready_status,
-                                                       app_event_status_t busy_status) {
-    app_signal_t signal = actor_event_accept_and_process_generic(actor, event, &task->inciting_event, ready_status, busy_status, NULL);
+app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
+                                                      actor_on_job_t handler, app_event_status_t ready_status,
+                                                      app_event_status_t busy_status) {
+    app_signal_t signal = actor_event_accept_and_process_generic(actor, event, &job->inciting_event, ready_status, busy_status, NULL);
     if (signal == APP_SIGNAL_OK) {
-        task->actor = actor;
-        task->handler = handler;
-        memcpy(&task->inciting_event, event, sizeof(app_event_t));
-        memset(&task->awaited_event, 0, sizeof(app_event_t));
-        task->task_index = task->step_index = 0;
-        task->thread = thread;
-        task->counter = 0;
+        job->actor = actor;
+        job->handler = handler;
+        memcpy(&job->inciting_event, event, sizeof(app_event_t));
+        memset(&job->awaited_event, 0, sizeof(app_event_t));
+        job->task_phase = job->job_phase = 0;
+        job->thread = thread;
+        job->counter = 0;
         debug_printf("| ├ Task start\t\t%s for %s\t\n", get_actor_type_name(actor->class->type), app_thread_get_name(thread));
         app_thread_actor_schedule(thread, actor, thread->current_time);
     }
     return signal;
 }
 
-app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *task, app_thread_t *thread,
-                                                         actor_on_job_t handler, app_event_status_t ready_status,
-                                                         app_event_status_t busy_status) {
-    if (task->handler != handler) {
+app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
+                                                        actor_on_job_t handler, app_event_status_t ready_status,
+                                                        app_event_status_t busy_status) {
+    if (job->handler != handler) {
         actor_event_set_status(actor, event, busy_status);
         return APP_SIGNAL_BUSY;
     }
-    app_signal_t signal = actor_event_accept_and_process_generic(actor, event, &task->awaited_event, ready_status, busy_status, NULL);
+    app_signal_t signal = actor_event_accept_and_process_generic(actor, event, &job->awaited_event, ready_status, busy_status, NULL);
     if (signal == APP_SIGNAL_OK) {
         app_thread_actor_schedule(thread, actor, thread->current_time);
     }
@@ -151,7 +153,7 @@ app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_even
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase) {
 #if DEBUG
     debug_printf("  - Device phase: 0x%x %s %s <= %s\n", actor_index(actor), get_actor_type_name(actor->class->type),
-               get_actor_phase_name(phase), get_actor_phase_name(actor->previous_phase));
+                 get_actor_phase_name(phase), get_actor_phase_name(actor->previous_phase));
     actor->previous_phase = phase;
 #endif
 
@@ -240,7 +242,8 @@ app_signal_t actor_event_report(actor_t *actor, app_event_t *event) {
 app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
     if (event != NULL && event->type != APP_EVENT_IDLE) {
         if (event->type != APP_EVENT_THREAD_ALARM) {
-            debug_printf("│ │ ├ Finalize\t\t#%s of %s\n", get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
+            debug_printf("│ │ ├ Finalize\t\t#%s of %s\n", get_app_event_type_name(event->type),
+                         get_actor_type_name(event->producer->class->type));
 
             actor_event_report(actor, event);
 
@@ -281,7 +284,7 @@ typedef struct {
     OD_size_t dataLength; /**< Data length in bytes */
 } OD_obj_record_t;
 
-ODR_t actor_set_property(actor_t *actor, void *value, size_t size, uint8_t index) {
+ODR_t actor_set_property(actor_t *actor, uint8_t index, void *value, size_t size) {
     OD_obj_record_t *odo = &((OD_obj_record_t *)actor->entry->odObject)[index];
 
     // bail out quickly if value hasnt changed
@@ -315,24 +318,53 @@ ODR_t actor_set_property(actor_t *actor, void *value, size_t size, uint8_t index
     return actor->class->property_write(&stream, value, size, &count_written);
 }
 
-ODR_t actor_set_property_numeric(actor_t *actor, uint32_t value, size_t size, uint8_t index) {
-    return actor_set_property(actor, &value, size, index);
+ODR_t actor_set_property_numeric(actor_t *actor, uint8_t index, uint32_t value, size_t size) {
+    return actor_set_property(actor, index, &value, size);
 }
 
-void *actor_get_property_pointer(actor_t *actor, void *value, size_t size, uint8_t index) {
+ODR_t actor_set_property_string(actor_t *actor, uint8_t index, uint8_t *data, size_t size) {
     OD_obj_record_t *odo = &((OD_obj_record_t *)actor->entry->odObject)[index];
-    if (actor->class->property_read == NULL) {
-        return odo->dataOrig;
+    if (size < odo->dataLength) {
+        (&odo->dataOrig)[size + 1] = '\0';
     }
+    return actor_set_property(actor, index, data, size);
+}
+
+ODR_t actor_compute_property_stream(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size, OD_stream_t *stream, OD_size_t *count_read) {
+    if (stream->dataOrig == NULL) {
+        OD_obj_record_t *odo = &((OD_obj_record_t *)actor->entry->odObject)[index];
+        *stream = (OD_stream_t){
+            .dataOrig = odo->dataOrig,
+            .dataLength = odo->dataLength,
+            .attribute = odo->attribute,
+            .object = actor->object,
+            .subIndex = index,
+            .dataOffset = 0,
+        };
+    }
+    if (data == NULL)
+        data = stream->dataOrig;
+    if (size == 0)
+        size = stream->dataLength;
+    return actor->class->property_read(stream, data, size, count_read);
+}
+
+ODR_t actor_compute_property_into_buffer(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size) {
     OD_size_t count_read = 0;
-    OD_stream_t stream = {
-        .dataOrig = odo->dataOrig,
-        .dataLength = odo->dataLength,
-        .attribute = odo->attribute,
-        .object = actor->object,
-        .subIndex = index,
-        .dataOffset = 0,
-    };
-    actor->class->property_read(&stream, value, size, &count_read);
-    return value;
+    OD_stream_t stream;
+    return actor_compute_property_stream(actor, index, data, size, &stream, &count_read);
+}
+
+ODR_t actor_compute_property(actor_t *actor, uint8_t index) {
+    return actor_compute_property_into_buffer(actor, index, NULL, 0);
+}
+
+void *actor_get_property_pointer(actor_t *actor, uint8_t index) {
+    OD_obj_record_t *odo = &((OD_obj_record_t *)actor->entry->odObject)[index];
+
+    // allow getters to run if actor has it
+    if (actor->class->property_read != NULL) {
+        actor_compute_property(actor, index);
+    }
+    return odo->dataOrig;
 }

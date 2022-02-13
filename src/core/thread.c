@@ -5,7 +5,7 @@
 #define MAX_THREAD_SLEEP_TIME 60000
 #define IS_IN_ISR (SCB_ICSR & SCB_ICSR_VECTACTIVE)
 
-static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t tick_index);
+static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t worker_index);
 static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_worker_t *tick);
 static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event, app_event_status_t previous_status);
 static void app_thread_event_await(app_thread_t *thread, app_event_t *event);
@@ -40,7 +40,7 @@ void app_thread_execute(app_thread_t *thread) {
     thread->current_time = xTaskGetTickCount();
     thread->last_time = thread->current_time;
     thread->next_time = thread->current_time + MAX_THREAD_SLEEP_TIME;
-    size_t tick_index = app_thread_get_worker_index(thread);   // Which actor tick handles this thread
+    size_t worker_index = app_thread_get_worker_index(thread);   // Which actor tick handles this thread
     size_t deferred_count = 0;                               // Counter of re-queued events
     actor_t *first_actor = app_thread_filter_actors(thread); // linked list of actors declaring the tick
     app_event_t event = {.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
@@ -55,7 +55,7 @@ void app_thread_execute(app_thread_t *thread) {
         app_event_status_t previous_event_status = event.status;
 
         // route event to its listeners
-        app_thread_event_dispatch(thread, &event, first_actor, tick_index);
+        app_thread_event_dispatch(thread, &event, first_actor, worker_index);
 
         // keep event for later processing if needed
         deferred_count += app_thread_event_requeue(thread, &event, previous_event_status);
@@ -94,7 +94,7 @@ static inline bool_t app_thread_should_notify_actor(app_thread_t *thread, app_ev
 }
 
 /* Notify interested actors of a new event. Events may either be targeted to a specific actor, or broadcasted to all/*/
-static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t tick_index) {
+static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t worker_index) {
 
     // If event has no indicated reciepent, all actors that are subscribed to thread and event will need to be notified
     actor_t *actor = event->consumer ? event->consumer : first_actor;
@@ -102,7 +102,7 @@ static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t 
     app_signal_t signal;
 
     while (actor) {
-        tick = actor_worker_by_index(actor, tick_index);
+        tick = actor_worker_by_index(actor, worker_index);
         signal = app_thread_event_actor_dispatch(thread, event, actor, tick);
 
         // let tick know that it has events to catch up later
@@ -111,7 +111,7 @@ static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t 
         }
 
         // stop broadcasting if actor wants this event for itself
-        if (event->status >= APP_EVENT_HANDLED || event->consumer != NULL) {
+        if (event->consumer != NULL) {
             break;
         }
 
@@ -456,12 +456,12 @@ actor_worker_t *actor_worker_for_thread(actor_t *actor, app_thread_t *thread) {
 
 actor_t *app_thread_filter_actors(app_thread_t *thread) {
     app_t *app = thread->actor->app;
-    size_t tick_index = app_thread_get_worker_index(thread);
+    size_t worker_index = app_thread_get_worker_index(thread);
     actor_t *first_actor = NULL;
     actor_t *last_actor = NULL;
     for (size_t i = 0; i < app->actor_count; i++) {
         actor_t *actor = &app->actor[i];
-        actor_worker_t *tick = actor_worker_by_index(actor, tick_index);
+        actor_worker_t *tick = actor_worker_by_index(actor, worker_index);
         // Subscribed actors have corresponding tick handler
         if (tick == NULL) {
             continue;
@@ -474,7 +474,7 @@ actor_t *app_thread_filter_actors(app_thread_t *thread) {
 
         // double link the ticks for fast iteration
         if (last_actor != NULL) {
-            actor_worker_by_index(last_actor, tick_index)->next_actor = actor;
+            actor_worker_by_index(last_actor, worker_index)->next_actor = actor;
             tick->prev_actor = actor;
         }
 
@@ -500,11 +500,11 @@ size_t app_thread_get_worker_index(app_thread_t *thread) {
 
 int actor_workers_allocate(actor_t *actor) {
     actor->ticks = malloc(sizeof(actor_workers_t));
-    return actor_worker_allocate(&actor->ticks->input, actor->class->tick_input) ||
-           actor_worker_allocate(&actor->ticks->medium_priority, actor->class->tick_medium_priority) ||
-           actor_worker_allocate(&actor->ticks->high_priority, actor->class->tick_high_priority) ||
-           actor_worker_allocate(&actor->ticks->low_priority, actor->class->tick_low_priority) ||
-           actor_worker_allocate(&actor->ticks->bg_priority, actor->class->tick_bg_priority);
+    return actor_worker_allocate(&actor->ticks->input, actor->class->worker_input) ||
+           actor_worker_allocate(&actor->ticks->medium_priority, actor->class->worker_medium_priority) ||
+           actor_worker_allocate(&actor->ticks->high_priority, actor->class->worker_high_priority) ||
+           actor_worker_allocate(&actor->ticks->low_priority, actor->class->worker_low_priority) ||
+           actor_worker_allocate(&actor->ticks->bg_priority, actor->class->worker_bg_priority);
 }
 
 int actor_workers_free(actor_t *actor) {

@@ -90,7 +90,7 @@
 #define xPortSysTickHandler sys_tick_handler
 
 #define INCLUDE_eTaskGetState 1
-#define configMAX_PRIORITIES (6)
+#define configMAX_PRIORITIES (10)
 #ifdef DEBUG
 #define configCHECK_FOR_STACK_OVERFLOW 2
 #define configUSE_MALLOC_FAILED_HOOK 1

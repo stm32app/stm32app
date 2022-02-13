@@ -41,31 +41,31 @@ static app_signal_t at24c_on_signal(storage_at24c_t *at24c, actor_t *actor, app_
     return 0;
 }
 
-static app_job_signal_t at24c_task_read(app_job_t *task, uint8_t address, uint8_t *data, uint32_t size) {
-    storage_at24c_t *at24c = task->actor->object;
+static app_job_signal_t at24c_task_read(app_job_t *job, uint8_t address, uint8_t *data, uint32_t size) {
+    storage_at24c_t *at24c = job->actor->object;
     uint32_t bytes_on_page;
 
-    switch (task->task_index) {
+    switch (job->task_phase) {
     case 0:
-        task->counter = 0;
-        at24c->target_buffer = app_buffer_target(task->actor, data, size);
+        job->counter = 0;
+        at24c->target_buffer = app_buffer_target(job->actor, data, size);
         if (at24c->target_buffer == NULL) {
             return APP_JOB_FAILURE;
         } else {
             return APP_JOB_TASK_CONTINUE;
         }
     case 1:
-        bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, size, at24c->properties->page_size);
-        app_publish(task->actor->app, &((app_event_t){
+        bytes_on_page = get_number_of_bytes_intesecting_page(address + job->counter, size, at24c->properties->page_size);
+        app_publish(job->actor->app, &((app_event_t){
                                           .type = APP_EVENT_READ_TO_BUFFER,
                                           .consumer = at24c->i2c->actor,
-                                          .producer = task->actor,
-                                          .data = &at24c->target_buffer->data[task->counter],
+                                          .producer = job->actor,
+                                          .data = &at24c->target_buffer->data[job->counter],
                                           .size = bytes_on_page,
-                                          .argument = i2c_pack_event_argument(at24c->properties->i2c_address, address + task->counter),
+                                          .argument = i2c_pack_event_argument(at24c->properties->i2c_address, address + job->counter),
                                       }));
-        task->counter += bytes_on_page;
-        if (task->counter == size) {
+        job->counter += bytes_on_page;
+        if (job->counter == size) {
             return APP_JOB_TASK_WAIT;
         } else {
             return APP_JOB_TASK_LOOP;
@@ -77,31 +77,31 @@ static app_job_signal_t at24c_task_read(app_job_t *task, uint8_t address, uint8_
     return 0;
 }
 
-static app_signal_t at24c_task_write(app_job_t *task, uint8_t address, uint8_t *data, uint32_t size) {
-    storage_at24c_t *at24c = task->actor->object;
+static app_signal_t at24c_task_write(app_job_t *job, uint8_t address, uint8_t *data, uint32_t size) {
+    storage_at24c_t *at24c = job->actor->object;
     uint32_t bytes_on_page;
 
-    switch (task->task_index) {
+    switch (job->task_phase) {
     case 0:
-        task->counter = 0;
-        at24c->source_buffer = app_buffer_source_copy(task->actor, data, size);
+        job->counter = 0;
+        at24c->source_buffer = app_buffer_source_copy(job->actor, data, size);
         if (at24c->source_buffer == NULL) {
             return APP_JOB_FAILURE;
         } else {
             return APP_JOB_TASK_CONTINUE;
         }
     case 1:
-        bytes_on_page = get_number_of_bytes_intesecting_page(address + task->counter, size, at24c->properties->page_size);
-        app_publish(task->actor->app, &((app_event_t){
+        bytes_on_page = get_number_of_bytes_intesecting_page(address + job->counter, size, at24c->properties->page_size);
+        app_publish(job->actor->app, &((app_event_t){
                                           .type = APP_EVENT_WRITE,
                                           .consumer = at24c->i2c->actor,
-                                          .producer = task->actor,
-                                          .data = &at24c->source_buffer->data[task->counter],
+                                          .producer = job->actor,
+                                          .data = &at24c->source_buffer->data[job->counter],
                                           .size = bytes_on_page,
-                                          .argument = i2c_pack_event_argument(at24c->properties->i2c_address, address + task->counter),
+                                          .argument = i2c_pack_event_argument(at24c->properties->i2c_address, address + job->counter),
                                       }));
-        task->counter += bytes_on_page;
-        if (task->counter == size) {
+        job->counter += bytes_on_page;
+        if (job->counter == size) {
             return APP_JOB_TASK_WAIT;
         } else {
             return APP_JOB_TASK_LOOP;
@@ -111,78 +111,78 @@ static app_signal_t at24c_task_write(app_job_t *task, uint8_t address, uint8_t *
     }
     return 0;
 }
-static app_job_signal_t at24c_job_diagnose(app_job_t *task) {
-    storage_at24c_t *at24c = task->actor->object;
+static app_job_signal_t at24c_job_diagnose(app_job_t *job) {
+    storage_at24c_t *at24c = job->actor->object;
     app_buffer_t *first_buffer;
     bool_t ok;
 
-    switch (task->step_index) {
+    switch (job->job_phase) {
     case 0:
-        return at24c_task_read(task, 0x0010, NULL, 2);
+        return at24c_task_read(job,0x0010, NULL, 2);
     case 1:
-        return at24c_task_write(task, 0x0010,
+        return at24c_task_write(job,0x0010,
                                 &((uint8_t[]){
                                     at24c->target_buffer->data[0] + 1,
                                     at24c->target_buffer->data[1],
                                 })[0],
                                 2);
     case 2:
-        if (task->task_index == 0) {
-            task->result = at24c->target_buffer;
+        if (job->task_phase == 0) {
+            job->result = at24c->target_buffer;
             at24c->target_buffer = NULL;
         }
-        return at24c_task_read(task, 0x0010, NULL, 2);
+        return at24c_task_read(job,0x0010, NULL, 2);
 
     case 3:
-        first_buffer = (app_buffer_t *)task->result;
+        first_buffer = (app_buffer_t *)job->result;
         ok = (first_buffer->data[0] + 1 == at24c->target_buffer->data[0] && first_buffer->data[1] == at24c->target_buffer->data[1] &&
               first_buffer->size == at24c->target_buffer->size);
 
         if (ok) {
-            debug_printf("  - Diagnostics OK: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
+            debug_printf("  - Diagnostics OK: 0x%x %s\n", actor_index(job->actor), get_actor_type_name(job->actor->class->type));
             return APP_JOB_SUCCESS;
         } else {
-            debug_printf("  - Diagnostics ERROR: 0x%x %s\n", actor_index(task->actor), get_actor_type_name(task->actor->class->type));
+            debug_printf("  - Diagnostics ERROR: 0x%x %s\n", actor_index(job->actor), get_actor_type_name(job->actor->class->type));
             return APP_JOB_FAILURE;
         }
         break;
 
     case APP_JOB_SUCCESS:
     case APP_JOB_FAILURE:
-        app_buffer_release(at24c->target_buffer, task->actor);
-        app_buffer_release(at24c->source_buffer, task->actor);
-        app_buffer_release((app_buffer_t *)task->result, task->actor);
+        app_buffer_release(at24c->target_buffer, job->actor);
+        app_buffer_release(at24c->source_buffer, job->actor);
+        app_buffer_release((app_buffer_t *)job->result, job->actor);
     }
 
     return APP_JOB_SUCCESS;
 }
 
-static app_job_signal_t at24c_job_read(app_job_t *task) {
+static app_job_signal_t at24c_job_read(app_job_t *job) {
     return APP_JOB_SUCCESS;
 }
-static app_job_signal_t at24c_job_write(app_job_t *task) {
+static app_job_signal_t at24c_job_write(app_job_t *job) {
     return APP_JOB_SUCCESS;
 }
-static app_job_signal_t at24c_job_erase(app_job_t *task) {
+static app_job_signal_t at24c_job_erase(app_job_t *job) {
     return APP_JOB_SUCCESS;
 }
 
 static app_signal_t at24c_worker_input(storage_at24c_t *at24c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_DIAGNOSE:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
                                                   at24c_job_diagnose);
     case APP_EVENT_RESPONSE:
-        return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->task, at24c->task.thread, at24c->task.handler);
+        return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->job, at24c->job.thread, at24c->job.handler);
 
     case APP_EVENT_READ:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
                                                   at24c_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
                                                   at24c_job_write);
     case APP_EVENT_ERASE:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
                                                   at24c_job_erase);
     default:
         return 0;
@@ -190,22 +190,22 @@ static app_signal_t at24c_worker_input(storage_at24c_t *at24c, app_event_t *even
 }
 
 static app_signal_t at24c_worker_high_priority(storage_at24c_t *at24c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
-    return app_job_execute_if_running_in_thread(&at24c->task, thread);
+    return app_job_execute_if_running_in_thread(&at24c->job, thread);
 }
 static app_signal_t at24c_worker_low_priority(storage_at24c_t *at24c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
-    return app_job_execute_if_running_in_thread(&at24c->task, thread);
+    return app_job_execute_if_running_in_thread(&at24c->job, thread);
 }
 
 static app_signal_t at24c_on_report(storage_at24c_t *at24c, app_event_t *event) {
     switch (event->type) {
     case APP_EVENT_WRITE:
     case APP_EVENT_READ_TO_BUFFER:
-        // return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->task, at24c->actor->app->threads->low_priority,
-        //                                        at24c->task.handler);
+        // return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
+        //                                        at24c->job.handler);
 
-        // app_job_execute(&at24c->task);
+        // app_job_execute(&at24c->job);
 
-        app_thread_actor_schedule(at24c->task.thread, at24c->actor, at24c->task.thread->current_time);
+        app_thread_actor_schedule(at24c->job.thread, at24c->actor, at24c->job.thread->current_time);
         return 0;
     default:
         return 0;
@@ -225,7 +225,7 @@ actor_class_t storage_at24c_class = {
     .property_write = at24c_property_write,
     .on_signal = (actor_on_signal_t)at24c_on_signal,
     .on_report = (actor_on_report_t)at24c_on_report,
-    .tick_low_priority = (actor_on_worker_t)at24c_worker_low_priority,
-    .tick_high_priority = (actor_on_worker_t)at24c_worker_high_priority,
-    .tick_input = (actor_on_worker_t)at24c_worker_input,
+    .worker_low_priority = (actor_on_worker_t)at24c_worker_low_priority,
+    .worker_high_priority = (actor_on_worker_t)at24c_worker_high_priority,
+    .worker_input = (actor_on_worker_t)at24c_worker_input,
 };

@@ -31,11 +31,11 @@ static app_signal_t blank_on_phase(actor_blank_t *blank, actor_phase_t phase) {
     return 0;
 }
 
-static app_signal_t blank_on_input(actor_blank_t *blank, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t blank_on_signal(actor_blank_t *blank, actor_t *actor, app_signal_t signal, void *source) {
     return 0;
 }
 
-static app_signal_t blank_on_signal(actor_blank_t *blank, actor_t *actor, app_signal_t signal, void *source) {
+static app_signal_t blank_on_input(actor_blank_t *blank, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     return 0;
 }
 
@@ -50,6 +50,6 @@ actor_class_t actor_blank_class = {
     .stop = (app_method_t)blank_stop,
     .on_phase = (actor_on_phase_t)blank_on_phase,
     .on_signal = (actor_on_signal_t)blank_on_signal,
-//    .tick_input = (actor_on_worker_t) blank_on_input,
+    .worker_input = (actor_on_worker_t)blank_on_input,
     .property_write = blank_property_write,
 };

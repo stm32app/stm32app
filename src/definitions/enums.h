@@ -47,6 +47,8 @@ char* get_transport_i2c_properties_properties_name (uint32_t v);
 char* get__name (uint32_t v);
 // defined in ./src/transport/modbus.h
 char* get_transport_modbus_properties_properties_name (uint32_t v);
+// defined in ./src/transport/sdio.h
+char* get_transport_sdio_properties_properties_name (uint32_t v);
 // defined in ./src/transport/spi.h
 char* get_transport_spi_properties_properties_name (uint32_t v);
 // defined in ./src/transport/usart.h

@@ -344,6 +344,40 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .timeout = 0x0002,
         .phase = 0x00
     },
+    .x62A0_transportSDIO = {
+        .highestSub_indexSupported = 0x1F,
+        .DMA_Unit = 0x02,
+        .DMA_Stream = 0x06,
+        .DMA_Channel = 0x04,
+        .AF = 0x0C,
+        .D0_Port = 0x03,
+        .D0_Pin = 0x08,
+        .D1_Port = 0x03,
+        .D1_Pin = 0x09,
+        .D2_Port = 0x03,
+        .D2_Pin = 0x0A,
+        .D3_Port = 0x03,
+        .D3_Pin = 0x0B,
+        .CK_Port = 0x03,
+        .CK_Pin = 0x0C,
+        .CMD_Port = 0x04,
+        .CMD_Pin = 0x02,
+        .phase = 0x00,
+        .capacity = 0x00000000,
+        .blockSize = 0x00000000,
+        .blockCount = 0x00000000,
+        .maxBusClockFrequency = 0x00000000,
+        .CSD_Version = 0x00,
+        .relativeCardAddress = 0x0000,
+        .manufacturerID = 0x00,
+        .OEM_ID = 0x0000,
+        .productName = {'0', 0, 0, 0, 0, 0},
+        .productRevision = 0x00,
+        .serialNumber = 0x00000000,
+        .manufacturingDate = 0x0000,
+        .version = 0x00,
+        .highCapacity = false
+    },
     .x6300_moduleADC_1 = {
         .highestSub_indexSupported = 0x06,
         .interval = 0x15,
@@ -385,6 +419,15 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .phase = 0x00
     },
     .x7400_storageAT24C = {
+        .highestSub_indexSupported = 0x06,
+        .I2C_Index = 0x6260,
+        .I2C_Address = 0x50,
+        .startAddress = 0x0008,
+        .pageSize = 0x0008,
+        .size = 0x0800,
+        .phase = 0x00
+    },
+    .x7440_storageSDCard = {
         .highestSub_indexSupported = 0x06,
         .I2C_Index = 0x6260,
         .I2C_Address = 0x50,
@@ -530,12 +573,14 @@ typedef struct {
     OD_obj_record_t o_6240_transportUSART_1[11];
     OD_obj_record_t o_6260_transportI2C_1[22];
     OD_obj_record_t o_6280_transportModbus_1[7];
+    OD_obj_record_t o_62A0_transportSDIO[32];
     OD_obj_record_t o_6300_moduleADC_1[7];
     OD_obj_record_t o_7000_storageEeprom_1[6];
     OD_obj_record_t o_7100_storageW25[5];
     OD_obj_record_t o_7200_storageFlash[5];
     OD_obj_record_t o_7300_memorySRAM_1[7];
     OD_obj_record_t o_7400_storageAT24C[7];
+    OD_obj_record_t o_7440_storageSDCard[7];
     OD_obj_record_t o_8000_inputSensor_1[7];
     OD_obj_record_t o_8100_controlTouchscreen_1[14];
     OD_obj_record_t o_9000_screenEpaper_1[14];
@@ -2257,6 +2302,200 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 1
         }
     },
+    .o_62A0_transportSDIO = {
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.highestSub_indexSupported,
+            .subIndex = 0,
+            .attribute = ODA_SDO_R,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.DMA_Unit,
+            .subIndex = 1,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.DMA_Stream,
+            .subIndex = 2,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.DMA_Channel,
+            .subIndex = 3,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.AF,
+            .subIndex = 4,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D0_Port,
+            .subIndex = 5,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D0_Pin,
+            .subIndex = 6,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D1_Port,
+            .subIndex = 7,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D1_Pin,
+            .subIndex = 8,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D2_Port,
+            .subIndex = 9,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D2_Pin,
+            .subIndex = 10,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D3_Port,
+            .subIndex = 11,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.D3_Pin,
+            .subIndex = 12,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.CK_Port,
+            .subIndex = 13,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.CK_Pin,
+            .subIndex = 14,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.CMD_Port,
+            .subIndex = 15,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.CMD_Pin,
+            .subIndex = 16,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.phase,
+            .subIndex = 17,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.capacity,
+            .subIndex = 18,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.blockSize,
+            .subIndex = 19,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.blockCount,
+            .subIndex = 20,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.maxBusClockFrequency,
+            .subIndex = 21,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.CSD_Version,
+            .subIndex = 22,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.relativeCardAddress,
+            .subIndex = 23,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.manufacturerID,
+            .subIndex = 24,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.OEM_ID,
+            .subIndex = 25,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.productName[0],
+            .subIndex = 26,
+            .attribute = ODA_SDO_RW | ODA_STR,
+            .dataLength = 5
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.productRevision,
+            .subIndex = 27,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.serialNumber,
+            .subIndex = 28,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.manufacturingDate,
+            .subIndex = 29,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.version,
+            .subIndex = 30,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x62A0_transportSDIO.highCapacity,
+            .subIndex = 31,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        }
+    },
     .o_6300_moduleADC_1 = {
         {
             .dataOrig = &OD_PERSIST_COMM.x6300_moduleADC_1.highestSub_indexSupported,
@@ -2486,6 +2725,50 @@ static CO_PROGMEM ODObjs_t ODObjs = {
         },
         {
             .dataOrig = &OD_PERSIST_COMM.x7400_storageAT24C.phase,
+            .subIndex = 6,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        }
+    },
+    .o_7440_storageSDCard = {
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.highestSub_indexSupported,
+            .subIndex = 0,
+            .attribute = ODA_SDO_R,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.I2C_Index,
+            .subIndex = 1,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.I2C_Address,
+            .subIndex = 2,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.startAddress,
+            .subIndex = 3,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.pageSize,
+            .subIndex = 4,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.size,
+            .subIndex = 5,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.phase,
             .subIndex = 6,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
@@ -2856,12 +3139,14 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x6240, 0x0B, ODT_REC, &ODObjs.o_6240_transportUSART_1, NULL},
     {0x6260, 0x16, ODT_REC, &ODObjs.o_6260_transportI2C_1, NULL},
     {0x6280, 0x07, ODT_REC, &ODObjs.o_6280_transportModbus_1, NULL},
+    {0x62A0, 0x20, ODT_REC, &ODObjs.o_62A0_transportSDIO, NULL},
     {0x6300, 0x07, ODT_REC, &ODObjs.o_6300_moduleADC_1, NULL},
     {0x7000, 0x06, ODT_REC, &ODObjs.o_7000_storageEeprom_1, NULL},
     {0x7100, 0x05, ODT_REC, &ODObjs.o_7100_storageW25, NULL},
     {0x7200, 0x05, ODT_REC, &ODObjs.o_7200_storageFlash, NULL},
     {0x7300, 0x07, ODT_REC, &ODObjs.o_7300_memorySRAM_1, NULL},
     {0x7400, 0x07, ODT_REC, &ODObjs.o_7400_storageAT24C, NULL},
+    {0x7440, 0x07, ODT_REC, &ODObjs.o_7440_storageSDCard, NULL},
     {0x8000, 0x07, ODT_REC, &ODObjs.o_8000_inputSensor_1, NULL},
     {0x8100, 0x0E, ODT_REC, &ODObjs.o_8100_controlTouchscreen_1, NULL},
     {0x9000, 0x0E, ODT_REC, &ODObjs.o_9000_screenEpaper_1, NULL},

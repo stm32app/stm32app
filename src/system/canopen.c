@@ -239,8 +239,8 @@ actor_class_t system_canopen_class = {
     .start = (app_method_t)canopen_start,
     .stop = (app_method_t)canopen_stop,
 
-    .tick_input = (actor_on_worker_t)canopen_worker_input,
-    .tick_high_priority = (actor_on_worker_t)canopen_worker_high_priority,
+    .worker_input = (actor_on_worker_t)canopen_worker_input,
+    .worker_high_priority = (actor_on_worker_t)canopen_worker_high_priority,
 
     .on_phase = (actor_on_phase_t)canopen_phase,
     .property_write = canopen_property_write,

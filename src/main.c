@@ -13,29 +13,30 @@ static void app_boot(void *pvParameters) {
     debug_printf("App - Enumerating actors ...\n");
     app_allocate(app, OD, app_mothership_enumerate_actors);
 #endif
-    debug_printf("App - Constructing...\n");
+    log_printf("App - Constructing...\n");
     app_set_phase(*app, ACTOR_CONSTRUCTING);
 
-    debug_printf("App - Linking...\n");
+    log_printf("App - Linking...\n");
     app_set_phase(*app, ACTOR_LINKING);
 
-    debug_printf("App - Starting...\n");
+    log_printf("App - Starting...\n");
     app_set_phase(*app, ACTOR_STARTING);
     
     vTaskDelete(NULL);
-    
 }
 
 
 
 int main(void) {
+    debug_log_inhibited = true;
+    
 #ifdef SEMIHOSTING
     initialise_monitor_handles();
     dwt_enable_cycle_counter();
 #endif
     app_t *app;
     scb_set_priority_grouping(SCB_AIRCR_PRIGROUP_GROUP16_NOSUB);
-    xTaskCreate( app_boot, "Startup", 5000, &app, tskIDLE_PRIORITY + 10, NULL);
+    xTaskCreate( app_boot, "Startup", 5000, &app, tskIDLE_PRIORITY + 7, NULL);
 
     debug_printf("App - Starting tasks...\n");
     
