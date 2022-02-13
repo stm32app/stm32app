@@ -1,24 +1,15 @@
 #include "sdio.h"
 #include <libopencm3/stm32/sdio.h>
 
+// heavily inspired by code at
+// https://github.com/LonelyWolf/stm32/blob/master/stm32l4-sdio/src/sdcard.c
+
 #ifdef __GNUC__
 #define bitswap32 __builtin_bswap32
 #define bitswap16 __builtin_bswap16
 #else
 #define bitswap32 __REV
 #endif
-
-#define SDIO_STATUS_ERROR_MASK                                                                                                             \
-    (SDIO_MASK_CCRCFAILIE | SDIO_MASK_DCRCFAILIE | SDIO_MASK_CTIMEOUTIE | SDIO_MASK_DTIMEOUTIE | SDIO_MASK_TXUNDERRIE |                    \
-     SDIO_MASK_RXOVERRIE | SDIO_MASK_STBITERRIE)
-#define SDIO_ICR_STATIC                                                                                                                    \
-    SDIO_ICR_CCRCFAILC | SDIO_ICR_DCRCFAILC | SDIO_ICR_CTIMEOUTC | SDIO_ICR_DTIMEOUTC | SDIO_ICR_TXUNDERRC | SDIO_ICR_RXOVERRC |           \
-        SDIO_ICR_CMDRENDC | SDIO_ICR_CMDSENTC | SDIO_ICR_DATAENDC | SDIO_ICR_DBCKENDC
-
-#define SDIO_STATUS_SUCCESS_MASK (SDIO_MASK_CMDRENDIE | SDIO_MASK_CMDSENTIE | SDIO_MASK_DBCKENDIE | SDIO_STATUS_ERROR_MASK)
-#define SDIO_HIGH_CAPACITY ((uint32_t)0x40000000U)
-#define SDIO_STANDARD_CAPACITY ((uint32_t)0x00000000U)
-#define SDIO_3_0_to_3_3_V ((uint32_t)0x80100000U)
 
 static ODR_t sdio_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     transport_sdio_t *sdio = stream->object;
@@ -110,38 +101,37 @@ static app_signal_t sdio_on_signal(transport_sdio_t *sdio, actor_t *actor, app_s
 }
 
 static app_job_signal_t sdio_send_command(uint32_t cmd, uint32_t arg, uint32_t wait) {
-    SDIO_ICR = SDIO_STA_CCRCFAIL | SDIO_ICR_CTIMEOUTC | SDIO_ICR_CMDRENDC | SDIO_ICR_CMDSENTC;
+    SDIO_ICR = SDIO_ICR_CMD;
     SDIO_ARG = arg;
     SDIO_CMD = cmd | SDIO_CMD_CPSMEN | wait;
     return APP_JOB_TASK_CONTINUE;
 }
 
-
 static app_signal_t sdio_get_status(uint8_t cmd) {
     uint32_t value = SDIO_STA;
-    if ((value & SDIO_STA_CMDACT) || (cmd == 0 && !(value & SDIO_STA_CMDSENT))) {
-        return APP_SIGNAL_BUSY;
-    }
-    // SDIO_ICR = 0xffffffff;
-    // SDIO_ICR = result;
-    // if (!value) {
-    //    return APP_SIGNAL_NO_RESPONSE; // no response
-    //} else
 
-    // uint32_t value = (SDIO_STA & 0x7ff);
     if (value & SDIO_STA_CCRCFAIL) {
         SDIO_ICR = SDIO_ICR_CCRCFAILC;
         if (cmd == 41) { // 41 is always corrupted, that's expected
             return APP_SIGNAL_OK;
         }
-        return APP_SIGNAL_CORRUPTED; 
+        return APP_SIGNAL_CORRUPTED;
     } else if (value & SDIO_STA_CTIMEOUT) {
         SDIO_ICR = SDIO_ICR_CTIMEOUTC;
         return APP_SIGNAL_TIMEOUT;
-    } else if (!(value & SDIO_STA_CMDREND)) {
-        return APP_SIGNAL_BUSY;
-    } else if (cmd != 0 && SDIO_RESPCMD != cmd) {
-        return APP_SIGNAL_FAILURE;
+    }
+
+    if (cmd == 0) {
+        if (!(value & SDIO_STA_CMDSENT)) {
+            return APP_SIGNAL_BUSY;
+        }
+    } else {
+        if ((value & SDIO_STA_CMDACT) || !(value & SDIO_STA_CMDREND)) {
+            return APP_SIGNAL_BUSY;
+            // lo
+        } else if (cmd != 0 && cmd != 2 && cmd != 9 && SDIO_RESPCMD != cmd) {
+            return APP_SIGNAL_FAILURE;
+        }
     }
 
     SDIO_ICR = SDIO_ICR_STATIC;
@@ -153,7 +143,7 @@ static app_job_signal_t sdio_get_signal(uint8_t cmd) {
     app_signal_t signal = sdio_get_status(cmd);
     switch (signal) {
     case APP_SIGNAL_BUSY:
-        return APP_JOB_TASK_WAIT;
+        return APP_JOB_TASK_LOOP;
     case APP_SIGNAL_OK:
         return 0;
     default:
@@ -169,6 +159,15 @@ static app_job_signal_t sdio_wait(uint8_t cmd) {
     }
 }
 
+static app_job_signal_t sdio_send_command_and_wait(uint32_t cmd, uint32_t arg, uint32_t wait) {
+    if (SDIO_STA == 0) {
+        return sdio_send_command(cmd, arg, wait);
+    } else {
+        return sdio_wait(cmd);
+    }
+}
+
+
 static app_job_signal_t sdio_send_command_blocking(uint32_t cmd, uint32_t arg, uint32_t wait) {
     sdio_send_command(cmd, arg, wait);
     for (size_t retries = 65000; retries-- > 0;) {
@@ -182,10 +181,10 @@ static app_job_signal_t sdio_send_command_blocking(uint32_t cmd, uint32_t arg, u
 }
 
 static void sdio_read_r2(uint32_t *destination) {
-    destination[0] = bitswap32(SDIO_RESP1);
-    destination[1] = bitswap32(SDIO_RESP2);
-    destination[2] = bitswap32(SDIO_RESP3);
-    destination[3] = bitswap32(SDIO_RESP4);
+    *destination++ = bitswap32(SDIO_RESP1);
+    *destination++ = bitswap32(SDIO_RESP2);
+    *destination++ = bitswap32(SDIO_RESP3);
+    *destination++ = bitswap32(SDIO_RESP4);
 }
 
 static void sdio_parse_cid(transport_sdio_t *sdio) {
@@ -221,15 +220,15 @@ static void sdio_set_bus_clock(uint8_t divider) {
 }
 
 static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
-    transport_sdio_t *sdio = job->actor->object;\
+    transport_sdio_t *sdio = job->actor->object; // Power up the card
     switch (job->task_phase) {
-        // Power up the card
     case 0:
         nvic_enable_irq(sdio->irq);
         sdio_enable();
         return sdio_send_command(0, 0, SDIO_CMD_WAITRESP_NO_0); // GO_IDLE_STATE
     case 1:
         return sdio_wait(0);
+
     // Detect if card is V2 or V1
     case 2:
         return sdio_send_command(8, 0x1F1, SDIO_CMD_WAITRESP_SHORT); // SEND_IF_COND
@@ -251,11 +250,13 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         default:
             return APP_JOB_TASK_FAILURE;
         }
+
     // V1 cards only: Send 55 reset Illegal Command bit
     case 4:
         return sdio_send_command(55, 0, SDIO_CMD_WAITRESP_SHORT); // CMD_APP_CMD
     case 5:
         return sdio_wait(55);
+
     // Initialize card and wait for ready status (55 + 41)
     case 6:
         return sdio_send_command(55, 0, SDIO_CMD_WAITRESP_SHORT); // CMD_APP_CMD
@@ -269,14 +270,15 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         return sdio_wait(41);
     case 10:
         if (!(SDIO_RESP1 & (1 << 31))) {
-            job->task_phase = 6;
-            return APP_JOB_TASK_LOOP; // TODO: retries
+            job->task_phase = 6 - 1;
+            return APP_JOB_TASK_CONTINUE; // TODO: retries
         } else {
             if (SDIO_RESP1 & SDIO_HIGH_CAPACITY) {
                 transport_sdio_set_high_capacity(sdio, 1);
             }
             return APP_JOB_TASK_CONTINUE;
         }
+
     // Now the CMD2 and CMD3 commands should be issued in cycle until timeout to enumerate all cards on the bus
     // Since this module suitable to work with single card, issue this commands one time only
     case 11:
@@ -290,6 +292,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
             printf("Bad card\n");
         }
         return APP_JOB_TASK_CONTINUE;
+
     // Get relative card address
     // MMC not supported:  host should set a RCA value to the card by SET_REL_ADD
     case 14:
@@ -303,6 +306,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         }
         transport_sdio_set_relative_card_address(sdio, SDIO_RESP1 >> 16);
         return APP_JOB_TASK_CONTINUE;
+
     // Retrieve CSD register:
     case 17:
         return sdio_send_command(9, (sdio->properties->relative_card_address << 16), SDIO_CMD_WAITRESP_LONG); // SEND_CSD
@@ -312,13 +316,30 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         sdio_parse_csd(sdio);
         printf("│ │ ├ Card capacity %luMB\n", sdio->properties->capacity >> 10);
         return APP_JOB_TASK_CONTINUE;
+
     // Increase bus speed to 48mhz, set card into transfer mode
     case 20:
-        sdio_set_bus_clock(0);
-        return sdio_send_command(9, sdio->properties->relative_card_address << 16, SDIO_CMD_WAITRESP_SHORT); // SEL_DESEL_CARD
+        sdio_set_bus_clock(SDIO_CLKCR_CLKDIV_TRANSFER);
+        return sdio_send_command(7, sdio->properties->relative_card_address << 16, SDIO_CMD_WAITRESP_SHORT); // SEL_DESEL_CARD
     case 21:
-        return sdio_wait(9);
+        return sdio_wait(7);
+
+    // Disable the pull-up resistor on CD/DAT3 pin of card
     case 22:
+        return sdio_send_command(55, sdio->properties->relative_card_address << 16, SDIO_CMD_WAITRESP_SHORT); // ACMD
+    case 23:
+        return sdio_wait(55);
+    case 24:
+        return sdio_send_command(42, 0, SDIO_CMD_WAITRESP_SHORT); // SET_CLR_CARD_DETECT
+    case 25:
+        return sdio_wait(42);
+
+    // Set block size to 512
+    case 26:
+        return sdio_send_command(16, 512, SDIO_CMD_WAITRESP_SHORT); // SET_BLOCKLEN
+    case 27:
+        return sdio_wait(16);
+    case 28:
         return APP_JOB_TASK_SUCCESS;
     case APP_JOB_TASK_FAILURE:
         printf("Fail!\n");
