@@ -35,7 +35,7 @@ static void i2c_dma_tx_start(transport_i2c_t *i2c, uint8_t *data, uint32_t size)
     debug_printf("TX started\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
 
     actor_dma_tx_start((uint32_t) & (I2C_DR(i2c->address)), i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream,
-                       i2c->properties->dma_tx_channel, i2c->source_buffer->data, i2c->source_buffer->size, false);
+                       i2c->properties->dma_tx_channel, i2c->source_buffer->data, i2c->source_buffer->size, false, 1, 0, 1);
 
     i2c_enable_dma(i2c->address);
 }
@@ -60,7 +60,7 @@ static void i2c_dma_rx_start(transport_i2c_t *i2c, uint8_t *destination, uint32_
 
     app_buffer_t *input = app_double_buffer_get_input(i2c->ring_buffer, i2c->output_buffer);
     actor_dma_rx_start((uint32_t) & (I2C_DR(i2c->address)), i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream,
-                       i2c->properties->dma_rx_channel, input->data, input->allocated_size, input == i2c->ring_buffer);
+                       i2c->properties->dma_rx_channel, input->data, input->allocated_size, input == i2c->ring_buffer, 1, 0, 1);
 }
 
 static void i2c_dma_rx_stop(transport_i2c_t *i2c) {

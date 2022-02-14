@@ -1,7 +1,6 @@
 #ifndef INC_LIB_DMA
 #define INC_LIB_DMA
 
-
 /* Generalize dma api for STMF1 that dont support DMA streams with STMF2+ that do.
 The former need to configure stream to be the same as channel*/
 
@@ -28,7 +27,6 @@ The former need to configure stream to be the same as channel*/
 #define dma_set_read_from_memory(unit, stream) dma_set_transfer_mode(unit, stream, DMA_SxCR_DIR_MEM_TO_PERIPHERAL)
 #endif
 uint8_t dma_get_interrupt_for_stream(uint32_t dma, uint8_t index);
-
 
 /* Define generic constants for psize/msize*/
 #ifdef DMA_CCR_PSIZE_8BIT
@@ -63,19 +61,20 @@ uint8_t dma_get_interrupt_for_stream(uint32_t dma, uint8_t index);
 
 #endif
 
-
 uint32_t dma_get_address(uint8_t index);
 uint32_t dma_get_clock_address(uint8_t index);
 uint32_t nvic_dma_get_channel_base(uint8_t index);
 
-
-
-void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,  bool_t circular_mode);
-void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *buffer, size_t buffer_size, bool_t circular_mode);
+void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,
+                        bool_t circular_mode, uint8_t bytes, uint8_t fifo_threshold, bool_t prefer_burst);
+void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *buffer, size_t buffer_size,
+                        bool_t circular_mode, uint8_t bytes, uint8_t fifo_threshold, bool_t prefer_burst);
 
 void actor_dma_tx_stop(uint8_t unit, uint8_t stream, uint8_t channel);
 void actor_dma_rx_stop(uint8_t unit, uint8_t stream, uint8_t channel);
 
+// Figure out which burst size can be used safely for given settings
+uint32_t actor_dma_get_safe_burst_size(uint8_t *data, size_t size, uint8_t width, uint8_t fifo_threshold);
 
 /* Make actor be notified through interrupts */
 void actor_register_dma(uint8_t unit, uint8_t index, actor_t *actor);
@@ -84,15 +83,12 @@ void actor_unregister_dma(uint8_t unit, uint8_t index);
 /* Notify registered actor */
 void actors_dma_notify(uint8_t unit, uint8_t index);
 
-
 uint32_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint32_t buffer_size);
-
 
 /* Combine DMA unit and index into a pointer */
 void *actor_dma_pack_source(uint8_t unit, uint8_t index);
 
 /* Check if pointer contains packed unit/index info */
 bool_t actor_dma_match_source(void *source, uint8_t unit, uint8_t index);
-
 
 #endif

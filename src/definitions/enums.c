@@ -65,6 +65,7 @@ char* get_app_buffer_flag_name (uint32_t v) {
 switch (v) {
 case 1: return "APP_BUFFER_UNMANAGED";
 case 2: return "APP_BUFFER_PROGRESS";
+case 3: return "APP_BUFFER_ALIGNED";
 default: return "Unknown";
 }
 };

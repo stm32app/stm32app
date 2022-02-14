@@ -1,5 +1,6 @@
 #include "dma.h"
 #include "core/buffer.h"
+#include "lib/bytes.h"
 
 uint32_t dma_get_address(uint8_t index) {
     switch (index) {
@@ -118,10 +119,10 @@ void actor_unregister_dma(uint8_t unit, uint8_t index) {
 };
 
 void actors_dma_notify(uint8_t unit, uint8_t index) {
-    debug_printf("> DMA%i interrupt\n", unit);
+    debug_printf("> DMA%i interrupt:\t\t%u left\n", unit, dma_get_number_of_data(dma_get_address(unit), index));
     volatile actor_t *actor = actors_dma[DMA_INDEX(unit, index)];
 
-    if (dma_get_interrupt_flag(dma_get_address(unit), index, DMA_TEIF | DMA_DMEIF /* | DMA_FEIF*/)) {
+    if (dma_get_interrupt_flag(dma_get_address(unit), index, DMA_TEIF | DMA_DMEIF | DMA_FEIF)) {
 
         error_printf("DMA%i error in channel %i %s%s%s \n", unit, index,
                      dma_get_interrupt_flag(dma_get_address(unit), index, DMA_TEIF) ? " TEIF" : "",
@@ -129,7 +130,7 @@ void actors_dma_notify(uint8_t unit, uint8_t index) {
                      dma_get_interrupt_flag(dma_get_address(unit), index, DMA_FEIF) ? " FEIF" : "");
 
         if (actor->class->on_signal(actor->object, NULL, APP_SIGNAL_DMA_ERROR, actor_dma_pack_source(unit, index))) {
-            dma_clear_interrupt_flags(dma_get_address(unit), index, DMA_TEIF | DMA_DMEIF /* | DMA_FEIF*/);
+            dma_clear_interrupt_flags(dma_get_address(unit), index, DMA_TEIF | DMA_DMEIF  | DMA_FEIF);
         }
     } else if (dma_get_interrupt_flag(dma_get_address(unit), index, DMA_HTIF | DMA_TCIF)) {
         if (actor->class->on_signal(actor->object, NULL, APP_SIGNAL_DMA_TRANSFERRING, actor_dma_pack_source(unit, index)) == 0) {
@@ -150,9 +151,73 @@ bool_t actor_dma_match_source(void *source, uint8_t unit, uint8_t index) {
 uint32_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint32_t buffer_size) {
     return buffer_size - dma_get_number_of_data(dma_get_address(unit), index);
 }
+// memory location of a buffer has to be aligned to burst_size * byte_width to ensure single AHB copy does cross 1kb boundary
+// buffers allocated with `app_buffer_target_aligned` are guaranteed to be aligned, while others may be aligned by accident
+uint32_t actor_dma_get_safe_burst_size(uint8_t *data, size_t size, uint8_t width, uint8_t fifo_threshold) {
+    uint32_t address = (uint32_t)data;
+    uint32_t start_page_address = address / 1024;
+    uint32_t end_page_address = (address + size * width) / 1024;
+    // if data range doesn cross 1024 boundary, byte alignment isnt a concern
+    // otherwise see the best alignment of data buffer
+    uint8_t alignment = start_page_address == end_page_address ? 16 : get_maximum_byte_alignment((uint32_t)&data, 16);
+    // See AN4031, p 13, Table 4: Possible burst configurations
+    switch (fifo_threshold) {
+    case 4:
+        if (width == 1) {
+            return 4; // 1 burst of 4 bytes
+        }
+        break;
+    case 3:
+        if (width == 1) {
+            return 4; // 3 bursts of 4 bytes
+        }
+        break;
+    case 2:
+        switch (width) {
+        case 1:
+            if (alignment % 8 == 0) {
+                return 8; // 1 burst of 8 bytes
+            } else if (alignment % 4 == 0) {
+                return 4; // 2 bursts of 4 bytes
+            }
+            break;
+        case 2:
+            if (alignment % 8 == 0) {
+                return 4; // 1 burst of 4 half-words
+            }
+            break;
+        }
+        break;
+    default:
+        switch (width) {
+        case 1:
+            if (alignment % 16 == 0) {
+                return 16; // 1 burst of 16 bytes
+            } else if (alignment % 8 == 0) {
+                return 8; // 2 bursts of 8 bytes
+            } else if (alignment % 4 == 0) {
+                return 4; // 4 bursts of 4 bytes
+            }
+            break;
+        case 2:
+            if (alignment % 16 == 0) {
+                return 8; // 1 burst of 8 half-words
+            } else if (alignment % 8 == 0) {
+                return 4; // 2 bursts of 4 half-words
+            }
+            break;
+        case 4:
+            if (alignment % 16 == 0) {
+                return 4; // 1 burst of 16 words;
+            }
+            break;
+        }
+    }
+    return 1; // no bursts
+}
 
-void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *buffer, size_t buffer_size,
-                        bool_t circular_mode) {
+void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,
+                        bool_t circular_mode, uint8_t width, uint8_t fifo_threshold, bool_t prefer_burst) {
     uint32_t dma_address = dma_get_address(unit);
 
     rcc_periph_clock_enable(dma_get_clock_address(unit));
@@ -162,34 +227,70 @@ void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
     dma_disable_stream(dma_address, stream);
     dma_channel_select(dma_address, stream, channel << DMA_SxCR_CHSEL_SHIFT);
 
+   // dma_set_peripheral_flow_control(dma_address, stream);
+     dma_set_dma_flow_control(dma_address, stream);
+
     dma_disable_peripheral_increment_mode(dma_address, stream);
     dma_enable_memory_increment_mode(dma_address, stream);
 
     dma_set_peripheral_address(dma_address, stream, periphery_address);
-    dma_set_memory_address(dma_address, stream, (uint32_t)buffer);
-    dma_set_number_of_data(dma_address, stream, buffer_size);
 
     dma_set_read_from_peripheral(dma_address, stream);
     if (circular_mode) {
         dma_enable_circular_mode(dma_address, stream);
         dma_enable_half_transfer_interrupt(dma_address, stream);
-    } else {
-        //dma_enable_circular_mode(dma_address, stream);
-        dma_disable_half_transfer_interrupt(dma_address, stream);
-        //dma_enable_half_transfer_interrupt(dma_address, stream);
     }
+    switch (width) {
+    case 4:
+        dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_32BIT);
+        dma_set_memory_size(dma_address, stream, DMA_MSIZE_32BIT);
+        break;
+    case 2:
+        dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_16BIT);
+        dma_set_memory_size(dma_address, stream, DMA_MSIZE_16BIT);
+        break;
+    default:
+        dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_8BIT);
+        dma_set_memory_size(dma_address, stream, DMA_MSIZE_8BIT);
+    }
+#ifndef STMF1
+    if (fifo_threshold) {
+        dma_set_fifo_threshold(dma_address, stream, (fifo_threshold - 1) << 0);
+        dma_enable_fifo_error_interrupt(dma_address, stream);
+        dma_enable_fifo_mode(dma_address, stream);
+    } else {
+        dma_enable_direct_mode(dma_address, stream);
+        dma_enable_direct_mode_error_interrupt(dma_address, stream);
+    }
+    if (prefer_burst && fifo_threshold) {
+        switch (actor_dma_get_safe_burst_size(data, size, width, fifo_threshold)) {
+        case 16:
+            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR16);
+            dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR16);
+            break;
+        case 8:
+            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR8);
+            dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR8);
+            break;
+        case 4:
+            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR4);
+            dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR4);
+            break;
+        }
+    }
+#endif
 
-    dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_8BIT);
-    dma_set_memory_size(dma_address, stream, DMA_MSIZE_8BIT);
     dma_set_priority(dma_address, stream, DMA_PL_VERY_HIGH);
 
-    dma_enable_direct_mode(dma_address, stream);
-    dma_disable_fifo_error_interrupt(dma_address, stream);
-    dma_enable_direct_mode_error_interrupt(dma_address, stream);
+    dma_set_memory_address(dma_address, stream, (uint32_t)data);
+    dma_set_number_of_data(dma_address, stream, size);
 
+
+    //dma_enable_half_transfer_interrupt(dma_address, stream);
     dma_enable_transfer_complete_interrupt(dma_address, stream);
+    dma_enable_transfer_error_interrupt(dma_address, stream);
 
-    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 8 << 4);
+    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 5 << 4);
     nvic_enable_irq(nvic_dma_get_channel_base(unit) + stream);
 
     dma_enable_stream(dma_address, stream);
@@ -202,7 +303,7 @@ void actor_dma_rx_stop(uint8_t unit, uint8_t stream, uint8_t channel) {
 }
 
 void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,
-                        bool_t circular_mode) {
+                        bool_t circular_mode, uint8_t width, uint8_t fifo_threshold, bool_t prefer_burst) {
     uint32_t dma_address = dma_get_address(unit);
 
     rcc_periph_clock_enable(dma_get_clock_address(unit));
@@ -222,13 +323,46 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
         dma_enable_circular_mode(dma_address, stream);
     }
 
-    dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_8BIT);
-    dma_set_memory_size(dma_address, stream, DMA_MSIZE_8BIT);
+    switch (width) {
+    case 4:
+        dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_32BIT);
+        dma_set_memory_size(dma_address, stream, DMA_MSIZE_32BIT);
+        break;
+    case 2:
+        dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_16BIT);
+        dma_set_memory_size(dma_address, stream, DMA_MSIZE_16BIT);
+        break;
+    default:
+        dma_set_peripheral_size(dma_address, stream, DMA_PSIZE_8BIT);
+        dma_set_memory_size(dma_address, stream, DMA_MSIZE_8BIT);
+    }
+#ifndef STMF1
+    if (fifo_threshold) {
+        dma_set_fifo_threshold(dma_address, stream, (fifo_threshold - 1) << 0);
+        dma_enable_fifo_error_interrupt(dma_address, stream);
+        dma_enable_fifo_mode(dma_address, stream);
+    } else {
+        dma_enable_direct_mode(dma_address, stream);
+        dma_enable_direct_mode_error_interrupt(dma_address, stream);
+    }
+    if (prefer_burst) {
+        switch (actor_dma_get_safe_burst_size(data, size, width, fifo_threshold)) {
+        case 16:
+            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR16);
+            dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR16);
+            break;
+        case 8:
+            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR8);
+            dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR8);
+            break;
+        case 4:
+            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR4);
+            dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR4);
+            break;
+        }
+    }
+#endif
     dma_set_priority(dma_address, stream, DMA_PL_HIGH);
-
-    dma_enable_direct_mode(dma_address, stream);
-    dma_disable_fifo_error_interrupt(dma_address, stream);
-    dma_enable_direct_mode_error_interrupt(dma_address, stream);
 
     dma_enable_transfer_complete_interrupt(dma_address, stream);
     dma_enable_transfer_error_interrupt(dma_address, stream);

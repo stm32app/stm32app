@@ -1,6 +1,6 @@
 #include "w25.h"
 #include "transport/spi.h"
-
+#include "lib/dma.h"
 
 static app_job_signal_t w25_spi_transfer(app_job_t *job, uint8_t *write_data, size_t write_size, size_t read_size) {
     app_publish(job->actor->app, &((app_event_t){

@@ -170,7 +170,7 @@ static app_signal_t spi_dma_write(transport_spi_t *spi, uint8_t *data) {
                spi->properties->dma_tx_channel, spi->tx_bytes_target, tx_bytes_required);
 
     actor_dma_tx_start((uint32_t) & (SPI_DR(spi->address)), spi->properties->dma_tx_unit, spi->properties->dma_tx_stream,
-                       spi->properties->dma_tx_channel, data == NULL ? &dummy_byte : data, tx_bytes_required, true);
+                       spi->properties->dma_tx_channel, data == NULL ? &dummy_byte : data, tx_bytes_required, true, 1, 0, 1);
     spi_enable_tx_dma(spi->address);
     return 0;
 }
@@ -191,7 +191,7 @@ static app_signal_t spi_dma_read(transport_spi_t *spi) {
                spi->properties->dma_rx_channel, spi->rx_bytes_target, rx_bytes_required);
     actor_dma_rx_start((uint32_t) & (SPI_DR(spi->address)), spi->properties->dma_rx_unit, spi->properties->dma_rx_stream,
                        spi->properties->dma_rx_channel, spi->dma_rx_circular_buffer, buffer_size,
-                       rx_bytes_required == 0 || rx_bytes_required > buffer_size);
+                       rx_bytes_required == 0 || rx_bytes_required > buffer_size, 1, 0, 1);
     spi_enable_rx_dma(spi->address);
     // schedule timeout to detect end of rx transmission
     spi_schedule_rx_timeout(spi);

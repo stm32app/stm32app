@@ -24,13 +24,13 @@ app_buffer_t *app_buffer_target(actor_t *owner, uint8_t *data, uint32_t size) {
         buffer = app_buffer_take_from_pool(owner);
         if (buffer != NULL) {
             buffer->owner = owner;
-            if (data != NULL && size > 0) {
-                // use given chunk of memory directly in a buffer
-                // buffer will marked as unmanaged, so the memory will not be freed automatically
-                buffer->flags |= APP_BUFFER_UNMANAGED;
-                app_buffer_set_data(buffer, data, size);
-            } else {
-                if (size > 0) {
+            if (size > 0) {
+                if (data != NULL) {
+                    // use given chunk of memory directly in a buffer
+                    // buffer will marked as unmanaged, so the memory will not be freed automatically
+                    buffer->flags |= APP_BUFFER_UNMANAGED;
+                    app_buffer_set_data(buffer, data, size);
+                } else {
                     // allocate known amount of memory
                     if (app_buffer_set_size(buffer, size)) {
                         app_buffer_release(buffer, owner);
@@ -38,6 +38,17 @@ app_buffer_t *app_buffer_target(actor_t *owner, uint8_t *data, uint32_t size) {
                 }
             }
         }
+    }
+    return buffer;
+}
+
+// creates buffer that has its data aligned to specific number of bytes
+// extra care needs to be taken when growing this buffer, the owner has to realign it
+app_buffer_t *app_buffer_target_aligned(actor_t *owner, uint32_t size, uint8_t alignment) {
+    // over-allocate, then trim
+    app_buffer_t *buffer = app_buffer_target(owner, NULL, size + alignment - 1); //overallocate 
+    if (buffer != NULL && alignment > 0) {
+        app_buffer_align(buffer, alignment);
     }
     return buffer;
 }
@@ -174,6 +185,8 @@ app_signal_t app_buffer_append(app_buffer_t *buffer, uint8_t *data, uint32_t siz
 
 app_signal_t app_buffer_trim_left(app_buffer_t *buffer, uint8_t offset) {
     buffer->data += offset;
+    if (buffer->size)
+        buffer->size -= offset;
     buffer->offset_from_allocation += offset;
     return 0;
 }
@@ -235,14 +248,14 @@ app_signal_t app_double_buffer_ingest_external_write(app_buffer_t *back, app_buf
     }
 }
 
-// iterate pool of buffers to find 
+// iterate pool of buffers to find
 app_buffer_t *app_buffer_take_from_pool(actor_t *actor) {
     app_buffer_t *pool = actor->app->buffers;
 
-    // try to find one of the buffers that arent used 
+    // try to find one of the buffers that arent used
     for (app_buffer_t *page = pool; page; page = app_buffer_get_next_page(page, pool)) {
         for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(app_buffer_t)) {
-            app_buffer_t *buffer = (app_buffer_t *) &page->data[offset];
+            app_buffer_t *buffer = (app_buffer_t *)&page->data[offset];
             if (buffer->owner == NULL && buffer->data == NULL && buffer->allocated_size == 0) {
                 return buffer;
             }
@@ -252,11 +265,12 @@ app_buffer_t *app_buffer_take_from_pool(actor_t *actor) {
     // otherwise add another page of buffers
     app_buffer_append(pool, NULL, sizeof(app_buffer_t));
 
-    return (app_buffer_t *) app_buffer_get_last_page(pool)->data;
+    return (app_buffer_t *)app_buffer_get_last_page(pool)->data;
 }
 
 void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor) {
-    debug_printf("│ │ ├ Release\t\t%s buffer of size %lu/%lu\n", get_actor_type_name(actor->class->type), buffer->size, buffer->allocated_size);
+    debug_printf("│ │ ├ Release\t\t%s buffer of size %lu/%lu\n", get_actor_type_name(actor->class->type), buffer->size,
+                 buffer->allocated_size);
     for (app_buffer_t *page = buffer; page; page = app_buffer_get_next_page(page, buffer)) {
         // data is only freed when managed buffer is freed
         if (!(buffer->flags & APP_BUFFER_UNMANAGED)) {
@@ -267,13 +281,24 @@ void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor) {
     }
 }
 
-// allocate list of reusable buffers
-app_buffer_t *app_buffer_malloc(actor_t *actor) {
-    app_buffer_t *buffer = malloc(sizeof(app_buffer_t));
-    *buffer = ((app_buffer_t) { .next = buffer, .owner = actor });
+
+app_buffer_t *app_buffer_align(app_buffer_t *buffer, uint8_t alignment) {
+    uint8_t offset = alignment - ((uint32_t) buffer->data) % alignment;
+    if (offset > 0) {
+        app_buffer_trim_left(buffer, offset); // shift pointer to aligned spot
+        buffer->allocated_size -= offset; // hide over-allocated space
+    }
+    buffer->flags &= APP_BUFFER_ALIGNED;
     return buffer;
 }
 
+
+// allocate list of reusable buffers
+app_buffer_t *app_buffer_malloc(actor_t *actor) {
+    app_buffer_t *buffer = malloc(sizeof(app_buffer_t));
+    *buffer = ((app_buffer_t){.next = buffer, .owner = actor});
+    return buffer;
+}
 
 void app_buffer_set_next_page(app_buffer_t *buffer, app_buffer_t *next) {
     next->next = buffer->next;

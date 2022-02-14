@@ -20,7 +20,16 @@ uint32_t swap_bytes_dcba(uint32_t ABCD) {
     return ((ABCD>>24)&0xff) | ((ABCD<<8)&0xff0000) | ((ABCD>>8)&0xff00) | ((ABCD<<24)&0xff000000);
 }
 
-
+uint8_t get_maximum_byte_alignment(uint32_t address, uint8_t limit) {
+    while (limit) {
+        if (limit == 1 || address % limit == 0) {
+            return limit;
+        } else {
+            limit /= 2;
+        }
+    }
+    return 1;
+}
 
 #define min(a, b) (a > b ? b : a)
 #define max(a, b) (a < b ? b : a)

@@ -10,7 +10,8 @@
 
 typedef enum app_buffer_flag {
   APP_BUFFER_UNMANAGED = 1,
-  APP_BUFFER_PROGRESS = 2
+  APP_BUFFER_PROGRESS = 2,
+  APP_BUFFER_ALIGNED = 3,
 } app_buffer_flag_t;
 
 /* Buffer wraps a growable chunk of memory that can be filled with long messages. Buffer is owned by one of the
@@ -31,6 +32,8 @@ struct app_buffer {
 
 #define app_buffer_allocate(owner) app_buffer_target(owner, NULL, 0)
 app_buffer_t *app_buffer_target(actor_t *owner, uint8_t *data, uint32_t size);
+// allocate buffer that 
+app_buffer_t *app_buffer_target_aligned(actor_t *owner, uint32_t size, uint8_t alignment);
 app_buffer_t *app_buffer_source(actor_t *owner, uint8_t *data, uint32_t size);
 app_buffer_t *app_buffer_source_copy(actor_t *owner, uint8_t *data, uint32_t size);
 app_buffer_t *app_buffer_paginated(actor_t *owner, uint8_t *data, uint32_t size);
@@ -67,6 +70,8 @@ app_signal_t app_buffer_append(app_buffer_t *buffer, uint8_t *data, uint32_t siz
 
 app_signal_t app_buffer_trim_left(app_buffer_t *buffer, uint8_t offset);
 app_signal_t app_buffer_trim_right(app_buffer_t *buffer, uint8_t offset);
+
+app_buffer_t *app_buffer_align(app_buffer_t *buffer, uint8_t alignment);
 
 /*
   Double buffer is used when receiving data of unknown length externally (e.g. via DMA). It is a combination of circular and growable

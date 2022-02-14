@@ -4,12 +4,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "definitions/enums.h"
 #include "definitions/dictionary.h"
 #include "lib/debug.h"
 
-typedef uint_fast8_t bool_t;
-
+typedef bool bool_t;
 
 // Global variable is only used for interrupts
 

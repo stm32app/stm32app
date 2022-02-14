@@ -39,6 +39,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define US_PER_TICK (1000000U / configTICK_RATE_HZ)
 
