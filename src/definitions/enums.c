@@ -140,7 +140,7 @@ case 28928: return "STORAGE_W25";
 case 29184: return "STORAGE_FLASH";
 case 29440: return "MEMORY_SRAM";
 case 29696: return "STORAGE_AT24C";
-case 29760: return "STORAGE_SDCARD";
+case 29952: return "STORAGE_SDCARD";
 case 32768: return "INPUT_SENSOR";
 case 33024: return "CONTROL_TOUCHSCREEN";
 case 36864: return "SCREEN_EPAPER";
@@ -239,6 +239,28 @@ case 3: return "STORAGE_AT24C_START_ADDRESS";
 case 4: return "STORAGE_AT24C_PAGE_SIZE";
 case 5: return "STORAGE_AT24C_SIZE";
 case 6: return "STORAGE_AT24C_PHASE";
+default: return "Unknown";
+}
+};
+
+char* get_storage_sdcard_properties_properties_name (uint32_t v) {
+switch (v) {
+case 1: return "STORAGE_SDCARD_SDIO_INDEX";
+case 2: return "STORAGE_SDCARD_PHASE";
+case 3: return "STORAGE_SDCARD_CAPACITY";
+case 4: return "STORAGE_SDCARD_BLOCK_SIZE";
+case 5: return "STORAGE_SDCARD_BLOCK_COUNT";
+case 6: return "STORAGE_SDCARD_MAX_BUS_CLOCK_FREQUENCY";
+case 7: return "STORAGE_SDCARD_CSD_VERSION";
+case 8: return "STORAGE_SDCARD_RELATIVE_CARD_ADDRESS";
+case 9: return "STORAGE_SDCARD_MANUFACTURER_ID";
+case 10: return "STORAGE_SDCARD_OEM_ID";
+case 11: return "STORAGE_SDCARD_PRODUCT_NAME";
+case 12: return "STORAGE_SDCARD_PRODUCT_REVISION";
+case 13: return "STORAGE_SDCARD_SERIAL_NUMBER";
+case 14: return "STORAGE_SDCARD_MANUFACTURING_DATE";
+case 15: return "STORAGE_SDCARD_VERSION";
+case 16: return "STORAGE_SDCARD_HIGH_CAPACITY";
 default: return "Unknown";
 }
 };

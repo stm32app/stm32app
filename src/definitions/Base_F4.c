@@ -428,14 +428,24 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .size = 0x0800,
         .phase = 0x00
     },
-    .x7440_storageSDCard = {
-        .highestSub_indexSupported = 0x06,
-        .I2C_Index = 0x6260,
-        .I2C_Address = 0x50,
-        .startAddress = 0x0008,
-        .pageSize = 0x0008,
-        .size = 0x0800,
-        .phase = 0x00
+    .x7500_storageSDCard = {
+        .highestSub_indexSupported = 0x10,
+        .SDIO_Index = 0x62A0,
+        .phase = 0x00,
+        .capacity = 0x00000000,
+        .blockSize = 0x00000000,
+        .blockCount = 0x00000000,
+        .maxBusClockFrequency = 0x00000000,
+        .CSD_Version = 0x00,
+        .relativeCardAddress = 0x0000,
+        .manufacturerID = 0x00,
+        .OEM_ID = 0x0000,
+        .productName = {'0', 0, 0, 0, 0, 0},
+        .productRevision = 0x00,
+        .serialNumber = 0x00000000,
+        .manufacturingDate = 0x0000,
+        .version = 0x00,
+        .highCapacity = false
     },
     .x8000_inputSensor_1 = {
         .highestSub_indexSupported = 0x06,
@@ -581,7 +591,7 @@ typedef struct {
     OD_obj_record_t o_7200_storageFlash[5];
     OD_obj_record_t o_7300_memorySRAM_1[7];
     OD_obj_record_t o_7400_storageAT24C[7];
-    OD_obj_record_t o_7440_storageSDCard[7];
+    OD_obj_record_t o_7500_storageSDCard[17];
     OD_obj_record_t o_8000_inputSensor_1[7];
     OD_obj_record_t o_8100_controlTouchscreen_1[14];
     OD_obj_record_t o_9000_screenEpaper_1[14];
@@ -2731,46 +2741,106 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 1
         }
     },
-    .o_7440_storageSDCard = {
+    .o_7500_storageSDCard = {
         {
-            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.highestSub_indexSupported,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.highestSub_indexSupported,
             .subIndex = 0,
             .attribute = ODA_SDO_R,
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.I2C_Index,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.SDIO_Index,
             .subIndex = 1,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 2
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.I2C_Address,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.phase,
             .subIndex = 2,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.startAddress,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.capacity,
             .subIndex = 3,
             .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 2
+            .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.pageSize,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.blockSize,
             .subIndex = 4,
             .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 2
+            .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.size,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.blockCount,
             .subIndex = 5,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.maxBusClockFrequency,
+            .subIndex = 6,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.CSD_Version,
+            .subIndex = 7,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.relativeCardAddress,
+            .subIndex = 8,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 2
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7440_storageSDCard.phase,
-            .subIndex = 6,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.manufacturerID,
+            .subIndex = 9,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.OEM_ID,
+            .subIndex = 10,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.productName[0],
+            .subIndex = 11,
+            .attribute = ODA_SDO_RW | ODA_STR,
+            .dataLength = 5
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.productRevision,
+            .subIndex = 12,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.serialNumber,
+            .subIndex = 13,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.manufacturingDate,
+            .subIndex = 14,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.version,
+            .subIndex = 15,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.highCapacity,
+            .subIndex = 16,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         }
@@ -3147,7 +3217,7 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x7200, 0x05, ODT_REC, &ODObjs.o_7200_storageFlash, NULL},
     {0x7300, 0x07, ODT_REC, &ODObjs.o_7300_memorySRAM_1, NULL},
     {0x7400, 0x07, ODT_REC, &ODObjs.o_7400_storageAT24C, NULL},
-    {0x7440, 0x07, ODT_REC, &ODObjs.o_7440_storageSDCard, NULL},
+    {0x7500, 0x11, ODT_REC, &ODObjs.o_7500_storageSDCard, NULL},
     {0x8000, 0x07, ODT_REC, &ODObjs.o_8000_inputSensor_1, NULL},
     {0x8100, 0x0E, ODT_REC, &ODObjs.o_8100_controlTouchscreen_1, NULL},
     {0x9000, 0x0E, ODT_REC, &ODObjs.o_9000_screenEpaper_1, NULL},

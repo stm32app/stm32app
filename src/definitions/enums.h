@@ -31,6 +31,8 @@ char* get_module_timer_properties_properties_name (uint32_t v);
 char* get_screen_epaper_properties_properties_name (uint32_t v);
 // defined in ./src/storage/at24c.h
 char* get_storage_at24c_properties_properties_name (uint32_t v);
+// defined in ./src/storage/sdcard.h
+char* get_storage_sdcard_properties_properties_name (uint32_t v);
 // defined in ./src/storage/w25.h
 char* get_w25_commands_name (uint32_t v);
 // defined in ./src/storage/w25.h
