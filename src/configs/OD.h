@@ -51,14 +51,14 @@
 #define OD_CNT_TRANSPORT_CAN 1
 #define OD_CNT_TRANSPORT_SPI 1
 #define OD_CNT_TRANSPORT_USART 1
-#define OD_CNT_TRANSPORT_I2C 2
+#define OD_CNT_TRANSPORT_I2C 3
 #define OD_CNT_TRANSPORT_MODBUS 1
 #define OD_CNT_MODULE_ADC 1
 #define OD_CNT_STORAGE_EEPROM 1
 #define OD_CNT_STORAGE_WINBOND 1
 #define OD_CNT_STORAGE_FLASH 1
 #define OD_CNT_MEMORY_SRAM 1
-#define OD_CNT_STORAGE_AT24C 2
+#define OD_CNT_STORAGE_AT24C 1
 #define OD_CNT_INPUT_SENSOR 1
 #define OD_CNT_CONTROL_TOUCHSCREEN 1
 #define OD_CNT_SCREEN_EPAPER 1
@@ -486,13 +486,23 @@ typedef struct {
     } x7400_storageAT24C;
     struct {
         uint8_t highestSub_indexSupported;
-        uint16_t I2C_Index;
-        uint8_t I2C_Address;
-        uint16_t startAddress;
-        uint16_t pageSize;
-        uint16_t size;
+        uint16_t SDIO_Index;
         uint8_t phase;
-    } x7440_storageSDCard;
+        uint32_t capacity;
+        uint32_t blockSize;
+        uint32_t blockCount;
+        uint32_t maxBusClockFrequency;
+        uint8_t CSD_Version;
+        uint16_t relativeCardAddress;
+        uint8_t manufacturerID;
+        uint16_t OEM_ID;
+        char productName[6];
+        uint8_t productRevision;
+        uint32_t serialNumber;
+        uint16_t manufacturingDate;
+        uint8_t version;
+        bool_t highCapacity;
+    } x7500_storageSDCard;
     struct {
         uint8_t highestSub_indexSupported;
         uint16_t disabled;
@@ -650,7 +660,7 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H7200 &OD->list[50]
 #define OD_ENTRY_H7300 &OD->list[51]
 #define OD_ENTRY_H7400 &OD->list[52]
-#define OD_ENTRY_H7440 &OD->list[53]
+#define OD_ENTRY_H7500 &OD->list[53]
 #define OD_ENTRY_H8000 &OD->list[54]
 #define OD_ENTRY_H8100 &OD->list[55]
 #define OD_ENTRY_H9000 &OD->list[56]
@@ -715,7 +725,7 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H7200_storageFlash &OD->list[50]
 #define OD_ENTRY_H7300_memorySRAM_1 &OD->list[51]
 #define OD_ENTRY_H7400_storageAT24C &OD->list[52]
-#define OD_ENTRY_H7440_storageSDCard &OD->list[53]
+#define OD_ENTRY_H7500_storageSDCard &OD->list[53]
 #define OD_ENTRY_H8000_inputSensor_1 &OD->list[54]
 #define OD_ENTRY_H8100_controlTouchscreen_1 &OD->list[55]
 #define OD_ENTRY_H9000_screenEpaper_1 &OD->list[56]

@@ -90,5 +90,6 @@ void *actor_dma_pack_source(uint8_t unit, uint8_t index);
 
 /* Check if pointer contains packed unit/index info */
 bool_t actor_dma_match_source(void *source, uint8_t unit, uint8_t index);
+void actor_dma_flush_stream(uint8_t unit, uint8_t stream);
 
 #endif

@@ -18,7 +18,7 @@ static app_signal_t sdio_validate(transport_sdio_properties_t *properties) {
     return 0;
 }
 
-uint8_t buff[512] = { 1 };
+uint8_t buff[512] = {1};
 
 static app_signal_t sdio_construct(transport_sdio_t *sdio) {
     actor_event_subscribe(sdio->actor, APP_EVENT_DIAGNOSE);
@@ -214,14 +214,29 @@ static void sdio_set_bus_clock(uint8_t divider) {
     SDIO_CLKCR = (SDIO_CLKCR & (~SDIO_CLKCR_CLKDIV_MASK)) | (divider & SDIO_CLKCR_CLKDIV_MASK);
 }
 
+static void sdio_blocking_rx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t size, bool_t force) {
+    uint32_t position = 0;
+    do {
+        if ((SDIO_STA & SDIO_STA_RXDAVL) || force) {
+            ((uint32_t *)data)[position] = SDIO_FIFO;
+            if (position < size / 4) {
+                ++position;
+            } else {
+                break;
+            }
+        }
+    } while ((SDIO_STA & SDIO_STA_RXACT) || force);
+}
+
 static void sdio_dma_rx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t size) {
     actor_register_dma(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->actor);
 
     debug_printf("│ │ ├ SDIO%u\t\t", sdio->actor->seq + 1);
     debug_printf("RX started\tDMA%u(%u/%u)\n", sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel);
 
+    
     actor_dma_rx_start((uint32_t)&SDIO_FIFO, sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel, data,
-                       size / 4 -3, false, 4, 1, 1);
+                       size / 4, false, 4, 1, 1);
 }
 
 static void sdio_dma_rx_stop(transport_sdio_t *sdio) {
@@ -230,8 +245,17 @@ static void sdio_dma_rx_stop(transport_sdio_t *sdio) {
 
     sdio->incoming_signal = 0;
     actor_dma_rx_stop(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel);
+
+    // Hack: DMA for some reason doesnt copy last 4 double-words (full SDIO fifo load)
+    size_t position =
+        actor_dma_get_buffer_position(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->target_buffer->size / 4);
+    
+    debug_printf("RX flush %lub\n", (sdio->target_buffer->size - position * 4));
+    sdio_blocking_rx_start(sdio, &sdio->target_buffer->data[position * 4], (sdio->target_buffer->size - position * 4), true);
+
     actor_unregister_dma(sdio->properties->dma_unit, sdio->properties->dma_stream);
 }
+
 
 static void sdio_dma_tx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t size) {
     actor_register_dma(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->actor);
@@ -239,64 +263,70 @@ static void sdio_dma_tx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t si
     debug_printf("│ │ ├ SDIO%u\t\t", sdio->actor->seq + 1);
     debug_printf("TX started\tDMA%u(%u/%u)\n", sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel);
 
-    // Data transfer:
-    //   transfer mode: block
-    //   direction: to card
-    //   DMA: enabled
-    //   block size: 2^9 = 512 bytes
-    //   DPSM: enabled
-    SDIO_DCTRL = 0;
-    SDIO_DTIMER = 0;
-    SDIO_DLEN = size;
-    SDIO_DCTRL = (9 << 4) | SDIO_DCTRL_DTEN;
-
     actor_dma_tx_start((uint32_t)&SDIO_FIFO, sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel,
-                       sdio->target_buffer->data, sdio->target_buffer->size / 4, false, 32, 4, 1);
+                       sdio->source_buffer->data, sdio->source_buffer->size / 4, false, 4, 0, 0);
+}
+
+static void sdio_blocking_tx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t size) {
+    uint32_t position = 0;
+    do {
+        if (SDIO_STA & SDIO_STA_TXFIFOHE) {
+            SDIO_FIFO = ((uint32_t *)data)[position];
+            if (position < size / 4) {
+                ++position;
+            }
+        }
+    } while (SDIO_STA & SDIO_STA_TXACT);
 }
 
 static void sdio_dma_tx_stop(transport_sdio_t *sdio) {
     debug_printf("│ │ ├ SDIO%u\t\t", sdio->actor->seq + 1);
     debug_printf("TX stopped\tDMA%u(%u/%u)\n", sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel);
 
-    sdio->incoming_signal = 0;
-    app_buffer_release(sdio->target_buffer, sdio->actor);
     actor_dma_tx_stop(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel);
+
+    // Hack: DMA for some reason doesnt copy last 4 double-words (full SDIO fifo load)
+    size_t position =
+        actor_dma_get_buffer_position(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->source_buffer->size / 4);
+    app_buffer_release(sdio->target_buffer, sdio->actor);
+
+    debug_printf("TX flush %lub\n", (sdio->source_buffer->size - position * 4));
+    sdio_blocking_tx_start(sdio, &sdio->source_buffer->data[position * 4], (sdio->source_buffer->size - position * 4));
+
+    sdio->incoming_signal = 0;
     actor_unregister_dma(sdio->properties->dma_unit, sdio->properties->dma_stream);
 }
 
-static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t address, uint8_t *data, uint32_t size) {
+static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
     transport_sdio_t *sdio = job->actor->object;
-    uint32_t block_count = size >> 9;
-    uint32_t block_address = sdio->properties->high_capacity ? address >> 9 : address;
+    uint32_t block_address = sdio->properties->high_capacity ? block_id : block_id * 512;
+    uint32_t size = 512 * block_count;
 
     switch (job->task_phase) {
     case 0:
         if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
             return APP_JOB_TASK_QUIT_ISR;
         } else {
-            sdio->target_buffer =
+            sdio->source_buffer =
                 data == NULL ? app_buffer_target_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
-            sdio->target_buffer->data = buff;
-            for (size_t i = 0; i < 512; i++)
-                sdio->target_buffer->data[i] = (uint8_t)i;
+            sdio->source_buffer->size = size;
 
-            if (sdio->target_buffer == NULL) {
+            for (size_t i = 0; i < 512; i++)
+                sdio->source_buffer->data[i] = (uint8_t)i;
+
+            if (sdio->source_buffer == NULL) {
                 return APP_JOB_FAILURE;
             } else {
-                sdio_dma_rx_start(sdio, sdio->target_buffer->data, size);
+                sdio_dma_tx_start(sdio, sdio->source_buffer->data, size);
                 return APP_JOB_TASK_CONTINUE;
             }
         }
     case 1:
         SDIO_DCTRL = 0;
-
-        // SDSC card uses byte unit address and
-        // SDHC/SDXC cards use block unit address (1 unit = 512 bytes)
-        // For SDHC card addr must be converted to block unit address
         if (block_count > 1) {
-            return sdio_send_command_and_wait(25, block_address, SDIO_CMD_WAITRESP_SHORT); // READ_MULTIPLE_BLOCK
+            return sdio_send_command_and_wait(25, block_address, SDIO_CMD_WAITRESP_SHORT); // WRITE_MULTIPLE_BLOCK
         } else {
-            return sdio_send_command_and_wait(24, block_address, SDIO_CMD_WAITRESP_SHORT); // READ_BLOCK
+            return sdio_send_command_and_wait(24, block_address, SDIO_CMD_WAITRESP_SHORT); // WRITE_BLOCK
         }
     case 2:
         // Data transfer:
@@ -307,18 +337,21 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t address, 
         //   DPSM: enabled
         SDIO_DTIMER = SD_DATA_READ_TIMEOUT;
         SDIO_DLEN = size;
-        SDIO_DCTRL = SDIO_DCTRL_DMAEN | (9 << 4) | SDIO_DCTRL_DTEN | SDIO_DCTRL_DTDIR;
+        SDIO_DCTRL = SDIO_DCTRL_DMAEN | (9 << 4) | SDIO_DCTRL_DTEN; //| SDIO_DCTRL_DTDIR;
         return APP_JOB_TASK_CONTINUE;
         break;
     // check errors
     case 3:
-        if (SDIO_STA & SDIO_XFER_ERROR_FLAGS) {
+        if ((SDIO_STA & SDIO_STA_TXDAVL) && (SDIO_STA & SDIO_STA_TXACT)) {
+            sdio_dma_tx_stop(sdio);
+            return APP_JOB_TASK_CONTINUE;
+        } else if (SDIO_STA & SDIO_XFER_ERROR_FLAGS) {
             return APP_JOB_TASK_FAILURE;
-        //} else if (SDIO_STA & (SDIO_STA_DBCKEND |SDIO_STA_DATAEND)) {
-        //    return APP_JOB_TASK_SUCCESS;
+            //} else if (SDIO_STA & (SDIO_STA_DBCKEND |SDIO_STA_DATAEND)) {
+            //    return APP_JOB_TASK_SUCCESS;
         } else if (sdio->incoming_signal == APP_SIGNAL_DMA_TRANSFERRING) {
-            sdio_dma_rx_stop(sdio);
-            printf("DMA BUF, ~%.*s~", 512, sdio->target_buffer->data);
+            sdio_dma_tx_stop(sdio);
+            SDIO_ICR = SDIO_ICR_STATIC;
             return APP_JOB_TASK_CONTINUE;
         } else {
             SDIO_ICR = SDIO_ICR_STATIC;
@@ -348,10 +381,10 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t address, 
     return APP_JOB_TASK_SUCCESS;
 }
 
-static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t address, uint8_t *data, uint32_t size) {
+static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
     transport_sdio_t *sdio = job->actor->object;
-    uint32_t block_count = size >> 9;
-    uint32_t block_address = sdio->properties->high_capacity ? address >> 9 : address;
+    uint32_t block_address = sdio->properties->high_capacity ? block_id : block_id * 512;
+    uint32_t size = 512 * block_count;
 
     switch (job->task_phase) {
     case 0:
@@ -360,10 +393,7 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t address, u
         } else {
             sdio->target_buffer =
                 data == NULL ? app_buffer_target_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
- //           sdio->target_buffer->data = buff;
-            for (size_t i = 0; i < 512; i++)
-                sdio->target_buffer->data[i] = (uint8_t)i;
-
+            sdio->target_buffer->size = size;
             if (sdio->target_buffer == NULL) {
                 return APP_JOB_FAILURE;
             } else {
@@ -372,8 +402,6 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t address, u
             }
         }
     case 1:
-        SDIO_DCTRL = 0;
-
         // SDSC card uses byte unit address and
         // SDHC/SDXC cards use block unit address (1 unit = 512 bytes)
         // For SDHC card addr must be converted to block unit address
@@ -391,34 +419,43 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t address, u
         //   DPSM: enabled
         SDIO_DTIMER = SD_DATA_READ_TIMEOUT;
         SDIO_DLEN = size;
-        SDIO_DCTRL = SDIO_DCTRL_DMAEN | (9 << 4) | SDIO_DCTRL_DTEN | SDIO_DCTRL_DTDIR;
-        return APP_JOB_TASK_CONTINUE;
-        break;
-    // check errors
+        SDIO_DCTRL = SDIO_DCTRL_DMAEN | 9 << 4 | SDIO_DCTRL_DTEN | SDIO_DCTRL_DTDIR;
+
+        return APP_JOB_TASK_WAIT;
     case 3:
+        /**/
+        return APP_JOB_TASK_CONTINUE;
+        printf("~\n");
+        //     int data_len = 124;
+
+        __asm("BKPT #0\n");
+
+        return APP_JOB_TASK_CONTINUE;
+    // check errors
+    case 4:
         if (SDIO_STA & SDIO_XFER_ERROR_FLAGS) {
             return APP_JOB_TASK_FAILURE;
-        //} else if (SDIO_STA & (SDIO_STA_DBCKEND |SDIO_STA_DATAEND)) {
-        //    return APP_JOB_TASK_SUCCESS;
-        } else if (sdio->incoming_signal == APP_SIGNAL_DMA_TRANSFERRING) {
+            //} else if (SDIO_STA & (SDIO_STA_DBCKEND |SDIO_STA_DATAEND)) {
+            //    return APP_JOB_TASK_SUCCESS;
+        } else if (sdio->incoming_signal == APP_SIGNAL_DMA_TRANSFERRING || (SDIO_STA & SDIO_STA_DBCKEND)) {
             sdio_dma_rx_stop(sdio);
-            printf("DMA BUF, ~%.*s~", 512, sdio->target_buffer->data);
+            SDIO_ICR = SDIO_ICR_STATIC;
             return APP_JOB_TASK_CONTINUE;
         } else {
-            SDIO_ICR = SDIO_ICR_STATIC;
+            // SDIO_ICR = SDIO_ICR_STATIC;
             return APP_JOB_TASK_LOOP;
         }
-    case 4:
+    case 5:
         return APP_JOB_TASK_CONTINUE;
     // wait while tx is active
-    case 5:
+    case 6:
         if (SDIO_STA & SDIO_STA_RXACT) {
             return APP_JOB_TASK_LOOP;
         } else {
             return APP_JOB_TASK_CONTINUE;
         }
     // stop multi-block transfer
-    case 6:
+    case 7:
         if (block_count > 1) {
             return sdio_send_command_and_wait(12, 0, SDIO_CMD_WAITRESP_SHORT); // STOP_TRANSMISSION
         } else {
@@ -431,7 +468,6 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t address, u
     }
     return APP_JOB_TASK_SUCCESS;
 }
-
 
 static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
     transport_sdio_t *sdio = job->actor->object;
@@ -518,7 +554,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         return sdio_send_command_and_wait(9, (sdio->properties->relative_card_address << 16), SDIO_CMD_WAITRESP_LONG); // SEND_CSD
     case 13:
         sdio_parse_csd(sdio);
-        printf("│ │ ├ Card capacity %luMB\n", sdio->properties->capacity >> 10);
+        printf("│ │ ├ Card capacity %luMB (%ld x %ldb blocks)\n", sdio->properties->capacity >> 10, sdio->properties->block_count, sdio->properties->block_size);
         return APP_JOB_TASK_CONTINUE;
 
     // Increase bus speed to 48mhz, set card into transfer mode
@@ -531,17 +567,20 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         return sdio_send_command_and_wait(55, sdio->properties->relative_card_address << 16, SDIO_CMD_WAITRESP_SHORT); // ACMD
     case 16:
         return sdio_send_command_and_wait(42, 0, SDIO_CMD_WAITRESP_SHORT); // SET_CLR_CARD_DETECT
-    // Set block size to 512
+    // Force block size to 512
     case 17:
-        return sdio_send_command_and_wait(16, 512, SDIO_CMD_WAITRESP_SHORT); // SET_BLOCKLEN
-    case 18:
-        return APP_JOB_TASK_CONTINUE;
+        if (sdio->properties->block_size != 512) {
+            return sdio_send_command_and_wait(16, 512, SDIO_CMD_WAITRESP_SHORT); // SET_BLOCKLEN
+        } else {
+            return APP_JOB_TASK_CONTINUE;
+        }
     // Set bus width to 4
-    case 19:
+    case 18:
         return sdio_send_command_and_wait(55, sdio->properties->relative_card_address << 16, SDIO_CMD_WAITRESP_SHORT); // ACMD
-    case 20:
+    case 19:
         return sdio_send_command_and_wait(6, 2, SDIO_CMD_WAITRESP_SHORT); // SET_BUS_WIDTH
-    case 21:
+    // increase bus speed
+    case 20:
         SDIO_CLKCR = ((SDIO_CLKCR & ~SDIO_CLKCR_WIDBUS_1) | (SDIO_CLKCR_WIDBUS_4));
         return APP_JOB_TASK_SUCCESS;
     case APP_JOB_TASK_FAILURE:
@@ -557,8 +596,9 @@ static app_job_signal_t sdio_job_diagnose(app_job_t *job) {
     case 0:
         return sdio_task_detect_card(job);
     case 1:
-        return sdio_task_read_block(job, 0, NULL, 512);
-        ;
+        return sdio_task_read_block(job, 4, NULL, 1);
+    //case 1:
+    //    return sdio_task_write_block(job, 4, NULL, 512);
     case 2:
         return APP_JOB_SUCCESS;
     case APP_JOB_FAILURE:

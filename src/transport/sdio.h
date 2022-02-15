@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "core/actor.h"
+#include <libopencm3/stm32/sdio.h>
 #define SDIO_UNITS 1
 
 #define SDIO_ICR_CMD (SDIO_STA_CCRCFAIL | SDIO_ICR_CTIMEOUTC | SDIO_ICR_CMDRENDC | SDIO_ICR_CMDSENTC)
@@ -22,7 +23,8 @@ extern "C" {
 // start at 400khz
 #define SDIO_CLKCR_CLKDIV_INITIAL 112 
 // bump up to max of 48mhz
-#define SDIO_CLKCR_CLKDIV_TRANSFER 0
+#define SDIO_CLKCR_CLKDIV_TRANSFER (2 <<  SDIO_CLKCR_CLKDIV_SHIFT)
+
 
 // SDIO timeout for data transfer ((48MHz / CLKDIV / 1000) * timeout_ms)
 // TODO: Freq

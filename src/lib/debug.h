@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #define IS_DEBUGGER_ATTACHED (DBGMCU_CR & 0x07)
-#define DEBUG_LOG_LEVEL 3
+#define DEBUG_LOG_LEVEL 4
 #define DEBUG_BUFFER_SIZE 0
 #define DEBUG_BUFFER_FLUSH_SIZE DEBUG_BUFFER_SIZE * 0.9
 

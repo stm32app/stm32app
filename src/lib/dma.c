@@ -265,15 +265,15 @@ void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
     if (prefer_burst && fifo_threshold) {
         switch (actor_dma_get_safe_burst_size(data, size, width, fifo_threshold)) {
         case 16:
-            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR16);
+            //dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR16);
             dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR16);
             break;
         case 8:
-            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR8);
+            //dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR8);
             dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR8);
             break;
         case 4:
-            dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR4);
+            //dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR4);
             dma_set_peripheral_burst(dma_address, stream, DMA_SxCR_PBURST_INCR4);
             break;
         }
@@ -366,7 +366,7 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
 
     dma_enable_transfer_complete_interrupt(dma_address, stream);
     dma_enable_transfer_error_interrupt(dma_address, stream);
-    dma_enable_half_transfer_interrupt(dma_address, stream);
+    //dma_enable_half_transfer_interrupt(dma_address, stream);
 
     nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 8 << 4);
     nvic_enable_irq(nvic_dma_get_channel_base(unit) + stream);
@@ -376,7 +376,7 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
 
 void actor_dma_tx_stop(uint8_t unit, uint8_t stream, uint8_t channel) {
     uint32_t dma_address = dma_get_address(unit);
-    nvic_enable_irq(nvic_dma_get_channel_base(unit) + stream);
+    nvic_disable_irq(nvic_dma_get_channel_base(unit) + stream);
     dma_disable_stream(dma_address, stream);
 }
 
