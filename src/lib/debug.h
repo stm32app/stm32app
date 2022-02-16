@@ -13,6 +13,13 @@
 
 #define DEBUG_NOOP(...) ((void)0)
 
+#define debug_assert(x)                                                                                                                    \
+    if (!(x)) {                                                                                                                            \
+        debug_printf("Assert failed\n");                                                                                                   \
+        while (1) {                                                                                                                        \
+        }                                                                                                                                  \
+    }
+
 extern volatile uint8_t debug_log_inhibited;
 
 #if DEBUG_LOG_LEVEL > 0

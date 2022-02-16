@@ -15,12 +15,13 @@
 #define CORU_CONFIG_H
 
 #include "env.h"
+#include "lib/debug.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define CORU_ASSERT configASSERT
+#define CORU_ASSERT debug_assert
 #define coru_malloc app_malloc
 #define coru_free app_free
 #define coru_malloc app_malloc

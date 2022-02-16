@@ -22,7 +22,7 @@ extern "C"
 #define LFS_ERROR debug_printf
 #define LFS_WARN debug_printf
 #define LFS_ERROR debug_printf
-#define LFS_ASSERT configASSERT
+#define LFS_ASSERT debug_assert
 
 
 // Builtin functions, these may be replaced by more efficient

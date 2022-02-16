@@ -97,12 +97,7 @@
 #define configUSE_MALLOC_FAILED_HOOK 1
 
 #include "lib/debug.h"
-#define configASSERT(x)                                                                                                                    \
-    if (!(x)) {                                                                                                                            \
-        debug_printf("Assert failed\n");                                                                                                   \
-        while (1) {                                                                                                                        \
-        }                                                                                                                                  \
-    }
+#define configASSERT debug_assert
 
 #define traceTASK_SWITCHED_OUT() log_job_out()
 #define traceTASK_SWITCHED_IN() log_job_in()

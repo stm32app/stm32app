@@ -2,11 +2,12 @@
 //#include "actor/circuit.h"
 //#include "actors/modbus.h"
 #include "input/sensor.h"
+#include "lib/sdram.h"
 #include "module/adc.h"
 #include "module/timer.h"
 #include "storage/at24c.h"
-#include "storage/w25.h"
 #include "storage/sdcard.h"
+#include "storage/w25.h"
 #include "system/canopen.h"
 #include "system/mcu.h"
 //#include "screen/epaper.h"
@@ -14,8 +15,8 @@
 //#include "transport/i2c.h"
 #include "indicator/led.h"
 #include "transport/i2c.h"
-#include "transport/spi.h"
 #include "transport/sdio.h"
+#include "transport/spi.h"
 //#include "transport/usart.h"
 
 static ODR_t mothership_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
@@ -58,6 +59,18 @@ static app_signal_t mothership_link(app_mothership_t *mothership) {
 static app_signal_t mothership_phase(app_mothership_t *mothership, actor_phase_t phase) {
     (void)mothership;
     (void)phase;
+    switch (phase) {
+    case ACTOR_CONSTRUCTING:
+
+        start_sdram();
+        break;
+
+    case ACTOR_RUNNING:
+        finish_sdram();
+        break;
+    default:
+        break;
+    }
     return 0;
 }
 
@@ -94,10 +107,7 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
         // test simple timeout
         module_timer_timeout(mothership->timer, mothership->actor, (void *)123, 1000000);
 
-        
-        return app_publish(mothership->actor->app, &((app_event_t){
-                                                       .type = APP_EVENT_DIAGNOSE, .producer = mothership->actor
-                                                   }));
+        return app_publish(mothership->actor->app, &((app_event_t){.type = APP_EVENT_DIAGNOSE, .producer = mothership->actor}));
     }
     return 0;
 }
@@ -109,12 +119,14 @@ static app_job_signal_t mothership_job_stats(app_job_t *job) {
             for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(app_buffer_t)) {
                 app_buffer_t *buffer = (app_buffer_t *)&page->data[offset];
                 if (!(buffer->owner == NULL && buffer->data == NULL && buffer->allocated_size == 0)) {
-                    debug_printf("│ │ │ ├ %-16s%lub/%lub\n", get_actor_type_name(buffer->owner->class->type), buffer->size, buffer->allocated_size);
+                    debug_printf("│ │ │ ├ %-16s%lub/%lub\n", get_actor_type_name(buffer->owner->class->type), buffer->size,
+                                 buffer->allocated_size);
                 }
             }
         }
         for (size_t i = 0; i < HEAP_NUM; i++) {
-            debug_printf("│ │ ├ Heap #0x%lx\t%ub/%ub free, %u lowest\n", (uint32_t) multiRegionGetHeapStartAddress(i), multiRegionGetFreeHeapSize(i), multiRegionGetHeapSize(i), multiRegionGetMinimumEverFreeHeapSize(i));
+            debug_printf("│ │ ├ Heap #0x%lx\t%ub/%ub free, %u lowest\n", (uint32_t)multiRegionGetHeapStartAddress(i),
+                         multiRegionGetFreeHeapSize(i), multiRegionGetHeapSize(i), multiRegionGetMinimumEverFreeHeapSize(i));
         }
     }
     return APP_JOB_SUCCESS;
@@ -124,7 +136,7 @@ static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_ev
     switch (event->type) {
     case APP_EVENT_THREAD_ALARM:
         actor_event_receive_and_start_job(mothership->actor, event, &mothership->job, thread, mothership_job_stats);
-        
+
         break;
     default:
         break;
@@ -140,7 +152,7 @@ static app_signal_t mothership_on_signal(app_mothership_t mothership, actor_t *a
     (void)actor;
     (void)signal;
     (void)argument;
-    //printf("Got signal!\n");
+    // printf("Got signal!\n");
     return 0;
 };
 

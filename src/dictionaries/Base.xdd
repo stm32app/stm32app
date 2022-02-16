@@ -15,7 +15,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModifiedBy="" fileModificationDate="2022-02-15" fileModificationTime="16:45:31.1431668+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModifiedBy="" fileModificationDate="2022-02-16" fileModificationTime="23:07:00.2405566+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <q1:DeviceIdentity>
         <q1:vendorName>2</q1:vendorName>
         <q1:vendorID>3</q1:vendorID>
@@ -1186,48 +1186,6 @@
             <q1:varDeclaration name="Phase" uniqueID="UID_RECSUB_62A011">
               <USINT />
             </q1:varDeclaration>
-            <q1:varDeclaration name="Capacity" uniqueID="UID_RECSUB_62A012">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Block size" uniqueID="UID_RECSUB_62A013">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Block count" uniqueID="UID_RECSUB_62A014">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Max Bus Clock Frequency" uniqueID="UID_RECSUB_62A015">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="CSD Version" uniqueID="UID_RECSUB_62A016">
-              <USINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Relative Card Address" uniqueID="UID_RECSUB_62A017">
-              <UINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Manufacturer ID" uniqueID="UID_RECSUB_62A018">
-              <USINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="OEM ID" uniqueID="UID_RECSUB_62A019">
-              <UINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Product Name" uniqueID="UID_RECSUB_62A01A">
-              <STRING />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Product Revision" uniqueID="UID_RECSUB_62A01B">
-              <USINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Serial Number " uniqueID="UID_RECSUB_62A01C">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Manufacturing Date" uniqueID="UID_RECSUB_62A01D">
-              <UINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Version" uniqueID="UID_RECSUB_62A01E">
-              <USINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="High Capacity" uniqueID="UID_RECSUB_62A01F">
-              <BOOL />
-            </q1:varDeclaration>
           </q1:struct>
           <q1:struct name="Module ADC 1" uniqueID="UID_REC_6300">
             <q1:varDeclaration name="Highest sub-index supported" uniqueID="UID_RECSUB_630000">
@@ -1417,7 +1375,7 @@
             <q1:varDeclaration name="FS Cache Size" uniqueID="UID_RECSUB_750005">
               <UINT />
             </q1:varDeclaration>
-            <q1:varDeclaration name="FS Lookeahed Size" uniqueID="UID_RECSUB_750006">
+            <q1:varDeclaration name="FS Lookahead Size" uniqueID="UID_RECSUB_750006">
               <UDINT />
             </q1:varDeclaration>
             <q1:varDeclaration name="FS Name Max Size" uniqueID="UID_RECSUB_750007">
@@ -1432,49 +1390,52 @@
             <q1:varDeclaration name="FS Metadata Max Size" uniqueID="UID_RECSUB_75000A">
               <UDINT />
             </q1:varDeclaration>
-            <q1:varDeclaration name="Phase" uniqueID="UID_RECSUB_75000B">
-              <USINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Capacity" uniqueID="UID_RECSUB_75000C">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Block size" uniqueID="UID_RECSUB_75000D">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Block count" uniqueID="UID_RECSUB_75000E">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Max Bus Clock Frequency" uniqueID="UID_RECSUB_75000F">
-              <UDINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="CSD Version" uniqueID="UID_RECSUB_750010">
-              <USINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Relative Card Address" uniqueID="UID_RECSUB_750011">
-              <UINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Manufacturer ID" uniqueID="UID_RECSUB_750012">
-              <USINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="OEM ID" uniqueID="UID_RECSUB_750013">
-              <UINT />
-            </q1:varDeclaration>
-            <q1:varDeclaration name="Product Name" uniqueID="UID_RECSUB_750014">
+            <q1:varDeclaration name="FS Volume name" uniqueID="UID_RECSUB_75000B">
               <STRING />
             </q1:varDeclaration>
-            <q1:varDeclaration name="Product Revision" uniqueID="UID_RECSUB_750015">
+            <q1:varDeclaration name="Phase" uniqueID="UID_RECSUB_75000C">
               <USINT />
             </q1:varDeclaration>
-            <q1:varDeclaration name="Serial Number " uniqueID="UID_RECSUB_750016">
+            <q1:varDeclaration name="Capacity" uniqueID="UID_RECSUB_75000D">
               <UDINT />
             </q1:varDeclaration>
-            <q1:varDeclaration name="Manufacturing Date" uniqueID="UID_RECSUB_750017">
-              <UINT />
+            <q1:varDeclaration name="Block size" uniqueID="UID_RECSUB_75000E">
+              <UDINT />
             </q1:varDeclaration>
-            <q1:varDeclaration name="Version" uniqueID="UID_RECSUB_750018">
+            <q1:varDeclaration name="Block count" uniqueID="UID_RECSUB_75000F">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Max Bus Clock Frequency" uniqueID="UID_RECSUB_750010">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="CSD Version" uniqueID="UID_RECSUB_750011">
               <USINT />
             </q1:varDeclaration>
-            <q1:varDeclaration name="High Capacity" uniqueID="UID_RECSUB_750019">
+            <q1:varDeclaration name="Relative Card Address" uniqueID="UID_RECSUB_750012">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Manufacturer ID" uniqueID="UID_RECSUB_750013">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="OEM ID" uniqueID="UID_RECSUB_750014">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Product Name" uniqueID="UID_RECSUB_750015">
+              <STRING />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Product Revision" uniqueID="UID_RECSUB_750016">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Serial Number " uniqueID="UID_RECSUB_750017">
+              <UDINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Manufacturing Date" uniqueID="UID_RECSUB_750018">
+              <UINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="Version" uniqueID="UID_RECSUB_750019">
+              <USINT />
+            </q1:varDeclaration>
+            <q1:varDeclaration name="High Capacity" uniqueID="UID_RECSUB_75001A">
               <BOOL />
             </q1:varDeclaration>
           </q1:struct>
@@ -4180,7 +4141,7 @@ Can be used for DAC</description>
           <q1:parameter uniqueID="UID_SUB_62A000">
             <label lang="en">Highest sub-index supported</label>
             <USINT />
-            <q1:defaultValue value="0x1F" />
+            <q1:defaultValue value="0x11" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_62A001" access="readWrite">
             <label lang="en">DMA Unit</label>
@@ -4265,77 +4226,6 @@ Can be used for DAC</description>
           <q1:parameter uniqueID="UID_SUB_62A011" access="readWrite">
             <label lang="en">Phase</label>
             <USINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A012" access="readWrite">
-            <label lang="en">Capacity</label>
-            <UDINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A013" access="readWrite">
-            <label lang="en">Block size</label>
-            <UDINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A014" access="readWrite">
-            <label lang="en">Block count</label>
-            <UDINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A015" access="readWrite">
-            <label lang="en">Max Bus Clock Frequency</label>
-            <UDINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A016" access="readWrite">
-            <label lang="en">CSD Version</label>
-            <USINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A017" access="readWrite">
-            <label lang="en">Relative Card Address</label>
-            <UINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A018" access="readWrite">
-            <label lang="en">Manufacturer ID</label>
-            <USINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A019" access="readWrite">
-            <label lang="en">OEM ID</label>
-            <UINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A01A" access="readWrite">
-            <label lang="en">Product Name</label>
-            <STRING />
-            <q1:defaultValue value="0" />
-            <q1:property name="CO_stringLengthMin" value="5" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A01B" access="readWrite">
-            <label lang="en">Product Revision</label>
-            <USINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A01C" access="readWrite">
-            <label lang="en">Serial Number </label>
-            <UDINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A01D" access="readWrite">
-            <label lang="en">Manufacturing Date</label>
-            <UINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A01E" access="readWrite">
-            <description lang="en">2 or 1</description>
-            <USINT />
-            <q1:defaultValue value="0" />
-          </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_62A01F" access="readWrite">
-            <description lang="en">1 for SDHC/SDXC card</description>
-            <BOOL />
             <q1:defaultValue value="0" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_6300">
@@ -4652,7 +4542,7 @@ Can be used for DAC</description>
           <q1:parameter uniqueID="UID_SUB_750000">
             <label lang="en">Highest sub-index supported</label>
             <USINT />
-            <q1:defaultValue value="0x19" />
+            <q1:defaultValue value="0x1A" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_750001" access="readWrite">
             <label lang="en">SDIO Index</label>
@@ -4662,12 +4552,12 @@ Can be used for DAC</description>
           <q1:parameter uniqueID="UID_SUB_750002" access="readWrite">
             <description lang="en">Minimum size of a block read. All read operations will be a  multiple of this value.</description>
             <UDINT />
-            <q1:defaultValue value="16" />
+            <q1:defaultValue value="512" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_750003" access="readWrite">
             <description lang="en">Minimum size of a block program. All program operations will be a multiple of this value.</description>
             <UDINT />
-            <q1:defaultValue value="16" />
+            <q1:defaultValue value="512" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_750004" access="readWrite">
             <description lang="en">Number of erase cycles before littlefs evicts metadata logs and moves the metadata to another block. 
@@ -4682,14 +4572,14 @@ Set to -1 to disable block-level wear-leveling.</description>
             <description lang="en">Size of block caches. Each cache buffers a portion of a block in RAM.
 The littlefs needs a read cache, a program cache, and one additional cache per file. Larger caches can improve performance by storing more data and reducing the number of disk accesses. Must be a multiple of the read and program sizes, and a factor of the block size.</description>
             <UINT />
-            <q1:defaultValue value="16" />
+            <q1:defaultValue value="512" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_750006" access="readWrite">
             <description lang="en">Size of the lookahead buffer in bytes. A larger lookahead buffer increases the number of blocks found during an allocation pass. 
 
 The lookahead buffer is stored as a compact bitmap, so each byte of RAM can track 8 blocks. Must be a multiple of 8.</description>
             <UDINT />
-            <q1:defaultValue value="16" />
+            <q1:defaultValue value="512" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_750007" access="readWrite">
             <description lang="en">Optional upper limit on length of file names in bytes. 
@@ -4720,77 +4610,83 @@ On devices with large blocks (e.g. 128kB) setting this to a low size (2-8kB) can
             <q1:defaultValue value="0" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_75000B" access="readWrite">
+            <description lang="en">Global handle for the storage</description>
+            <STRING />
+            <q1:defaultValue value="sd" />
+            <q1:property name="CO_stringLengthMin" value="16" />
+          </q1:parameter>
+          <q1:parameter uniqueID="UID_SUB_75000C" access="readWrite">
             <label lang="en">Phase</label>
             <USINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_75000C" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_75000D" access="readWrite">
             <label lang="en">Capacity</label>
             <UDINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_75000D" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_75000E" access="readWrite">
             <label lang="en">Block size</label>
             <UDINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_75000E" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_75000F" access="readWrite">
             <label lang="en">Block count</label>
             <UDINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_75000F" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750010" access="readWrite">
             <label lang="en">Max Bus Clock Frequency</label>
             <UDINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750010" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750011" access="readWrite">
             <label lang="en">CSD Version</label>
             <USINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750011" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750012" access="readWrite">
             <label lang="en">Relative Card Address</label>
             <UINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750012" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750013" access="readWrite">
             <label lang="en">Manufacturer ID</label>
             <USINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750013" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750014" access="readWrite">
             <label lang="en">OEM ID</label>
             <UINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750014" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750015" access="readWrite">
             <label lang="en">Product Name</label>
             <STRING />
             <q1:defaultValue value="0" />
             <q1:property name="CO_stringLengthMin" value="5" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750015" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750016" access="readWrite">
             <label lang="en">Product Revision</label>
             <USINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750016" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750017" access="readWrite">
             <label lang="en">Serial Number </label>
             <UDINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750017" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750018" access="readWrite">
             <label lang="en">Manufacturing Date</label>
             <UINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750018" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_750019" access="readWrite">
             <description lang="en">2 or 1</description>
             <USINT />
             <q1:defaultValue value="0" />
           </q1:parameter>
-          <q1:parameter uniqueID="UID_SUB_750019" access="readWrite">
+          <q1:parameter uniqueID="UID_SUB_75001A" access="readWrite">
             <description lang="en">1 for SDHC/SDXC card</description>
             <BOOL />
             <q1:defaultValue value="0" />
@@ -5095,7 +4991,7 @@ On devices with large blocks (e.g. 128kB) setting this to a low size (2-8kB) can
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModificationDate="2022-02-15" fileModificationTime="16:45:31.1431668+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModificationDate="2022-02-16" fileModificationTime="23:07:00.2405566+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <ApplicationLayers>
         <q2:CANopenObjectList>
           <CANopenObject index="1000" name="Device type" objectType="7" PDOmapping="no" uniqueIDRef="UID_OBJ_1000" />
@@ -5596,7 +5492,7 @@ On devices with large blocks (e.g. 128kB) setting this to a low size (2-8kB) can
             <CANopenSubObject subIndex="06" name="Timeout" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_628006" />
             <CANopenSubObject subIndex="07" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_628007" />
           </CANopenObject>
-          <CANopenObject index="62A0" name="Transport SDIO" objectType="9" uniqueIDRef="UID_OBJ_62A0" subNumber="32">
+          <CANopenObject index="62A0" name="Transport SDIO" objectType="9" uniqueIDRef="UID_OBJ_62A0" subNumber="18">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A000" />
             <CANopenSubObject subIndex="01" name="DMA Unit" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A001" />
             <CANopenSubObject subIndex="02" name="DMA Stream" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A002" />
@@ -5615,20 +5511,6 @@ On devices with large blocks (e.g. 128kB) setting this to a low size (2-8kB) can
             <CANopenSubObject subIndex="0F" name="CMD Port" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A00F" />
             <CANopenSubObject subIndex="10" name="CMD Pin" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A010" />
             <CANopenSubObject subIndex="11" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A011" />
-            <CANopenSubObject subIndex="12" name="Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A012" />
-            <CANopenSubObject subIndex="13" name="Block size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A013" />
-            <CANopenSubObject subIndex="14" name="Block count" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A014" />
-            <CANopenSubObject subIndex="15" name="Max Bus Clock Frequency" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A015" />
-            <CANopenSubObject subIndex="16" name="CSD Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A016" />
-            <CANopenSubObject subIndex="17" name="Relative Card Address" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A017" />
-            <CANopenSubObject subIndex="18" name="Manufacturer ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A018" />
-            <CANopenSubObject subIndex="19" name="OEM ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A019" />
-            <CANopenSubObject subIndex="1A" name="Product Name" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01A" />
-            <CANopenSubObject subIndex="1B" name="Product Revision" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01B" />
-            <CANopenSubObject subIndex="1C" name="Serial Number " objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01C" />
-            <CANopenSubObject subIndex="1D" name="Manufacturing Date" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01D" />
-            <CANopenSubObject subIndex="1E" name="Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01E" />
-            <CANopenSubObject subIndex="1F" name="High Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_62A01F" />
           </CANopenObject>
           <CANopenObject index="6300" name="Module ADC 1" objectType="9" uniqueIDRef="UID_OBJ_6300" subNumber="7">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_630000" />
@@ -5697,33 +5579,34 @@ On devices with large blocks (e.g. 128kB) setting this to a low size (2-8kB) can
             <CANopenSubObject subIndex="05" name="Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_740005" />
             <CANopenSubObject subIndex="06" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_740006" />
           </CANopenObject>
-          <CANopenObject index="7500" name="Storage SDCard" objectType="9" uniqueIDRef="UID_OBJ_7500" subNumber="26">
+          <CANopenObject index="7500" name="Storage SDCard" objectType="9" uniqueIDRef="UID_OBJ_7500" subNumber="27">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750000" />
             <CANopenSubObject subIndex="01" name="SDIO Index" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750001" />
             <CANopenSubObject subIndex="02" name="FS Read size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750002" />
             <CANopenSubObject subIndex="03" name="FS Program Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750003" />
             <CANopenSubObject subIndex="04" name="FS Block Cycles" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750004" />
             <CANopenSubObject subIndex="05" name="FS Cache Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750005" />
-            <CANopenSubObject subIndex="06" name="FS Lookeahed Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750006" />
+            <CANopenSubObject subIndex="06" name="FS Lookahead Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750006" />
             <CANopenSubObject subIndex="07" name="FS Name Max Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750007" />
             <CANopenSubObject subIndex="08" name="FS File Max Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750008" />
             <CANopenSubObject subIndex="09" name="FS Attr Max Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750009" />
             <CANopenSubObject subIndex="0A" name="FS Metadata Max Size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000A" />
-            <CANopenSubObject subIndex="0B" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000B" />
-            <CANopenSubObject subIndex="0C" name="Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000C" />
-            <CANopenSubObject subIndex="0D" name="Block size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000D" />
-            <CANopenSubObject subIndex="0E" name="Block count" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000E" />
-            <CANopenSubObject subIndex="0F" name="Max Bus Clock Frequency" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000F" />
-            <CANopenSubObject subIndex="10" name="CSD Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750010" />
-            <CANopenSubObject subIndex="11" name="Relative Card Address" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750011" />
-            <CANopenSubObject subIndex="12" name="Manufacturer ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750012" />
-            <CANopenSubObject subIndex="13" name="OEM ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750013" />
-            <CANopenSubObject subIndex="14" name="Product Name" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750014" />
-            <CANopenSubObject subIndex="15" name="Product Revision" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750015" />
-            <CANopenSubObject subIndex="16" name="Serial Number " objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750016" />
-            <CANopenSubObject subIndex="17" name="Manufacturing Date" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750017" />
-            <CANopenSubObject subIndex="18" name="Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750018" />
-            <CANopenSubObject subIndex="19" name="High Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750019" />
+            <CANopenSubObject subIndex="0B" name="FS Volume name" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000B" />
+            <CANopenSubObject subIndex="0C" name="Phase" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000C" />
+            <CANopenSubObject subIndex="0D" name="Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000D" />
+            <CANopenSubObject subIndex="0E" name="Block size" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000E" />
+            <CANopenSubObject subIndex="0F" name="Block count" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75000F" />
+            <CANopenSubObject subIndex="10" name="Max Bus Clock Frequency" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750010" />
+            <CANopenSubObject subIndex="11" name="CSD Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750011" />
+            <CANopenSubObject subIndex="12" name="Relative Card Address" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750012" />
+            <CANopenSubObject subIndex="13" name="Manufacturer ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750013" />
+            <CANopenSubObject subIndex="14" name="OEM ID" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750014" />
+            <CANopenSubObject subIndex="15" name="Product Name" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750015" />
+            <CANopenSubObject subIndex="16" name="Product Revision" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750016" />
+            <CANopenSubObject subIndex="17" name="Serial Number " objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750017" />
+            <CANopenSubObject subIndex="18" name="Manufacturing Date" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750018" />
+            <CANopenSubObject subIndex="19" name="Version" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_750019" />
+            <CANopenSubObject subIndex="1A" name="High Capacity" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_75001A" />
           </CANopenObject>
           <CANopenObject index="8000" name="Input Sensor 1" objectType="9" uniqueIDRef="UID_OBJ_8000" subNumber="7">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_800000" />

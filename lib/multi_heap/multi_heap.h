@@ -61,10 +61,10 @@ void    *multi_realloc_dma(void *pv, size_t xWantedSize); /* if pv is valid -> n
 size_t  heapsize_dma(void);
 
 /* Internal memory region(s) (MALLOC_INTREGION) */
-void    *multi_malloc_int(size_t xWantedSize);
-void    *multi_calloc_int(size_t nmemb, size_t xWantedSize);
-void    *multi_realloc_int(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
-size_t  heapsize_int(void);
+void    *multi_malloc_fast(size_t xWantedSize);
+void    *multi_calloc_fast(size_t nmemb, size_t xWantedSize);
+void    *multi_realloc_fast(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
+size_t  heapsize_fast(void);
 
 /* External memory region(s)  (MALLOC_EXTREGION)*/
 void    *multi_malloc_ext(size_t xWantedSize);

@@ -84,7 +84,7 @@ static app_signal_t at24c_task_write(app_job_t *job, uint8_t address, uint8_t *d
     switch (job->task_phase) {
     case 0:
         job->counter = 0;
-        at24c->source_buffer = app_buffer_source_copy(job->actor, data, size);
+        at24c->source_buffer = app_buffer_snapshot(job->actor, data, size);
         if (at24c->source_buffer == NULL) {
             return APP_JOB_FAILURE;
         } else {

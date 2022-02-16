@@ -6,8 +6,8 @@
 
 app_signal_t app_job_execute(app_job_t *job) {
   cm_disable_interrupts();
-  configASSERT(job);
-  configASSERT(job->handler);
+  debug_assert(job);
+  debug_assert(job->handler);
   bool_t halt = false;
   debug_printf("| ├ Task \t\t#%s at %u:%u for %s\n", get_app_event_type_name(job->inciting_event.type), job->job_phase, job->task_phase, get_actor_type_name(job->actor->class->type));
   while (!halt) {

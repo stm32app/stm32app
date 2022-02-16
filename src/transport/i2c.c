@@ -77,7 +77,7 @@ static void i2c_dma_rx_stop(transport_i2c_t *i2c) {
 static app_signal_t i2c_construct(transport_i2c_t *i2c) {
     // ring buffer struct is allocated right away, but not its memory
     // output buffer is allocated on demand
-    i2c->ring_buffer = app_buffer_allocate(i2c->actor);
+    i2c->ring_buffer = app_buffer_new(i2c->actor);
 
     if (!i2c->ring_buffer) {
         return APP_SIGNAL_OUT_OF_MEMORY;

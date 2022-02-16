@@ -311,7 +311,7 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id,
         } else {
             // if target buffer is not provided, sdio has ability to allocate buffer aligned to 16b to use dma burst
             sdio->source_buffer =
-                data == NULL ? app_buffer_target_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
+                data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
             sdio->source_buffer->size = size;
 
             for (size_t i = 0; i < 512; i++)
@@ -397,7 +397,7 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, 
         } else {
             // if target buffer is not provided, sdio has ability to allocate buffer aligned to 16b to use dma burst
             sdio->target_buffer =
-                data == NULL ? app_buffer_target_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
+                data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
             sdio->target_buffer->size = size;
             if (sdio->target_buffer == NULL) {
                 return APP_JOB_FAILURE;

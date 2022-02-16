@@ -16,7 +16,7 @@
 
         Created:      9/25/2021 2:03:07 AM
         Created By:   
-        Modified:     2/15/2022 4:45:31 PM
+        Modified:     2/16/2022 11:04:06 PM
         Modified By:  
 
     Device Info:
@@ -420,20 +420,6 @@ typedef struct {
         uint8_t CMD_Port;
         uint8_t CMD_Pin;
         uint8_t phase;
-        uint32_t capacity;
-        uint32_t blockSize;
-        uint32_t blockCount;
-        uint32_t maxBusClockFrequency;
-        uint8_t CSD_Version;
-        uint16_t relativeCardAddress;
-        uint8_t manufacturerID;
-        uint16_t OEM_ID;
-        char productName[6];
-        uint8_t productRevision;
-        uint32_t serialNumber;
-        uint16_t manufacturingDate;
-        uint8_t version;
-        bool_t highCapacity;
     } x62A0_transportSDIO;
     struct {
         uint8_t highestSub_indexSupported;
@@ -496,6 +482,7 @@ typedef struct {
         uint32_t FS_FileMaxSize;
         uint32_t FS_AttrMaxSize;
         uint32_t FS_MetadataMaxSize;
+        char FS_VolumeName[17];
         uint8_t phase;
         uint32_t capacity;
         uint32_t blockSize;

@@ -15,9 +15,16 @@
 #define APP_BUFFER_DYNAMIC_SIZE ((uint32_t)-1)
 
 typedef enum app_buffer_flag {
-  APP_BUFFER_UNMANAGED = 1,
-  APP_BUFFER_PROGRESS = 2,
-  APP_BUFFER_ALIGNED = 3,
+  // Buffer memory is owned by some other party and it shouldnt be freed
+  APP_BUFFER_UNMANAGED = 1 << 0,
+  // Buffer requires strict memory alignment (through overallocation)
+  APP_BUFFER_ALIGNED = 1 << 1,
+  // Buffer target memory needs to have DMA access
+  APP_BUFFER_DMA = 1 << 2,
+  // Buffer can be offloaded to slower memory without DMA access
+  APP_BUFFER_EXT = 1 << 3,
+  // Buffer links to other buffers to grow instead of reallocation 
+  APP_BUFFER_CHUNKED = 1 << 4,
 } app_buffer_flag_t;
 
 /* Buffer wraps a growable chunk of memory that can be filled with long messages. Buffer is owned by one of the
@@ -33,16 +40,60 @@ struct app_buffer {
     uint32_t allocated_size;        // Size of memory that can be used before needing to reallocate
     uint8_t offset_from_allocation; // size of optional prelude region before payload
     uint8_t users;                  // Number of actors that currently use the buffer
-    uint8_t flags;
+    uint8_t options;
 };
 
-#define app_buffer_allocate(owner) app_buffer_target(owner, NULL, 0)
-app_buffer_t *app_buffer_target(actor_t *owner, uint8_t *data, uint32_t size);
-// allocate buffer that 
-app_buffer_t *app_buffer_target_aligned(actor_t *owner, uint32_t size, uint8_t alignment);
-app_buffer_t *app_buffer_source(actor_t *owner, uint8_t *data, uint32_t size);
-app_buffer_t *app_buffer_source_copy(actor_t *owner, uint8_t *data, uint32_t size);
-app_buffer_t *app_buffer_paginated(actor_t *owner, uint8_t *data, uint32_t size);
+/*          R/W?        Copies data?      Can use buffers    Memory-aligned? 
+Acquired    W           N                 N                  N
+Allocated   W           N/A               N/A                N
+Target      W           N                 Y                  N
+Aligned     W           N                 N                  Y
+Source      R           N                 Y                  N
+Snapshot    R           Y                 N                  N
+*/
+
+
+// Get growable buffer of specified `size` *to write to*, optionally using given `data` pointer as initial allocation, accepts `options`
+app_buffer_t *app_buffer_acquire_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options);
+// Get an empty buffer of given `size` *to write to*, either pointing to given `data` or freshly allocated 
+#define app_buffer_acquire(owner, data, size) app_buffer_acquire_with_options(owner, data, size, 0)
+// Get a buffer wrapper without allocating data
+#define app_buffer_new(owner) app_buffer_acquire_with_options(owner, NULL, 0, 0)
+
+// Get growable buffer *to write to* with freshly allocated memory of specified `size`, accepts `options`
+#define app_buffer_allocate_with_options(owner, size, options) app_buffer_acquire_with_options(owner, NULL, size, options)
+// Get growable buffer *to write to* with freshly allocated memory of specified `size`
+#define app_buffer_allocate(owner, size) app_buffer_allocate_with_options(owner, size, 0)
+
+// Get an empty buffer of given `size` *to write to*, either pointing to given `data` or freshly allocated 
+// When `size` is `-1`, it assumes data points to another buffer that can be used directly with reference tracking
+// Accepts `options`
+app_buffer_t *app_buffer_target_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options);
+// Get an empty buffer of given `size` *to write to*, either pointing to given `data` or freshly allocated 
+// When `size` is `-1`, it assumes data points to another buffer that can be used directly with reference tracking
+#define app_buffer_target(owner, size, alignment) app_buffer_target_with_options(owner, size, alignment, 0)
+
+// Allocate an empty oversized buffer *to write to*, with shifted data pointer matching byte `alignment`, accepts options
+app_buffer_t *app_buffer_aligned_with_options(actor_t *owner, uint32_t size, uint8_t options, uint8_t alignment);
+// Allocate an empty oversized buffer *to write to*, with shifted data pointer matching byte `alignment`
+#define app_buffer_aligned(owner, size, alignment) app_buffer_aligned_with_options(owner, size, alignment, 0)
+
+// Wrap given memory into a buffer *to read from*, so its interal `size` will equal given `size`
+// Size of -1 indicates that `data` points to another buffer that can be used directly with reference tracking
+// Accepts `options`
+app_buffer_t *app_buffer_source_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options);
+// Wrap given memory into a buffer *to read from*, so its interal `size` will equal given `size`
+// Size of -1 indicates that `data` points to another buffer that can be used directly with reference tracking
+#define app_buffer_source(owner, data, size) app_buffer_source_with_options(owner, data, size, 0)
+
+// Copy given memory into a new buffer *to read from*, its internal `size` will equal given `size`
+// Size of -1 indicates that `data` points to another buffer, but it will not be referenced directly
+// Accepts options
+app_buffer_t *app_buffer_snapshot_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options);
+// Copy given memory into a new buffer *to read from*, its internal `size` will equal given `size`
+// Size of -1 indicates that `data` points to another buffer, but it will not be referenced directly
+#define app_buffer_snapshot(owner, data, size) app_buffer_snapshot_with_options(owner, data, size, 0)
+
 
 app_buffer_t *app_buffer_take_from_pool(actor_t *actor);
 void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor);

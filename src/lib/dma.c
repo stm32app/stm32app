@@ -152,7 +152,7 @@ uint32_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint32_t buf
     return buffer_size - dma_get_number_of_data(dma_get_address(unit), index);
 }
 // memory location of a buffer has to be aligned to burst_size * byte_width to ensure single AHB copy does cross 1kb boundary
-// buffers allocated with `app_buffer_target_aligned` are guaranteed to be aligned, while others may be aligned by accident
+// buffers allocated with `app_buffer_aligned` are guaranteed to be aligned, while others may be aligned by accident
 uint32_t actor_dma_get_safe_burst_size(uint8_t *data, size_t size, uint8_t width, uint8_t fifo_threshold) {
     uint32_t address = (uint32_t)data;
     uint32_t start_page_address = address / 1024;

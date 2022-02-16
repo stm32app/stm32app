@@ -7,33 +7,30 @@ static app_signal_t app_buffer_reference(app_buffer_t *buffer) {
 }
 
 static app_signal_t app_buffer_dereference(app_buffer_t *buffer) {
-    configASSERT(buffer->users > 0);
+    debug_assert(buffer->users > 0);
     buffer->users--;
     return 0;
 }
 
-app_buffer_t *app_buffer_target(actor_t *owner, uint8_t *data, uint32_t size) {
-    app_buffer_t *buffer;
-    if (size == APP_BUFFER_DYNAMIC_SIZE) {
-        // use given buffer as front
-        buffer = (app_buffer_t *)data;
-        app_buffer_reference(buffer);
-    } else {
-        debug_printf("│ │ ├ Allocate\t\t%s takes buffer of size %lu\n", get_actor_type_name(owner->class->type), size);
-        buffer = app_buffer_take_from_pool(owner);
-        if (buffer != NULL) {
-            buffer->owner = owner;
-            if (size > 0) {
-                if (data != NULL) {
-                    // use given chunk of memory directly in a buffer
-                    // buffer will marked as unmanaged, so the memory will not be freed automatically
-                    buffer->flags |= APP_BUFFER_UNMANAGED;
-                    app_buffer_set_data(buffer, data, size);
-                } else {
-                    // allocate known amount of memory
-                    if (app_buffer_set_size(buffer, size)) {
-                        app_buffer_release(buffer, owner);
-                    }
+app_buffer_t *app_buffer_acquire_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options) {
+    debug_printf("│ │ ├ Allocate\t\t%s takes buffer of size %lu\n", get_actor_type_name(owner->class->type), size);
+    app_buffer_t *buffer = app_buffer_take_from_pool(owner);
+    if (buffer != NULL) {
+        buffer->options = options;
+        buffer->owner = owner;
+        if (options & APP_BUFFER_CHUNKED) {
+            buffer->next = buffer;
+        }
+        if (size > 0) {
+            if (data != NULL) {
+                // use given chunk of memory directly in a buffer
+                // buffer will marked as unmanaged, so the memory will not be freed automatically
+                buffer->options |= APP_BUFFER_UNMANAGED;
+                app_buffer_set_data(buffer, data, size);
+            } else {
+                // allocate known amount of memory
+                if (app_buffer_set_size(buffer, size)) {
+                    app_buffer_release(buffer, owner);
                 }
             }
         }
@@ -41,36 +38,43 @@ app_buffer_t *app_buffer_target(actor_t *owner, uint8_t *data, uint32_t size) {
     return buffer;
 }
 
-// creates buffer that has its data aligned to specific number of bytes
-// extra care needs to be taken when growing this buffer, the owner has to realign it
-app_buffer_t *app_buffer_target_aligned(actor_t *owner, uint32_t size, uint8_t alignment) {
+app_buffer_t *app_buffer_target_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options) {
+    app_buffer_t *buffer;
+    if (size == APP_BUFFER_DYNAMIC_SIZE) {
+        // use given buffer as front
+        buffer = (app_buffer_t *)data;
+        app_buffer_reference(buffer);
+    } else {
+        app_buffer_acquire_with_options(owner, data, size, options);
+    }
+    return buffer;
+}
+
+app_buffer_t *app_buffer_source_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options) {
+    debug_assert(data);
+    debug_assert(size > 0);
+    app_buffer_t *buffer = app_buffer_target_with_options(owner, data, size, options);
+    buffer->size = buffer->allocated_size;
+    return buffer;
+}
+
+app_buffer_t *app_buffer_snapshot_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options) {
+    app_buffer_t *buffer = app_buffer_target_with_options(owner, NULL, 0, options);
+    app_buffer_append(buffer, data, size);
+    return buffer;
+}
+
+app_buffer_t *app_buffer_aligned_with_options(actor_t *owner, uint32_t size, uint8_t options, uint8_t alignment) {
     // over-allocate, then trim
-    app_buffer_t *buffer = app_buffer_target(owner, NULL, size + alignment - 1); //overallocate 
+    app_buffer_t *buffer = app_buffer_allocate_with_options(owner, size + alignment - 1, options | APP_BUFFER_ALIGNED); //overallocate 
     if (buffer != NULL && alignment > 0) {
         app_buffer_align(buffer, alignment);
     }
     return buffer;
 }
 
-app_buffer_t *app_buffer_source(actor_t *owner, uint8_t *data, uint32_t size) {
-    app_buffer_t *buffer = app_buffer_target(owner, data, size);
-    buffer->size = buffer->allocated_size;
-    return buffer;
-}
 
-app_buffer_t *app_buffer_source_copy(actor_t *owner, uint8_t *data, uint32_t size) {
-    app_buffer_t *buffer = app_buffer_target(owner, NULL, 0);
-    app_buffer_append(buffer, data, size);
-    return buffer;
-}
-app_buffer_t *app_buffer_paginated(actor_t *owner, uint8_t *data, uint32_t size) {
-    app_buffer_t *buffer = app_buffer_target(owner, NULL, 0);
-    buffer->next = buffer;
-    app_buffer_append(buffer, data, size);
-    return buffer;
-}
-
-// paginated buffers are linked into circular loop, so meeing first page means last page is reached
+// chunked buffers are linked into circular loop, so last page points to first
 app_buffer_t *app_buffer_get_next_page(app_buffer_t *buffer, app_buffer_t *first) {
     if (buffer->next && buffer->next != first) {
         return buffer->next;
@@ -106,7 +110,7 @@ void app_buffer_use(app_buffer_t *buffer, actor_t *actor) {
 app_signal_t app_buffer_reserve(app_buffer_t *buffer, uint32_t size) {
     if (size > buffer->allocated_size) {
         // only managed buffers can be reallocated
-        configASSERT(buffer->owner);
+        debug_assert(buffer->owner);
         if (buffer->owner->class->on_buffer) {
             return buffer->owner->class->on_buffer(buffer->owner->object, buffer, size);
         } else {
@@ -116,9 +120,19 @@ app_signal_t app_buffer_reserve(app_buffer_t *buffer, uint32_t size) {
     return 0;
 }
 
+static void *app_buffer_realloc(app_buffer_t *buffer, uint32_t size) {
+    if (buffer->options & APP_BUFFER_DMA) {
+        return app_realloc_dma(buffer->data, size);
+    } else if (buffer->options & APP_BUFFER_EXT) {
+        return app_realloc_ext(buffer->data, size);
+    } else {
+        return app_realloc(buffer->data, size);
+    }
+} 
+
 app_signal_t app_buffer_set_size(app_buffer_t *buffer, uint32_t size) {
     buffer->allocated_size = size;
-    buffer->data = app_realloc(buffer->data, size);
+    buffer->data = app_buffer_realloc(buffer, size);
     if (buffer->data == NULL) {
         return APP_SIGNAL_OUT_OF_MEMORY;
     } else {
@@ -196,8 +210,8 @@ app_signal_t app_buffer_trim_right(app_buffer_t *buffer, uint8_t offset) {
 }
 
 app_signal_t app_buffer_set_data(app_buffer_t *buffer, uint8_t *data, uint32_t size) {
-    configASSERT(size);
-    configASSERT(data);
+    debug_assert(size);
+    debug_assert(data);
     buffer->data = data;
     buffer->allocated_size = size;
     return 0;
@@ -272,7 +286,7 @@ void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor) {
                  buffer->allocated_size);
     for (app_buffer_t *page = buffer; page; page = app_buffer_get_next_page(page, buffer)) {
         // data is only freed when managed buffer is freed
-        if (!(buffer->flags & APP_BUFFER_UNMANAGED)) {
+        if (!(buffer->options & APP_BUFFER_UNMANAGED)) {
             app_free(page->data - page->offset_from_allocation);
         }
         // buffers are already in pool, so they only need to be cleaned up for reuse
@@ -287,7 +301,7 @@ app_buffer_t *app_buffer_align(app_buffer_t *buffer, uint8_t alignment) {
         app_buffer_trim_left(buffer, offset); // shift pointer to aligned spot
         buffer->allocated_size -= offset; // hide over-allocated space
     }
-    buffer->flags &= APP_BUFFER_ALIGNED;
+    buffer->options |= APP_BUFFER_ALIGNED;
     return buffer;
 }
 

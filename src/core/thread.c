@@ -207,7 +207,7 @@ static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event,
             }
 
             // If the target queue is full, event gets lost.
-            if (xQueueSend(queue, &event, 0)) {
+            if (xQueueSend(queue, event, 0)) {
                 if (event->status == APP_EVENT_DEFERRED && previous_status != APP_EVENT_DEFERRED) {
                     return 1;
                 }

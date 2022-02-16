@@ -24,6 +24,7 @@ typedef struct storage_sdcard_properties {
     uint32_t fs_file_max_size; // Optional upper limit on files in bytes.  
     uint32_t fs_attr_max_size; // Optional upper limit on custom attributes in bytes.  
     uint32_t fs_metadata_max_size; // Optional upper limit on total space given to metadata pairs in bytes.  
+    char fs_volume_name[17];
     uint8_t phase;
     uint32_t capacity;
     uint32_t block_size;
@@ -47,8 +48,10 @@ struct storage_sdcard {
     storage_sdcard_properties_t *properties;
     transport_sdio_t *sdio;
     app_job_t job;
-    coru_t *coroutine_read;
-    coru_t *coroutine_sync;
+    coru_t *io;
+    app_buffer_t *lookahead_buffer;
+    app_buffer_t *read_buffer;
+    app_buffer_t *prog_buffer;
     struct lfs_config fs_config;
 };
 
@@ -66,122 +69,123 @@ typedef enum storage_sdcard_properties_properties {
   STORAGE_SDCARD_FS_FILE_MAX_SIZE = 0x08,
   STORAGE_SDCARD_FS_ATTR_MAX_SIZE = 0x09,
   STORAGE_SDCARD_FS_METADATA_MAX_SIZE = 0x0A,
-  STORAGE_SDCARD_PHASE = 0x0B,
-  STORAGE_SDCARD_CAPACITY = 0x0C,
-  STORAGE_SDCARD_BLOCK_SIZE = 0x0D,
-  STORAGE_SDCARD_BLOCK_COUNT = 0x0E,
-  STORAGE_SDCARD_MAX_BUS_CLOCK_FREQUENCY = 0x0F,
-  STORAGE_SDCARD_CSD_VERSION = 0x10,
-  STORAGE_SDCARD_RELATIVE_CARD_ADDRESS = 0x11,
-  STORAGE_SDCARD_MANUFACTURER_ID = 0x12,
-  STORAGE_SDCARD_OEM_ID = 0x13,
-  STORAGE_SDCARD_PRODUCT_NAME = 0x14,
-  STORAGE_SDCARD_PRODUCT_REVISION = 0x15,
-  STORAGE_SDCARD_SERIAL_NUMBER = 0x16,
-  STORAGE_SDCARD_MANUFACTURING_DATE = 0x17,
-  STORAGE_SDCARD_VERSION = 0x18,
-  STORAGE_SDCARD_HIGH_CAPACITY = 0x19
+  STORAGE_SDCARD_FS_VOLUME_NAME = 0x0B,
+  STORAGE_SDCARD_PHASE = 0x0C,
+  STORAGE_SDCARD_CAPACITY = 0x0D,
+  STORAGE_SDCARD_BLOCK_SIZE = 0x0E,
+  STORAGE_SDCARD_BLOCK_COUNT = 0x0F,
+  STORAGE_SDCARD_MAX_BUS_CLOCK_FREQUENCY = 0x10,
+  STORAGE_SDCARD_CSD_VERSION = 0x11,
+  STORAGE_SDCARD_RELATIVE_CARD_ADDRESS = 0x12,
+  STORAGE_SDCARD_MANUFACTURER_ID = 0x13,
+  STORAGE_SDCARD_OEM_ID = 0x14,
+  STORAGE_SDCARD_PRODUCT_NAME = 0x15,
+  STORAGE_SDCARD_PRODUCT_REVISION = 0x16,
+  STORAGE_SDCARD_SERIAL_NUMBER = 0x17,
+  STORAGE_SDCARD_MANUFACTURING_DATE = 0x18,
+  STORAGE_SDCARD_VERSION = 0x19,
+  STORAGE_SDCARD_HIGH_CAPACITY = 0x1A
 } storage_sdcard_properties_properties_t;
 
-/* 0x75XX0B: null */
+/* 0x75XX0C: null */
 static inline void storage_sdcard_set_phase(storage_sdcard_t *sdcard, uint8_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_PHASE, (uint32_t)(value), sizeof(uint8_t));
 }
 static inline uint8_t storage_sdcard_get_phase(storage_sdcard_t *sdcard) {
     return *((uint8_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_PHASE));
 }
-/* 0x75XX0C: null */
+/* 0x75XX0D: null */
 static inline void storage_sdcard_set_capacity(storage_sdcard_t *sdcard, uint32_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_CAPACITY, (uint32_t)(value), sizeof(uint32_t));
 }
 static inline uint32_t storage_sdcard_get_capacity(storage_sdcard_t *sdcard) {
     return *((uint32_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_CAPACITY));
 }
-/* 0x75XX0D: null */
+/* 0x75XX0E: null */
 static inline void storage_sdcard_set_block_size(storage_sdcard_t *sdcard, uint32_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_BLOCK_SIZE, (uint32_t)(value), sizeof(uint32_t));
 }
 static inline uint32_t storage_sdcard_get_block_size(storage_sdcard_t *sdcard) {
     return *((uint32_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_BLOCK_SIZE));
 }
-/* 0x75XX0E: null */
+/* 0x75XX0F: null */
 static inline void storage_sdcard_set_block_count(storage_sdcard_t *sdcard, uint32_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_BLOCK_COUNT, (uint32_t)(value), sizeof(uint32_t));
 }
 static inline uint32_t storage_sdcard_get_block_count(storage_sdcard_t *sdcard) {
     return *((uint32_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_BLOCK_COUNT));
 }
-/* 0x75XX0F: null */
+/* 0x75XX10: null */
 static inline void storage_sdcard_set_max_bus_clock_frequency(storage_sdcard_t *sdcard, uint32_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_MAX_BUS_CLOCK_FREQUENCY, (uint32_t)(value), sizeof(uint32_t));
 }
 static inline uint32_t storage_sdcard_get_max_bus_clock_frequency(storage_sdcard_t *sdcard) {
     return *((uint32_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_MAX_BUS_CLOCK_FREQUENCY));
 }
-/* 0x75XX10: null */
+/* 0x75XX11: null */
 static inline void storage_sdcard_set_csd_version(storage_sdcard_t *sdcard, uint8_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_CSD_VERSION, (uint32_t)(value), sizeof(uint8_t));
 }
 static inline uint8_t storage_sdcard_get_csd_version(storage_sdcard_t *sdcard) {
     return *((uint8_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_CSD_VERSION));
 }
-/* 0x75XX11: null */
+/* 0x75XX12: null */
 static inline void storage_sdcard_set_relative_card_address(storage_sdcard_t *sdcard, uint16_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_RELATIVE_CARD_ADDRESS, (uint32_t)(value), sizeof(uint16_t));
 }
 static inline uint16_t storage_sdcard_get_relative_card_address(storage_sdcard_t *sdcard) {
     return *((uint16_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_RELATIVE_CARD_ADDRESS));
 }
-/* 0x75XX12: null */
+/* 0x75XX13: null */
 static inline void storage_sdcard_set_manufacturer_id(storage_sdcard_t *sdcard, uint8_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_MANUFACTURER_ID, (uint32_t)(value), sizeof(uint8_t));
 }
 static inline uint8_t storage_sdcard_get_manufacturer_id(storage_sdcard_t *sdcard) {
     return *((uint8_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_MANUFACTURER_ID));
 }
-/* 0x75XX13: null */
+/* 0x75XX14: null */
 static inline void storage_sdcard_set_oem_id(storage_sdcard_t *sdcard, uint16_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_OEM_ID, (uint32_t)(value), sizeof(uint16_t));
 }
 static inline uint16_t storage_sdcard_get_oem_id(storage_sdcard_t *sdcard) {
     return *((uint16_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_OEM_ID));
 }
-/* 0x75XX14: null */
-static inline void storage_sdcard_set_product_name(storage_sdcard_t *sdcard, char  *value, size_t size) {
+/* 0x75XX15: null */
+static inline void storage_sdcard_set_product_name(storage_sdcard_t *sdcard, char *value, size_t size) {
     actor_set_property_string(sdcard->actor, STORAGE_SDCARD_PRODUCT_NAME, value, size);
 }
 static inline char *storage_sdcard_get_product_name(storage_sdcard_t *sdcard) {
     return (char *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_PRODUCT_NAME);
 }
-/* 0x75XX15: null */
+/* 0x75XX16: null */
 static inline void storage_sdcard_set_product_revision(storage_sdcard_t *sdcard, uint8_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_PRODUCT_REVISION, (uint32_t)(value), sizeof(uint8_t));
 }
 static inline uint8_t storage_sdcard_get_product_revision(storage_sdcard_t *sdcard) {
     return *((uint8_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_PRODUCT_REVISION));
 }
-/* 0x75XX16: null */
+/* 0x75XX17: null */
 static inline void storage_sdcard_set_serial_number(storage_sdcard_t *sdcard, uint32_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_SERIAL_NUMBER, (uint32_t)(value), sizeof(uint32_t));
 }
 static inline uint32_t storage_sdcard_get_serial_number(storage_sdcard_t *sdcard) {
     return *((uint32_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_SERIAL_NUMBER));
 }
-/* 0x75XX17: null */
+/* 0x75XX18: null */
 static inline void storage_sdcard_set_manufacturing_date(storage_sdcard_t *sdcard, uint16_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_MANUFACTURING_DATE, (uint32_t)(value), sizeof(uint16_t));
 }
 static inline uint16_t storage_sdcard_get_manufacturing_date(storage_sdcard_t *sdcard) {
     return *((uint16_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_MANUFACTURING_DATE));
 }
-/* 0x75XX18: 2 or 1 */
+/* 0x75XX19: 2 or 1 */
 static inline void storage_sdcard_set_version(storage_sdcard_t *sdcard, uint8_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_VERSION, (uint32_t)(value), sizeof(uint8_t));
 }
 static inline uint8_t storage_sdcard_get_version(storage_sdcard_t *sdcard) {
     return *((uint8_t *) actor_get_property_pointer(sdcard->actor, STORAGE_SDCARD_VERSION));
 }
-/* 0x75XX19: 1 for SDHC/SDXC card */
+/* 0x75XX1A: 1 for SDHC/SDXC card */
 static inline void storage_sdcard_set_high_capacity(storage_sdcard_t *sdcard, bool_t value) { 
     actor_set_property_numeric(sdcard->actor, STORAGE_SDCARD_HIGH_CAPACITY, (uint32_t)(value), sizeof(bool_t));
 }
