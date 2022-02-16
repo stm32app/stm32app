@@ -11,7 +11,7 @@ static app_signal_t usart_construct(transport_usart_t *usart) {
     usart->dma_rx_address = dma_get_address(usart->properties->dma_rx_unit);
     usart->dma_tx_address = dma_get_address(usart->properties->dma_tx_unit);
 
-    usart->dma_rx_circular_buffer = malloc(usart->properties->dma_rx_circular_buffer_size);
+    usart->dma_rx_circular_buffer = app_malloc(usart->properties->dma_rx_circular_buffer_size);
 
     if (usart->dma_rx_address == 0 || usart->dma_tx_address == 0) {
         return 0;
@@ -74,7 +74,7 @@ static app_signal_t usart_accept(transport_usart_t *usart, actor_t *target, void
 }
 
 static app_signal_t usart_destruct(transport_usart_t *usart) {
-    free(usart->dma_rx_circular_buffer);
+    app_free(usart->dma_rx_circular_buffer);
     return 0;
 }
 

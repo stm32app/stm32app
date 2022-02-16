@@ -1,6 +1,6 @@
 
 #include "debug.h"
-#include "FreeRTOS.h"
+#include <FreeRTOS.h>
 #include "task.h"
 
 #ifdef DEBUG
@@ -109,8 +109,9 @@ void hard_fault_handler_inside(struct scb_exception_stack_frame *frame) {
     (void)(_BFAR);
     (void)(_MMAR);
 
+
     buffered_printf_flush();
-    __asm("BKPT #0\n"); // Break into the debugger
+    __asm("BKPT #0\n"); // Break into the debuggezr
     while (1) {
     }
 };

@@ -1,6 +1,5 @@
 #include "core/buffer.h"
 #include "core/actor.h"
-#include "lib/debug.h"
 
 static app_signal_t app_buffer_reference(app_buffer_t *buffer) {
     buffer->users++;
@@ -119,7 +118,7 @@ app_signal_t app_buffer_reserve(app_buffer_t *buffer, uint32_t size) {
 
 app_signal_t app_buffer_set_size(app_buffer_t *buffer, uint32_t size) {
     buffer->allocated_size = size;
-    buffer->data = realloc(buffer->data, size);
+    buffer->data = app_realloc(buffer->data, size);
     if (buffer->data == NULL) {
         return APP_SIGNAL_OUT_OF_MEMORY;
     } else {
@@ -274,7 +273,7 @@ void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor) {
     for (app_buffer_t *page = buffer; page; page = app_buffer_get_next_page(page, buffer)) {
         // data is only freed when managed buffer is freed
         if (!(buffer->flags & APP_BUFFER_UNMANAGED)) {
-            free(page->data - page->offset_from_allocation);
+            app_free(page->data - page->offset_from_allocation);
         }
         // buffers are already in pool, so they only need to be cleaned up for reuse
         memset(page, 0, sizeof(app_buffer_t));
@@ -295,7 +294,7 @@ app_buffer_t *app_buffer_align(app_buffer_t *buffer, uint8_t alignment) {
 
 // allocate list of reusable buffers
 app_buffer_t *app_buffer_malloc(actor_t *actor) {
-    app_buffer_t *buffer = malloc(sizeof(app_buffer_t));
+    app_buffer_t *buffer = app_malloc(sizeof(app_buffer_t));
     *buffer = ((app_buffer_t){.next = buffer, .owner = actor});
     return buffer;
 }

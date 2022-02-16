@@ -183,32 +183,32 @@ static void sdio_read_r2(uint32_t *destination) {
     *destination++ = bitswap32(SDIO_RESP4);
 }
 
-static void sdio_parse_cid(transport_sdio_t *sdio) {
+static void sdio_parse_cid(storage_sdcard_t *sdcard) {
     uint8_t cid[16];
     sdio_read_r2((uint32_t *)&cid);
-    storage_sdio_set_manufacturer_id(sdio, cid[0]);
-    storage_sdio_set_oem_id(sdio, bitswap16(cid[1]));
-    storage_sdio_set_product_name(sdio, &cid[5], 5);
-    storage_sdio_set_product_revision(sdio, cid[8]);
-    storage_sdio_set_serial_number(sdio, bitswap32(cid[9]));
-    storage_sdio_set_manufacturing_date(sdio, bitswap16(cid[13]));
+    storage_sdcard_set_manufacturer_id(sdcard, cid[0]);
+    storage_sdcard_set_oem_id(sdcard, bitswap16(cid[1]));
+    storage_sdcard_set_product_name(sdcard, (char *) &cid[5], 5);
+    storage_sdcard_set_product_revision(sdcard, cid[8]);
+    storage_sdcard_set_serial_number(sdcard, bitswap32(cid[9]));
+    storage_sdcard_set_manufacturing_date(sdcard, bitswap16(cid[13]));
 }
 
-static void sdio_parse_csd(transport_sdio_t *sdio) {
+static void sdio_parse_csd(storage_sdcard_t *sdcard) {
     uint8_t csd[16];
     sdio_read_r2((uint32_t *)&csd);
-    storage_sdio_set_max_bus_clock_frequency(sdio, csd[3]);
-    storage_sdio_set_csd_version(sdio, csd[0] >> 6);
+    storage_sdcard_set_max_bus_clock_frequency(sdcard, csd[3]);
+    storage_sdcard_set_csd_version(sdcard, csd[0] >> 6);
     if (storage_sdcard_get_csd_version(sdcard) == 0) {
         uint32_t block_size = ((uint32_t)(csd[6] & 0x03) << 10) | ((uint32_t)csd[7] << 2) | ((csd[8] & 0xc0) >> 6);
         uint32_t multiplier = (((csd[9] & 0x03) << 1) | ((csd[10] & 0x80) >> 7));
-        storage_sdio_set_block_count(sdio, 1 + block_size * multiplier);
-        storage_sdio_set_block_size(sdio, csd[5] & 0x0f);
+        storage_sdcard_set_block_count(sdcard, 1 + block_size * multiplier);
+        storage_sdcard_set_block_size(sdcard, csd[5] & 0x0f);
     } else {
-        storage_sdio_set_block_count(sdio, 1 + (((csd[7] & 0x3f) << 16) | (csd[8] << 8) | csd[9]));
-        storage_sdio_set_block_size(sdio, 512);
+        storage_sdcard_set_block_count(sdcard, 1 + (((csd[7] & 0x3f) << 16) | (csd[8] << 8) | csd[9]));
+        storage_sdcard_set_block_size(sdcard, 512);
     }
-    storage_sdio_set_capacity(sdio, storage_sdcard_get_block_count(sdcard) * storage_sdcard_get_block_size(sdcard));
+    storage_sdcard_set_capacity(sdcard, storage_sdcard_get_block_count(sdcard) * storage_sdcard_get_block_size(sdcard));
 }
 
 static void sdio_set_bus_clock(uint8_t divider) {
@@ -300,7 +300,7 @@ static void sdio_dma_tx_stop(transport_sdio_t *sdio) {
 
 static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
     transport_sdio_t *sdio = job->actor->object;
-    storage_sdcard_t *sdcard = job->inciting_event->producer->object;
+    storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     uint32_t block_address = storage_sdcard_get_high_capacity(sdcard) ? block_id : block_id * 512;
     uint32_t size = 512 * block_count;
 
@@ -386,7 +386,7 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id,
 
 static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
     transport_sdio_t *sdio = job->actor->object;
-    storage_sdcard_t *sdcard = job->inciting_event->producer->object;
+    storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     uint32_t block_address = storage_sdcard_get_high_capacity(sdcard) ? block_id : block_id * 512;
     uint32_t size = 512 * block_count;
 
@@ -462,7 +462,7 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, 
 
 static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
     transport_sdio_t *sdio = job->actor->object;
-    storage_sdcard_t *sdcard = job->inciting_event->producer->object;
+    storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     // Power up the card
     switch (job->task_phase) {
     case 0:
@@ -480,12 +480,12 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         case APP_SIGNAL_BUSY:
             return APP_JOB_TASK_LOOP;
         case APP_SIGNAL_TIMEOUT:
-            storage_sdio_set_version(sdio, 1);
+            storage_sdcard_set_version(sdcard, 1);
             return APP_JOB_TASK_CONTINUE;
         case APP_SIGNAL_OK:
             // sdcard echoed back correctly
             if (SDIO_RESP1 == 0x1F1) {
-                storage_sdio_set_version(sdio, 2);
+                storage_sdcard_set_version(sdcard, 2);
                 job->task_phase += 1; // skip next step
                 return APP_JOB_TASK_CONTINUE;
             }
@@ -512,7 +512,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
             return APP_JOB_TASK_CONTINUE; // TODO: retries
         } else {
             if (SDIO_RESP1 & SDIO_HIGH_CAPACITY) {
-                storage_sdio_set_high_capacity(sdio, 1);
+                storage_sdcard_set_high_capacity(sdcard, 1);
             }
             return APP_JOB_TASK_CONTINUE;
         }
@@ -522,7 +522,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
     case 8:
         return sdio_send_command_and_wait(2, 0, SDIO_CMD_WAITRESP_LONG); // ALL_SEND_CID
     case 9:
-        sdio_parse_cid(sdio);
+        sdio_parse_cid(sdcard);
         printf("│ │ ├ Card name %.*s\n", 3, storage_sdcard_get_product_name(sdcard));
         if (storage_sdcard_get_product_name(sdcard)[0] == '\0') {
             printf("Bad card\n");
@@ -538,14 +538,14 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         if (SDIO_RESP1 & (0x00002000U | 0x00004000U | 0x00008000U)) {
             return APP_JOB_TASK_FAILURE;
         }
-        storage_sdio_set_relative_card_address(sdio, SDIO_RESP1 >> 16);
+        storage_sdcard_set_relative_card_address(sdcard, SDIO_RESP1 >> 16);
         return APP_JOB_TASK_CONTINUE;
 
     // Retrieve CSD register:
     case 12:
         return sdio_send_command_and_wait(9, (storage_sdcard_get_relative_card_address(sdcard) << 16), SDIO_CMD_WAITRESP_LONG); // SEND_CSD
     case 13:
-        sdio_parse_csd(sdio);
+        sdio_parse_csd(sdcard);
         printf("│ │ ├ Card capacity %luMB (%ld x %ldb blocks)\n", storage_sdcard_get_capacity(sdcard) >> 10, storage_sdcard_get_block_count(sdcard), storage_sdcard_get_block_size(sdcard));
         return APP_JOB_TASK_CONTINUE;
 
@@ -584,7 +584,6 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
 }
 
 static app_job_signal_t sdio_task_publish_response(app_job_t *job) {
-    app_buffer_t *buffer;
     transport_sdio_t *sdio = job->actor->object;
     switch (job->task_phase) {
     case 0:
@@ -604,17 +603,36 @@ static app_job_signal_t sdio_task_publish_response(app_job_t *job) {
 }
 
 
-static app_job_signal_t sdio_job_read(app_job_t *job) {
-    storage_sdcard_t *sdcard = job->inciting_event->producer->object;
+static app_job_signal_t sdio_job_mount(app_job_t *job) {
     switch (job->job_phase) {
     case 0:
-        if (storage_sdcard_get_capacity(sdcard) == 0) {
+        return sdio_task_detect_card(job);
+    default:
+        return APP_JOB_SUCCESS;
+    }
+}
+
+
+static app_job_signal_t sdio_job_unmount(app_job_t *job) {
+    switch (job->job_phase) {
+ //   case 0:
+//        return sdio_task_detect_card(job);
+    default:
+        return APP_JOB_SUCCESS;
+    }
+}
+
+static app_job_signal_t sdio_job_read(app_job_t *job) {
+    storage_sdcard_t *sdcard = job->inciting_event.producer->object;
+    switch (job->job_phase) {
+    case 0:
+        if (storage_sdcard_get_phase(sdcard) != ACTOR_RUNNING) {
             return sdio_task_detect_card(job);
         } else {
             return APP_JOB_TASK_SUCCESS;
         }
     case 1:
-        return sdio_task_read_block(job, (uint32_t) job->inciting_event->argument, job->inciting_event->data, job->inciting_event->size);
+        return sdio_task_read_block(job, (uint32_t) job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
     case 2:
         return sdio_task_publish_response(job);
     case 3:
@@ -626,7 +644,7 @@ static app_job_signal_t sdio_job_read(app_job_t *job) {
 }
 
 static app_job_signal_t sdio_job_write(app_job_t *job) {
-    storage_sdcard_t *sdcard = job->inciting_event->producer->object;
+    storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     switch (job->job_phase) {
     case 0:
         if (storage_sdcard_get_capacity(sdcard) == 0) {
@@ -635,7 +653,7 @@ static app_job_signal_t sdio_job_write(app_job_t *job) {
             return APP_JOB_TASK_SUCCESS;
         }
     case 1:
-        return sdio_task_write_block(job, (uint32_t) job->inciting_event->argument, job->inciting_event->data, job->inciting_event->size);
+        return sdio_task_write_block(job, (uint32_t) job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
     case 2:
         return APP_JOB_SUCCESS;
     case APP_JOB_FAILURE:
@@ -659,6 +677,12 @@ static app_signal_t sdio_on_input(transport_sdio_t *sdio, app_event_t *event, ac
     case APP_EVENT_WRITE:
         return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
                                                 sdio_job_write);
+    case APP_EVENT_MOUNT:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+                                                sdio_job_mount);
+    case APP_EVENT_UNMOUNT:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+                                                sdio_job_unmount);
     default:
         break;
     }

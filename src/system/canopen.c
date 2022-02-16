@@ -164,7 +164,7 @@ static app_signal_t canopen_worker_high_priority(system_canopen_t *canopen, void
     (void)argument;
     tick->next_time = 0;
 
-    uint32_t us_since_last = (thread->current_time - tick->last_time) * US_PER_TICK;
+    uint32_t us_since_last = (thread->current_time - tick->last_time) * 1000;
     uint32_t us_until_next = -1;
     switch (CO_process(canopen->instance, false, us_since_last, &us_until_next)) {
     case CO_RESET_COMM: actor_set_phase(canopen->actor->app->actor, ACTOR_RESETTING); break;
@@ -179,7 +179,7 @@ static app_signal_t canopen_worker_high_priority(system_canopen_t *canopen, void
         indicator_led_set_duty_cycle(canopen->green_led, CO_LED_GREEN(canopen->instance->LEDs, CO_LED_CANopen) ? 255 : 0);
 
     if (us_until_next != (uint32_t)-1) {
-        app_thread_worker_schedule(thread, tick, thread->current_time + us_until_next / US_PER_TICK);
+        app_thread_worker_schedule(thread, tick, thread->current_time + us_until_next / 1000);
     }
     return 0;
 }
@@ -207,7 +207,7 @@ static app_signal_t canopen_worker_input(system_canopen_t *canopen, void *argume
     }
     CO_UNLOCK_OD(canopen->instance->CANmodule);
     if (us_until_next != (uint32_t)-1) {
-        app_thread_worker_schedule(thread, tick, thread->current_time + us_until_next / US_PER_TICK);
+        app_thread_worker_schedule(thread, tick, thread->current_time + us_until_next / 1000);
     }
     return 0;
 }

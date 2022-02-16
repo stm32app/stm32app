@@ -16,7 +16,7 @@
 
         Created:      9/25/2021 2:03:07 AM
         Created By:   
-        Modified:     2/12/2022 10:42:11 PM
+        Modified:     2/15/2022 4:45:31 PM
         Modified By:  
 
     Device Info:
@@ -487,6 +487,15 @@ typedef struct {
     struct {
         uint8_t highestSub_indexSupported;
         uint16_t SDIO_Index;
+        uint32_t FS_ReadSize;
+        uint32_t FS_ProgramSize;
+        int32_t FS_BlockCycles;
+        uint16_t FS_CacheSize;
+        uint32_t FS_LookaheadSize;
+        uint32_t FS_NameMaxSize;
+        uint32_t FS_FileMaxSize;
+        uint32_t FS_AttrMaxSize;
+        uint32_t FS_MetadataMaxSize;
         uint8_t phase;
         uint32_t capacity;
         uint32_t blockSize;

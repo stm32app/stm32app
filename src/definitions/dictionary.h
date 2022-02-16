@@ -1,9 +1,9 @@
 
 typedef struct transport_sdio transport_sdio_t /* Secure input/output protocol*/;
-typedef struct device_circuit device_circuit_t /* */;
+typedef struct device_circuit device_circuit_t /* A relay that turns circuit on and off (pwm optional */;
 typedef struct system_mcu system_mcu_t /* */;
 typedef struct system_canopen system_canopen_t /* CANOpen framework*/;
-typedef struct module_timer module_timer_t /* */;
+typedef struct module_timer module_timer_t /* Basic 16-bit timer with low power consumption.*/;
 typedef struct transport_can transport_can_t /* */;
 typedef struct transport_spi transport_spi_t /* ADC Unit used for high-volume sampling of analog signals*/;
 typedef struct transport_usart transport_usart_t /* Serial protocol*/;
@@ -15,7 +15,7 @@ typedef struct storage_w25 storage_w25_t /* Winbond flash storage device over SP
 typedef struct storage_flash storage_flash_t /* Internal flash storage*/;
 typedef struct memory_sram memory_sram_t /* */;
 typedef struct storage_at24c storage_at24c_t /* I2C-based EEPROM*/;
-typedef struct storage_sdcard storage_sdcard_t /* */;
+typedef struct storage_sdcard storage_sdcard_t /* SDIO-based SDcard*/;
 typedef struct input_sensor input_sensor_t /* A sensor that measures a single analog value (i.e. current meter, tank level meter)*/;
 typedef struct control_touchscreen control_touchscreen_t /* */;
 typedef struct screen_epaper screen_epaper_t /* E-ink screen with low power consumption and low update frequency*/;
@@ -25,10 +25,10 @@ typedef struct signal_beeper signal_beeper_t /* */;
 enum actor_type {
     TRANSPORT_SDIO = 0x62A0, /* Secure input/output protocol*/
     CORE_APP = 0x3000, /* Configuration of global object*/
-    DEVICE_CIRCUIT = 0x4000, /* */
+    DEVICE_CIRCUIT = 0x4000, /* A relay that turns circuit on and off (pwm optional */
     SYSTEM_MCU = 0x6000, /* */
     SYSTEM_CANOPEN = 0x6020, /* CANOpen framework*/
-    MODULE_TIMER = 0x6100, /* */
+    MODULE_TIMER = 0x6100, /* Basic 16-bit timer with low power consumption.*/
     TRANSPORT_CAN = 0x6200, /* */
     TRANSPORT_SPI = 0x6220, /* ADC Unit used for high-volume sampling of analog signals*/
     TRANSPORT_USART = 0x6240, /* Serial protocol*/
@@ -40,7 +40,7 @@ enum actor_type {
     STORAGE_FLASH = 0x7200, /* Internal flash storage*/
     MEMORY_SRAM = 0x7300, /* */
     STORAGE_AT24C = 0x7400, /* I2C-based EEPROM*/
-    STORAGE_SDCARD = 0x7500, /* */
+    STORAGE_SDCARD = 0x7500, /* SDIO-based SDcard*/
     INPUT_SENSOR = 0x8000, /* A sensor that measures a single analog value (i.e. current meter, tank level meter)*/
     CONTROL_TOUCHSCREEN = 0x8100, /* */
     SCREEN_EPAPER = 0x9000, /* E-ink screen with low power consumption and low update frequency*/

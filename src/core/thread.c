@@ -386,7 +386,7 @@ void app_thread_worker_schedule(app_thread_t *thread, actor_worker_t *tick, uint
 
 int actor_worker_allocate(actor_worker_t **destination, actor_on_worker_t callback) {
     if (callback != NULL) {
-        *destination = malloc(sizeof(actor_worker_t));
+        *destination = app_malloc(sizeof(actor_worker_t));
         if (*destination == NULL) {
             return APP_SIGNAL_OUT_OF_MEMORY;
         }
@@ -402,14 +402,14 @@ void actor_worker_initialize(actor_worker_t *tick) {
 
 void actor_worker_free(actor_worker_t **tick) {
     if (*tick != NULL) {
-        free(*tick);
+        app_free(*tick);
         *tick = NULL;
     }
 }
 
 int app_thread_allocate(app_thread_t **destination, void *app_or_object, void (*callback)(void *ptr), const char *const name,
                         uint16_t stack_depth, size_t queue_size, size_t priority, void *argument) {
-    *destination = (app_thread_t *)malloc(sizeof(app_thread_t));
+    *destination = (app_thread_t *) app_malloc(sizeof(app_thread_t));
     app_thread_t *thread = *destination;
     thread->actor = ((app_t *)app_or_object)->actor;
     xTaskCreate(callback, name, stack_depth, (void *)thread, priority, (void *)&thread->task);
@@ -431,7 +431,7 @@ int app_thread_allocate(app_thread_t **destination, void *app_or_object, void (*
 }
 
 int app_thread_free(app_thread_t **thread) {
-    free(*thread);
+    app_free(*thread);
     if ((*thread)->queue != NULL) {
         vQueueDelete((*thread)->queue);
     }
@@ -499,7 +499,7 @@ size_t app_thread_get_worker_index(app_thread_t *thread) {
 }
 
 int actor_workers_allocate(actor_t *actor) {
-    actor->ticks = malloc(sizeof(actor_workers_t));
+    actor->ticks = app_malloc(sizeof(actor_workers_t));
     return actor_worker_allocate(&actor->ticks->input, actor->class->worker_input) ||
            actor_worker_allocate(&actor->ticks->medium_priority, actor->class->worker_medium_priority) ||
            actor_worker_allocate(&actor->ticks->high_priority, actor->class->worker_high_priority) ||
@@ -513,12 +513,12 @@ int actor_workers_free(actor_t *actor) {
     actor_worker_free(&actor->ticks->high_priority);
     actor_worker_free(&actor->ticks->low_priority);
     actor_worker_free(&actor->ticks->bg_priority);
-    free(actor->ticks);
+    app_free(actor->ticks);
     return 0;
 }
 
 int app_threads_allocate(app_t *app) {
-    app->threads = malloc(sizeof(app_threads_t));
+    app->threads = app_malloc(sizeof(app_threads_t));
     return app_thread_allocate(&app->threads->input, app, (void (*)(void *ptr))app_thread_execute, "Input", 300, 20, 5, NULL) ||
            app_thread_allocate(&app->threads->catchup, app, (void (*)(void *ptr))app_thread_execute, "Catchup", 200, 100, 5, NULL) ||
            app_thread_allocate(&app->threads->high_priority, app, (void (*)(void *ptr))app_thread_execute, "High P", 200, 1, 4, NULL) ||
@@ -538,6 +538,6 @@ int app_threads_free(app_t *app) {
     app_thread_free(&app->threads->high_priority);
     app_thread_free(&app->threads->low_priority);
     app_thread_free(&app->threads->bg_priority);
-    free(app->threads);
+    app_free(app->threads);
     return 0;
 }

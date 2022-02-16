@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include "env.h"
 #include "core/types.h"
 
 enum app_event_type {
@@ -20,6 +21,8 @@ enum app_event_type {
     APP_EVENT_TRANSFER,
 
     APP_EVENT_ERASE,
+    APP_EVENT_MOUNT,
+    APP_EVENT_UNMOUNT,
     APP_EVENT_RESPONSE,
     APP_EVENT_LOCK,
     APP_EVENT_UNLOCK,

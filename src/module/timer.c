@@ -19,7 +19,7 @@ static app_signal_t timer_validate(module_timer_properties_t *properties) {
 }
 
 static app_signal_t timer_construct(module_timer_t *timer) {
-    timer->subscriptions = malloc(sizeof(module_timer_subscription_t) * timer->properties->initial_subscriptions_count);
+    timer->subscriptions = app_malloc(sizeof(module_timer_subscription_t) * timer->properties->initial_subscriptions_count);
     timer->next_time = -1;
     timer->next_tick = timer->properties->period;
 

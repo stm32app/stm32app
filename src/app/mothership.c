@@ -6,6 +6,7 @@
 #include "module/timer.h"
 #include "storage/at24c.h"
 #include "storage/w25.h"
+#include "storage/sdcard.h"
 #include "system/canopen.h"
 #include "system/mcu.h"
 //#include "screen/epaper.h"
@@ -75,6 +76,7 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     count += app_actor_type_enumerate(app, od, &transport_sdio_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_w25_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_at24c_class, destination, count);
+    count += app_actor_type_enumerate(app, od, &storage_sdcard_class, destination, count);
     count += app_actor_type_enumerate(app, od, &indicator_led_class, destination, count);
     // count += app_actor_type_enumerate(MODULE_USART, &transport_usart_class, sizeof(transport_usart_t), destination, count);
     // count += app_actor_type_enumerate(app, od, TRANSPORT_I2C, &transport_i2c_class, sizeof(transport_i2c_t), destination, count);
@@ -113,9 +115,6 @@ static app_job_signal_t mothership_job_stats(app_job_t *job) {
         }
         for (size_t i = 0; i < HEAP_NUM; i++) {
             debug_printf("│ │ ├ Heap #0x%lx\t%ub/%ub free, %u lowest\n", (uint32_t) multiRegionGetHeapStartAddress(i), multiRegionGetFreeHeapSize(i), multiRegionGetHeapSize(i), multiRegionGetMinimumEverFreeHeapSize(i));
-//            debug_printf("│ │ │ ├ Blocks\t\t%ub min, %ub max, free %u\n", pxHeapStats.xSizeOfLargestFreeBlockInBytes, pxHeapStats.xSizeOfSmallestFreeBlockInBytes, pxHeapStats.xNumberOfFreeBlocks);
-//            debug_printf("│ │ │ ├ Operations\t%u allocations, %u frees\n", pxHeapStats.xNumberOfSuccessfulAllocations, pxHeapStats.xNumberOfSuccessfulFrees);
-
         }
     }
     return APP_JOB_SUCCESS;

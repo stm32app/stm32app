@@ -222,15 +222,15 @@ size_t adc_integrate_samples(module_adc_t *adc) {
 void adc_channels_alloc(module_adc_t *adc, size_t channel_count) {
     adc->sample_buffer_size = adc->properties->sample_count_per_channel * channel_count;
     adc->measurements_per_second = (1000000 / (adc->properties->interval));
-    adc->channels = malloc(channel_count * sizeof(size_t));
-    adc->values = malloc(channel_count * sizeof(uint32_t));
-    adc->accumulators = malloc(channel_count * sizeof(uint32_t));
-    adc->sample_buffer = malloc(adc->sample_buffer_size * sizeof(uint16_t));
+    adc->channels = app_malloc(channel_count * sizeof(size_t));
+    adc->values = app_malloc(channel_count * sizeof(uint32_t));
+    adc->accumulators = app_malloc(channel_count * sizeof(uint32_t));
+    adc->sample_buffer = app_malloc(adc->sample_buffer_size * sizeof(uint16_t));
 }
 
 void adc_channels_free(module_adc_t *adc) {
-    free(adc->sample_buffer);
-    free(adc->values);
-    free(adc->channels);
-    free(adc->accumulators);
+    app_free(adc->sample_buffer);
+    app_free(adc->values);
+    app_free(adc->channels);
+    app_free(adc->accumulators);
 }

@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include "definitions/enums.h"
 #include "definitions/dictionary.h"
-#include "lib/debug.h"
 
 typedef bool bool_t;
 

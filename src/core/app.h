@@ -8,8 +8,7 @@ Any app type can be cast to this type and get access to generic properties prope
 extern "C" {
 #endif
 
-#include "lib/debug.h"
-#include "lib/heap.h"
+#include "env.h"
 #include "CANopen.h"
 #include "FreeRTOS.h"
 #include "atomic.h"
@@ -73,7 +72,7 @@ enum app_signal {
 // Initialize array of all actors found in OD that can be initialized
 int app_allocate(app_t **app, OD_t *od, size_t (*enumerator)(app_t *app, OD_t *od, actor_t *actors));
 // Destruct all actors and release memory
-int app_free(app_t **app);
+int app_deallocate(app_t **app);
 // Transition all actors to given state
 void app_set_phase(app_t *app, actor_phase_t phase);
 

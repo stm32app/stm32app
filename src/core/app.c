@@ -89,7 +89,7 @@ void app_set_phase(app_t *app, actor_phase_t phase) {
 int app_allocate(app_t **app, OD_t *od, size_t (*enumerator)(app_t *app, OD_t *od, actor_t *actors)) {
     // count actors first to allocate specific size of an array
     size_t actor_count = enumerator(NULL, od, NULL);
-    actor_t *actors = malloc(sizeof(actor_t) * actor_count);
+    actor_t *actors = app_malloc(sizeof(actor_t) * actor_count);
 
     if (actors == NULL) {
         return APP_SIGNAL_OUT_OF_MEMORY;
@@ -118,14 +118,14 @@ int app_allocate(app_t **app, OD_t *od, size_t (*enumerator)(app_t *app, OD_t *o
     return 0;
 }
 
-int app_free(app_t **app) {
+int app_deallocate(app_t **app) {
     for (size_t i = 0; i < (*app)->actor_count; i++) {
         int ret = actor_free(&(*app)->actor[i]);
         if (ret != 0)
             return ret;
     }
     (*app)->actor_count = 0;
-    free((*app)->actor);
+    app_free((*app)->actor);
     return 0;
 }
 

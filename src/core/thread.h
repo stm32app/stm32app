@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include "env.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"

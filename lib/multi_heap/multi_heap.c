@@ -1,3 +1,4 @@
+#include "FreeRTOS.h"
 /*
  * multi_heap.h (completion for heap_4.c / h)
  *

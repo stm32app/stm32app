@@ -27,7 +27,7 @@ const findDefinition = (uid) => {
     const labelRe = new RegExp(`<CANopenObject[^>]*?index="${uid.toUpperCase().replace(/[^\d]/g, '')}"[^>]*?name="([^"]+?)"`, 'g')
     const label = labelRe.exec(xml);
     return {
-      description: (match[1].match(/<description[^>]+>(.*?)<\/description>/) || [null, null])[1],
+      description: (match[1].match(/<description[^>]+>([\s\S]*?)<\/description>/) || [null, null])[1],
       label: label ? label[1] : null
     }
   }
@@ -78,7 +78,7 @@ od.replace(/\{\s*([^}]+?)\s*\}[^}]+?x([3-9].*?)_([a-z]+)([A-Z][^_\s,;]+)/g, (mat
     const attributeDefinition = findDefinition(`UID_SUB_${index}${toHex(attributeIndex + 1)}`);
     const shorttype = dataType.replace(/_t/, '').replace(/([a-z])[a-z]+/, '$1');
     if (attributeDefinition.description) {
-      struct = struct.replace(' ' + attribute + ';', ' ' + attribute + '; // ' + attributeDefinition.description + ' ')
+      struct = struct.replace(' ' + attribute + ';', ' ' + attribute + '; // ' + attributeDefinition.description.split(/\n/g)[0] + ' ')
     }
     if (attribute == 'phase') foundPhase = true;
     if (foundPhase) {
@@ -89,13 +89,37 @@ ODR_t ${type}_${name}_set_${attribute}(${type}_${name}_t *${name}, ${dataType} v
 ${dataType} ${type}_${name}_get_${attribute}(${type}_${name}_t *${name}); // 0x${attributeOD}: ${name} ${attribute}`)
 
 if (arrayLength) {
+//accessors.push(`/* 0x${attributeOD}: ${attributeDefinition.description} */
+//#define ${type}_${name}_set_${attribute}(${name}, value, size) actor_set_property${dataType == 'char' ? '_string' : ''}(${name}->actor, ${constant}, value, size)`);
 accessors.push(`/* 0x${attributeOD}: ${attributeDefinition.description} */
-#define ${type}_${name}_set_${attribute}(${name}, value, size) actor_set_property${dataType == 'char' ? '_string' : ''}(${name}->actor, ${constant}, value, size)`);
+static inline void ${type}_${name}_set_${attribute}(${type}_${name}_t *${name}, ${dataType} *value, size_t size) {
+    actor_set_property${dataType == 'char' ? '_string' : ''}(${name}->actor, ${constant}, value, size);
+}`);
 } else {
 accessors.push(`/* 0x${attributeOD}: ${attributeDefinition.description} */
-#define ${type}_${name}_set_${attribute}(${name}, value) actor_set_property_numeric(${name}->actor, ${constant}, (uint32_t) (value), sizeof(${dataType}))`);
+static inline void ${type}_${name}_set_${attribute}(${type}_${name}_t *${name}, ${dataType} value) { 
+    actor_set_property_numeric(${name}->actor, ${constant}, (uint32_t)(value), sizeof(${dataType}));
+}`);
+//accessors.push(`/* 0x${attributeOD}: ${attributeDefinition.description} */
+//#define ${type}_${name}_set_${attribute}(${name}, value) actor_set_property_numeric(${name}->actor, ${constant}, (uint32_t) (value), sizeof(${dataType}))`);
 }
-accessors.push(`#define ${type}_${name}_get_${attribute}(${name}) *((${dataType} *) actor_get_property_pointer(${name}->actor, ${constant})`);
+
+/*
+if (dataType == 'char') {
+  accessors.push(`#define ${type}_${name}_get_${attribute}(${name}) ((${dataType} *) actor_get_property_pointer(${name}->actor, ${constant}))`);
+} else {
+  accessors.push(`#define ${type}_${name}_get_${attribute}(${name}) *((${dataType} *) actor_get_property_pointer(${name}->actor, ${constant}))`);
+
+} */
+if (dataType == 'char') {
+accessors.push(`static inline ${dataType} *${type}_${name}_get_${attribute}(${type}_${name}_t *${name}) {
+    return (${dataType} *) actor_get_property_pointer(${name}->actor, ${constant});
+}`);
+} else {
+accessors.push(`static inline ${dataType} ${type}_${name}_get_${attribute}(${type}_${name}_t *${name}) {
+    return *((${dataType} *) actor_get_property_pointer(${name}->actor, ${constant}));
+}`);
+} 
 
 if (!'USE MACROS?')    accessors.push(
 `/* 0x${attributeOD}: ${name} ${attribute} */

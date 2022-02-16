@@ -9,7 +9,7 @@ extern "C" {
 #include "core/app.h"
 #include "core/thread.h"
 #include "lib/gpio.h"
-#include "lib/heap.h"
+#include "env.h"
 
 
 /*#define OD_ACCESSORS(OD_TYPE, NAME, SUBTYPE, PROPERTY, SUBINDEX, TYPE, SHORT_TYPE) \
@@ -112,7 +112,7 @@ ODR_t actor_set_property(actor_t *actor, uint8_t index, void *value, size_t size
 // Copy number by value, still needs size in bytes to be given (runs setters)
 ODR_t actor_set_property_numeric(actor_t *actor, uint8_t index, uint32_t value, size_t size);
 // Write value with trailing NULL character
-ODR_t actor_set_property_string(actor_t *actor, uint8_t index, uint8_t *data, size_t size);
+ODR_t actor_set_property_string(actor_t *actor, uint8_t index, char *data, size_t size);
 // Run getters to stream property (will initialize stream if needed)
 ODR_t actor_compute_property_stream(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size, OD_stream_t *stream, OD_size_t *count_read) ;
 // Run getters to compute property and store it in given buffer (or fall back to internal memory)

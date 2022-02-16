@@ -130,7 +130,7 @@ static app_signal_t spi_stop(transport_spi_t *spi) {
 }
 
 static app_signal_t spi_allocate_rx_circular_buffer(transport_spi_t *spi) {
-    spi->dma_rx_circular_buffer = malloc(spi->properties->dma_rx_circular_buffer_size);
+    spi->dma_rx_circular_buffer = app_malloc(spi->properties->dma_rx_circular_buffer_size);
     spi->dma_rx_circular_buffer_cursor = 0;
     return spi->dma_rx_circular_buffer == NULL;
 }

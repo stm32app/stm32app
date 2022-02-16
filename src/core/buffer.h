@@ -1,11 +1,17 @@
 #ifndef INC_CORE_BUFFER
 #define INC_CORE_BUFFER
 
+#include "env.h"
 #include "core/types.h"
 
-#define APP_BUFFER_INITIAL_SIZE 32
-#define APP_BUFFER_MAX_SIZE 1024 * 16
-#define APP_BUFFER_UNITS
+#ifndef APP_BUFFER_INITIAL_SIZE
+  #define APP_BUFFER_INITIAL_SIZE 32
+#endif
+
+#ifndef APP_BUFFER_MAX_SIZE
+  #define APP_BUFFER_MAX_SIZE 1024 * 16
+#endif
+
 #define APP_BUFFER_DYNAMIC_SIZE ((uint32_t)-1)
 
 typedef enum app_buffer_flag {

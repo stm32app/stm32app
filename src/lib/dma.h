@@ -4,6 +4,7 @@
 /* Generalize dma api for STMF1 that dont support DMA streams with STMF2+ that do.
 The former need to configure stream to be the same as channel*/
 
+#include "env.h"
 #include <core/actor.h>
 #include <core/types.h>
 #include <libopencm3/cm3/nvic.h>
@@ -66,9 +67,9 @@ uint32_t dma_get_clock_address(uint8_t index);
 uint32_t nvic_dma_get_channel_base(uint8_t index);
 
 void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,
-                        bool_t circular_mode, uint8_t bytes, uint8_t fifo_threshold, bool_t prefer_burst);
+                        bool_t circular_mode, uint8_t width, uint8_t fifo_threshold, bool_t prefer_burst);
 void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *buffer, size_t buffer_size,
-                        bool_t circular_mode, uint8_t bytes, uint8_t fifo_threshold, bool_t prefer_burst);
+                        bool_t circular_mode, uint8_t width, uint8_t fifo_threshold, bool_t prefer_burst);
 
 void actor_dma_tx_stop(uint8_t unit, uint8_t stream, uint8_t channel);
 void actor_dma_rx_stop(uint8_t unit, uint8_t stream, uint8_t channel);

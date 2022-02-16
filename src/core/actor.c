@@ -40,7 +40,7 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
 }
 
 int actor_allocate(actor_t *actor) {
-    actor->object = malloc(actor->class->size);
+    actor->object = app_malloc(actor->class->size);
     if (actor->object == NULL) {
         return APP_SIGNAL_OUT_OF_MEMORY;
     }
@@ -57,7 +57,7 @@ int actor_allocate(actor_t *actor) {
 }
 
 int actor_free(actor_t *actor) {
-    free(actor->object);
+    app_free(actor->object);
     return actor_workers_free(actor);
 }
 
@@ -322,7 +322,7 @@ ODR_t actor_set_property_numeric(actor_t *actor, uint8_t index, uint32_t value, 
     return actor_set_property(actor, index, &value, size);
 }
 
-ODR_t actor_set_property_string(actor_t *actor, uint8_t index, uint8_t *data, size_t size) {
+ODR_t actor_set_property_string(actor_t *actor, uint8_t index, char *data, size_t size) {
     OD_obj_record_t *odo = &((OD_obj_record_t *)actor->entry->odObject)[index];
     if (size < odo->dataLength) {
         (&odo->dataOrig)[size + 1] = '\0';

@@ -429,8 +429,17 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .phase = 0x00
     },
     .x7500_storageSDCard = {
-        .highestSub_indexSupported = 0x10,
+        .highestSub_indexSupported = 0x19,
         .SDIO_Index = 0x62A0,
+        .FS_ReadSize = 0x00000010,
+        .FS_ProgramSize = 0x00000010,
+        .FS_BlockCycles = 500,
+        .FS_CacheSize = 0x0010,
+        .FS_LookaheadSize = 0x00000010,
+        .FS_NameMaxSize = 0x00000000,
+        .FS_FileMaxSize = 0x00000000,
+        .FS_AttrMaxSize = 0x00000000,
+        .FS_MetadataMaxSize = 0x00000000,
         .phase = 0x00,
         .capacity = 0x00000000,
         .blockSize = 0x00000000,
@@ -591,7 +600,7 @@ typedef struct {
     OD_obj_record_t o_7200_storageFlash[5];
     OD_obj_record_t o_7300_memorySRAM_1[7];
     OD_obj_record_t o_7400_storageAT24C[7];
-    OD_obj_record_t o_7500_storageSDCard[17];
+    OD_obj_record_t o_7500_storageSDCard[26];
     OD_obj_record_t o_8000_inputSensor_1[7];
     OD_obj_record_t o_8100_controlTouchscreen_1[14];
     OD_obj_record_t o_9000_screenEpaper_1[14];
@@ -2755,92 +2764,146 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 2
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.phase,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_ReadSize,
             .subIndex = 2,
-            .attribute = ODA_SDO_RW,
-            .dataLength = 1
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.capacity,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_ProgramSize,
             .subIndex = 3,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.blockSize,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_BlockCycles,
             .subIndex = 4,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.blockCount,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_CacheSize,
             .subIndex = 5,
             .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 4
+            .dataLength = 2
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.maxBusClockFrequency,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_LookaheadSize,
             .subIndex = 6,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.CSD_Version,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_NameMaxSize,
             .subIndex = 7,
-            .attribute = ODA_SDO_RW,
-            .dataLength = 1
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.relativeCardAddress,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_FileMaxSize,
             .subIndex = 8,
             .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 2
+            .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.manufacturerID,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_AttrMaxSize,
             .subIndex = 9,
-            .attribute = ODA_SDO_RW,
-            .dataLength = 1
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.OEM_ID,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.FS_MetadataMaxSize,
             .subIndex = 10,
             .attribute = ODA_SDO_RW | ODA_MB,
-            .dataLength = 2
+            .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.productName[0],
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.phase,
             .subIndex = 11,
-            .attribute = ODA_SDO_RW | ODA_STR,
-            .dataLength = 5
-        },
-        {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.productRevision,
-            .subIndex = 12,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.serialNumber,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.capacity,
+            .subIndex = 12,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.blockSize,
             .subIndex = 13,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.manufacturingDate,
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.blockCount,
             .subIndex = 14,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.maxBusClockFrequency,
+            .subIndex = 15,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.CSD_Version,
+            .subIndex = 16,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.relativeCardAddress,
+            .subIndex = 17,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.manufacturerID,
+            .subIndex = 18,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.OEM_ID,
+            .subIndex = 19,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.productName[0],
+            .subIndex = 20,
+            .attribute = ODA_SDO_RW | ODA_STR,
+            .dataLength = 5
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.productRevision,
+            .subIndex = 21,
+            .attribute = ODA_SDO_RW,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.serialNumber,
+            .subIndex = 22,
+            .attribute = ODA_SDO_RW | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.manufacturingDate,
+            .subIndex = 23,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 2
         },
         {
             .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.version,
-            .subIndex = 15,
+            .subIndex = 24,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         },
         {
             .dataOrig = &OD_PERSIST_COMM.x7500_storageSDCard.highCapacity,
-            .subIndex = 16,
+            .subIndex = 25,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
         }
@@ -3217,7 +3280,7 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x7200, 0x05, ODT_REC, &ODObjs.o_7200_storageFlash, NULL},
     {0x7300, 0x07, ODT_REC, &ODObjs.o_7300_memorySRAM_1, NULL},
     {0x7400, 0x07, ODT_REC, &ODObjs.o_7400_storageAT24C, NULL},
-    {0x7500, 0x11, ODT_REC, &ODObjs.o_7500_storageSDCard, NULL},
+    {0x7500, 0x1A, ODT_REC, &ODObjs.o_7500_storageSDCard, NULL},
     {0x8000, 0x07, ODT_REC, &ODObjs.o_8000_inputSensor_1, NULL},
     {0x8100, 0x0E, ODT_REC, &ODObjs.o_8100_controlTouchscreen_1, NULL},
     {0x9000, 0x0E, ODT_REC, &ODObjs.o_9000_screenEpaper_1, NULL},

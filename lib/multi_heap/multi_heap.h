@@ -18,11 +18,9 @@ It is a multi-region memory management features abilities:
  extern "C" {
 #endif
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "HeapConfig.h"
 #include <stdint.h>
 #include <stddef.h>
+#include "heap_config.h"
 
 #define HEAP_SHARED    ucHeap0[configTOTAL_HEAP_SIZE]  /* shared (with stack and bss) memory region heap */
 
@@ -42,13 +40,13 @@ void *multiRegionGetHeapStartAddress(uint32_t i);
 int32_t multiRegionSearch(void * pv);
 
 /* Freertos memory region (RTOSREGION) */
-#ifndef PORTABLE_H
+/*#ifndef PORTABLE_H
   void    *pvPortMalloc(size_t xWantedSize);
   void    vPortFree(void *pv);
   size_t  xPortGetFreeHeapSize(void);
   size_t  xPortGetMinimumEverFreeHeapSize(void);
   void    vPortInitialiseBlocks(void);
-#endif
+#endif*/
 
 /* Default memory region(s) (MALLOC_REGION) */
 void    *multi_malloc(size_t xWantedSize);

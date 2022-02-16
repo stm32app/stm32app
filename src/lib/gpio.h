@@ -1,9 +1,9 @@
 #ifndef INC_LIB_GPIO
 #define INC_LIB_GPIO
 
-#include "stdbool.h"
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
+#include "env.h"
 #include "core/types.h"
 
 #define GPIOX(n) (GPIO_PORT_A_BASE + (n - 1) * 0x0400)

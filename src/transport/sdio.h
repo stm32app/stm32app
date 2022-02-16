@@ -135,50 +135,110 @@ typedef enum transport_sdio_properties_properties {
 } transport_sdio_properties_properties_t;
 
 /* 0x62A011: null */
-#define transport_sdio_set_phase(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_PHASE, (uint32_t) (value), sizeof(uint8_t))
-#define transport_sdio_get_phase(sdio) *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_PHASE)
+static inline void transport_sdio_set_phase(transport_sdio_t *sdio, uint8_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_PHASE, (uint32_t)(value), sizeof(uint8_t));
+}
+static inline uint8_t transport_sdio_get_phase(transport_sdio_t *sdio) {
+    return *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_PHASE));
+}
 /* 0x62A012: null */
-#define transport_sdio_set_capacity(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_CAPACITY, (uint32_t) (value), sizeof(uint32_t))
-#define transport_sdio_get_capacity(sdio) *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_CAPACITY)
+static inline void transport_sdio_set_capacity(transport_sdio_t *sdio, uint32_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_CAPACITY, (uint32_t)(value), sizeof(uint32_t));
+}
+static inline uint32_t transport_sdio_get_capacity(transport_sdio_t *sdio) {
+    return *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_CAPACITY));
+}
 /* 0x62A013: null */
-#define transport_sdio_set_block_size(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_BLOCK_SIZE, (uint32_t) (value), sizeof(uint32_t))
-#define transport_sdio_get_block_size(sdio) *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_BLOCK_SIZE)
+static inline void transport_sdio_set_block_size(transport_sdio_t *sdio, uint32_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_BLOCK_SIZE, (uint32_t)(value), sizeof(uint32_t));
+}
+static inline uint32_t transport_sdio_get_block_size(transport_sdio_t *sdio) {
+    return *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_BLOCK_SIZE));
+}
 /* 0x62A014: null */
-#define transport_sdio_set_block_count(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_BLOCK_COUNT, (uint32_t) (value), sizeof(uint32_t))
-#define transport_sdio_get_block_count(sdio) *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_BLOCK_COUNT)
+static inline void transport_sdio_set_block_count(transport_sdio_t *sdio, uint32_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_BLOCK_COUNT, (uint32_t)(value), sizeof(uint32_t));
+}
+static inline uint32_t transport_sdio_get_block_count(transport_sdio_t *sdio) {
+    return *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_BLOCK_COUNT));
+}
 /* 0x62A015: null */
-#define transport_sdio_set_max_bus_clock_frequency(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_MAX_BUS_CLOCK_FREQUENCY, (uint32_t) (value), sizeof(uint32_t))
-#define transport_sdio_get_max_bus_clock_frequency(sdio) *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_MAX_BUS_CLOCK_FREQUENCY)
+static inline void transport_sdio_set_max_bus_clock_frequency(transport_sdio_t *sdio, uint32_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_MAX_BUS_CLOCK_FREQUENCY, (uint32_t)(value), sizeof(uint32_t));
+}
+static inline uint32_t transport_sdio_get_max_bus_clock_frequency(transport_sdio_t *sdio) {
+    return *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_MAX_BUS_CLOCK_FREQUENCY));
+}
 /* 0x62A016: null */
-#define transport_sdio_set_csd_version(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_CSD_VERSION, (uint32_t) (value), sizeof(uint8_t))
-#define transport_sdio_get_csd_version(sdio) *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_CSD_VERSION)
+static inline void transport_sdio_set_csd_version(transport_sdio_t *sdio, uint8_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_CSD_VERSION, (uint32_t)(value), sizeof(uint8_t));
+}
+static inline uint8_t transport_sdio_get_csd_version(transport_sdio_t *sdio) {
+    return *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_CSD_VERSION));
+}
 /* 0x62A017: null */
-#define transport_sdio_set_relative_card_address(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_RELATIVE_CARD_ADDRESS, (uint32_t) (value), sizeof(uint16_t))
-#define transport_sdio_get_relative_card_address(sdio) *((uint16_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_RELATIVE_CARD_ADDRESS)
+static inline void transport_sdio_set_relative_card_address(transport_sdio_t *sdio, uint16_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_RELATIVE_CARD_ADDRESS, (uint32_t)(value), sizeof(uint16_t));
+}
+static inline uint16_t transport_sdio_get_relative_card_address(transport_sdio_t *sdio) {
+    return *((uint16_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_RELATIVE_CARD_ADDRESS));
+}
 /* 0x62A018: null */
-#define transport_sdio_set_manufacturer_id(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_MANUFACTURER_ID, (uint32_t) (value), sizeof(uint8_t))
-#define transport_sdio_get_manufacturer_id(sdio) *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_MANUFACTURER_ID)
+static inline void transport_sdio_set_manufacturer_id(transport_sdio_t *sdio, uint8_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_MANUFACTURER_ID, (uint32_t)(value), sizeof(uint8_t));
+}
+static inline uint8_t transport_sdio_get_manufacturer_id(transport_sdio_t *sdio) {
+    return *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_MANUFACTURER_ID));
+}
 /* 0x62A019: null */
-#define transport_sdio_set_oem_id(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_OEM_ID, (uint32_t) (value), sizeof(uint16_t))
-#define transport_sdio_get_oem_id(sdio) *((uint16_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_OEM_ID)
+static inline void transport_sdio_set_oem_id(transport_sdio_t *sdio, uint16_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_OEM_ID, (uint32_t)(value), sizeof(uint16_t));
+}
+static inline uint16_t transport_sdio_get_oem_id(transport_sdio_t *sdio) {
+    return *((uint16_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_OEM_ID));
+}
 /* 0x62A01A: null */
-#define transport_sdio_set_product_name(sdio, value, size) actor_set_property_string(sdio->actor, TRANSPORT_SDIO_PRODUCT_NAME, value, size)
-#define transport_sdio_get_product_name(sdio) *((char *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_PRODUCT_NAME)
+static inline void transport_sdio_set_product_name(transport_sdio_t *sdio, char  *value, size_t size) {
+    actor_set_property_string(sdio->actor, TRANSPORT_SDIO_PRODUCT_NAME, value, size);
+}
+static inline char *transport_sdio_get_product_name(transport_sdio_t *sdio) {
+    return (char *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_PRODUCT_NAME);
+}
 /* 0x62A01B: null */
-#define transport_sdio_set_product_revision(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_PRODUCT_REVISION, (uint32_t) (value), sizeof(uint8_t))
-#define transport_sdio_get_product_revision(sdio) *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_PRODUCT_REVISION)
+static inline void transport_sdio_set_product_revision(transport_sdio_t *sdio, uint8_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_PRODUCT_REVISION, (uint32_t)(value), sizeof(uint8_t));
+}
+static inline uint8_t transport_sdio_get_product_revision(transport_sdio_t *sdio) {
+    return *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_PRODUCT_REVISION));
+}
 /* 0x62A01C: null */
-#define transport_sdio_set_serial_number(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_SERIAL_NUMBER, (uint32_t) (value), sizeof(uint32_t))
-#define transport_sdio_get_serial_number(sdio) *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_SERIAL_NUMBER)
+static inline void transport_sdio_set_serial_number(transport_sdio_t *sdio, uint32_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_SERIAL_NUMBER, (uint32_t)(value), sizeof(uint32_t));
+}
+static inline uint32_t transport_sdio_get_serial_number(transport_sdio_t *sdio) {
+    return *((uint32_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_SERIAL_NUMBER));
+}
 /* 0x62A01D: null */
-#define transport_sdio_set_manufacturing_date(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_MANUFACTURING_DATE, (uint32_t) (value), sizeof(uint16_t))
-#define transport_sdio_get_manufacturing_date(sdio) *((uint16_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_MANUFACTURING_DATE)
+static inline void transport_sdio_set_manufacturing_date(transport_sdio_t *sdio, uint16_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_MANUFACTURING_DATE, (uint32_t)(value), sizeof(uint16_t));
+}
+static inline uint16_t transport_sdio_get_manufacturing_date(transport_sdio_t *sdio) {
+    return *((uint16_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_MANUFACTURING_DATE));
+}
 /* 0x62A01E: 2 or 1 */
-#define transport_sdio_set_version(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_VERSION, (uint32_t) (value), sizeof(uint8_t))
-#define transport_sdio_get_version(sdio) *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_VERSION)
+static inline void transport_sdio_set_version(transport_sdio_t *sdio, uint8_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_VERSION, (uint32_t)(value), sizeof(uint8_t));
+}
+static inline uint8_t transport_sdio_get_version(transport_sdio_t *sdio) {
+    return *((uint8_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_VERSION));
+}
 /* 0x62A01F: 1 for SDHC/SDXC card */
-#define transport_sdio_set_high_capacity(sdio, value) actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_HIGH_CAPACITY, (uint32_t) (value), sizeof(bool_t))
-#define transport_sdio_get_high_capacity(sdio) *((bool_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_HIGH_CAPACITY)
+static inline void transport_sdio_set_high_capacity(transport_sdio_t *sdio, bool_t value) { 
+    actor_set_property_numeric(sdio->actor, TRANSPORT_SDIO_HIGH_CAPACITY, (uint32_t)(value), sizeof(bool_t));
+}
+static inline bool_t transport_sdio_get_high_capacity(transport_sdio_t *sdio) {
+    return *((bool_t *) actor_get_property_pointer(sdio->actor, TRANSPORT_SDIO_HIGH_CAPACITY));
+}
 /* End of autogenerated OD accessors */
 
 #ifdef __cplusplus

@@ -345,7 +345,7 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
         dma_enable_direct_mode(dma_address, stream);
         dma_enable_direct_mode_error_interrupt(dma_address, stream);
     }
-    if (prefer_burst) {
+    if (prefer_burst && fifo_threshold) {
         switch (actor_dma_get_safe_burst_size(data, size, width, fifo_threshold)) {
         case 16:
             dma_set_memory_burst(dma_address, stream, DMA_SxCR_MBURST_INCR16);
