@@ -62,11 +62,10 @@ static app_signal_t mothership_phase(app_mothership_t *mothership, actor_phase_t
     switch (phase) {
     case ACTOR_CONSTRUCTING:
 
-        start_sdram();
+//        start_sdram();
         break;
 
     case ACTOR_RUNNING:
-        finish_sdram();
         break;
     default:
         break;
@@ -85,10 +84,10 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     count += app_actor_type_enumerate(app, od, &module_adc_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_can_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_spi_class, destination, count);
-    count += app_actor_type_enumerate(app, od, &transport_i2c_class, destination, count);
-    count += app_actor_type_enumerate(app, od, &transport_sdio_class, destination, count);
+    //count += app_actor_type_enumerate(app, od, &transport_i2c_class, destination, count);
+     count += app_actor_type_enumerate(app, od, &transport_sdio_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_w25_class, destination, count);
-    count += app_actor_type_enumerate(app, od, &storage_at24c_class, destination, count);
+    //count += app_actor_type_enumerate(app, od, &storage_at24c_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_sdcard_class, destination, count);
     count += app_actor_type_enumerate(app, od, &indicator_led_class, destination, count);
     // count += app_actor_type_enumerate(MODULE_USART, &transport_usart_class, sizeof(transport_usart_t), destination, count);
@@ -107,7 +106,12 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
         // test simple timeout
         module_timer_timeout(mothership->timer, mothership->actor, (void *)123, 1000000);
 
+//        tick->next_time = thread->current_time + 1000;
+
         return app_publish(mothership->actor->app, &((app_event_t){.type = APP_EVENT_DIAGNOSE, .producer = mothership->actor}));
+    }
+    if (event->type == APP_EVENT_THREAD_ALARM && mothership->initialized && !mothership->sdram) {
+        //finish_sdram();
     }
     return 0;
 }
@@ -135,7 +139,8 @@ static app_job_signal_t mothership_job_stats(app_job_t *job) {
 static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_THREAD_ALARM:
-        actor_event_receive_and_start_job(mothership->actor, event, &mothership->job, thread, mothership_job_stats);
+       // if (mothership->sdram)
+            actor_event_receive_and_start_job(mothership->actor, event, &mothership->job, thread, mothership_job_stats);
 
         break;
     default:

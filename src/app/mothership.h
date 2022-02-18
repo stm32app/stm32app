@@ -30,6 +30,7 @@ typedef struct app_mothership {
     app_job_t job;
 
     bool_t initialized;
+    bool_t sdram;
 } app_mothership_t;
 
 

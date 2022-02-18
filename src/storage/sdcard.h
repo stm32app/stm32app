@@ -48,12 +48,16 @@ struct storage_sdcard {
     storage_sdcard_properties_t *properties;
     transport_sdio_t *sdio;
     app_job_t job;
-    coru_t *io;
+    coru_t io;
+    app_buffer_t *coroutine_stack_buffer;
     app_buffer_t *lookahead_buffer;
     app_buffer_t *read_buffer;
     app_buffer_t *prog_buffer;
-    struct lfs_config fs_config;
+    struct lfs_config *fs_config;
+    lfs_file_t *fs_file;
+    lfs_t *fs;
 };
+
 
 extern actor_class_t storage_sdcard_class;
 

@@ -82,6 +82,7 @@ static app_signal_t sdio_start(transport_sdio_t *sdio) {
 
     nvic_set_priority(sdio->irq, 10 << 4);
 
+
     return 0;
 }
 
@@ -289,13 +290,30 @@ static void sdio_dma_tx_stop(transport_sdio_t *sdio) {
     // Hack: DMA for some reason doesnt copy last 4 double-words (full SDIO fifo load)
     size_t position =
         actor_dma_get_buffer_position(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->source_buffer->size / 4);
-    app_buffer_release(sdio->target_buffer, sdio->actor);
 
     debug_printf("TX flush %lub\n", (sdio->source_buffer->size - position * 4));
     sdio_blocking_tx_start(sdio, &sdio->source_buffer->data[position * 4], (sdio->source_buffer->size - position * 4));
+    app_buffer_release(sdio->source_buffer, sdio->actor);
 
     sdio->incoming_signal = 0;
     actor_unregister_dma(sdio->properties->dma_unit, sdio->properties->dma_stream);
+}
+
+static app_job_signal_t sdio_task_erase_block(app_job_t *job, uint32_t block_id, uint32_t block_count) {
+    //transport_sdio_t *sdio = job->actor->object;
+    storage_sdcard_t *sdcard = job->inciting_event.producer->object;
+    uint32_t start_address = storage_sdcard_get_high_capacity(sdcard) ? block_id : block_id * 512;
+    uint32_t end_address = (block_id + block_count) * (storage_sdcard_get_high_capacity(sdcard) ? 1 : 512);
+
+    switch (job->task_phase) {
+    case 0:
+        return sdio_send_command_and_wait(32, start_address, SDIO_CMD_WAITRESP_SHORT); // ERASE_WR_BLK_START_ADDR
+    case 1:
+        return sdio_send_command_and_wait(33, end_address, SDIO_CMD_WAITRESP_SHORT); // ERASE_WR_BLK_END_ADDR
+    case 2:
+        return sdio_send_command_and_wait(38, 0, SDIO_CMD_WAITRESP_SHORT); // SDIO_CMD_ERASE
+    }
+    return APP_JOB_TASK_SUCCESS;
 }
 
 static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
@@ -313,9 +331,6 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id,
             sdio->source_buffer =
                 data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
             sdio->source_buffer->size = size;
-
-            for (size_t i = 0; i < 512; i++)
-                sdio->source_buffer->data[i] = (uint8_t)i;
 
             if (sdio->source_buffer == NULL) {
                 return APP_JOB_FAILURE;
@@ -623,19 +638,24 @@ static app_job_signal_t sdio_job_unmount(app_job_t *job) {
 }
 
 static app_job_signal_t sdio_job_read(app_job_t *job) {
-    storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     switch (job->job_phase) {
     case 0:
-        if (storage_sdcard_get_phase(sdcard) != ACTOR_RUNNING) {
-            return sdio_task_detect_card(job);
-        } else {
-            return APP_JOB_TASK_SUCCESS;
-        }
-    case 1:
         return sdio_task_read_block(job, (uint32_t) job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
-    case 2:
+    case 1:
         return sdio_task_publish_response(job);
-    case 3:
+    case 2:
+        return APP_JOB_SUCCESS;
+    case APP_JOB_FAILURE:
+        printf("Fail!\n");
+    }
+    return 0;
+}
+
+static app_job_signal_t sdio_job_erase(app_job_t *job) {
+    switch (job->job_phase) {
+    case 0:
+        return sdio_task_erase_block(job, (uint32_t) job->inciting_event.argument, job->inciting_event.size);
+    case 1:
         return APP_JOB_SUCCESS;
     case APP_JOB_FAILURE:
         printf("Fail!\n");
@@ -668,7 +688,6 @@ static app_signal_t sdio_on_high_priority(transport_sdio_t *sdio, app_event_t *e
 }
 
 static app_signal_t sdio_on_input(transport_sdio_t *sdio, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
-    debug_log_inhibited = false;
     switch (event->type) {
     case APP_EVENT_READ:
     case APP_EVENT_READ_TO_BUFFER:
@@ -677,6 +696,9 @@ static app_signal_t sdio_on_input(transport_sdio_t *sdio, app_event_t *event, ac
     case APP_EVENT_WRITE:
         return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
                                                 sdio_job_write);
+    case APP_EVENT_ERASE:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+                                                sdio_job_erase);
     case APP_EVENT_MOUNT:
         return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
                                                 sdio_job_mount);

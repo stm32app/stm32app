@@ -290,7 +290,7 @@ void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
     dma_enable_transfer_complete_interrupt(dma_address, stream);
     dma_enable_transfer_error_interrupt(dma_address, stream);
 
-    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 5 << 4);
+    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 10 << 4);
     nvic_enable_irq(nvic_dma_get_channel_base(unit) + stream);
 
     dma_enable_stream(dma_address, stream);
@@ -368,7 +368,7 @@ void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream
     dma_enable_transfer_error_interrupt(dma_address, stream);
     //dma_enable_half_transfer_interrupt(dma_address, stream);
 
-    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 8 << 4);
+    nvic_set_priority(nvic_dma_get_channel_base(unit) + stream, 10 << 4);
     nvic_enable_irq(nvic_dma_get_channel_base(unit) + stream);
 
     dma_enable_stream(dma_address, stream);

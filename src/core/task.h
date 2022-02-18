@@ -3,6 +3,7 @@
 
 #include "app.h"
 #include "core/event.h"
+#include "coru.h"
 
 #define APP_JOB_HALT_INDEX 64
 #define APP_JOB_SUCCESS_INDEX -1
@@ -46,4 +47,5 @@ app_signal_t app_job_execute(app_job_t *job);
 app_job_signal_t app_job_advance(app_job_t *job, app_job_signal_t signal);
 app_signal_t app_job_finalize(app_job_t *job);
 app_signal_t app_job_execute_if_running_in_thread(app_job_t *job, app_thread_t *thread);
+app_signal_t app_job_execute_in_coroutine_if_running_in_thread(app_job_t *job, app_thread_t *thread, coru_t *coroutine);
 #endif

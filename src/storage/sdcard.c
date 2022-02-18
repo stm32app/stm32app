@@ -1,6 +1,6 @@
 #include "sdcard.h"
-#include "transport/sdio.h"
 #include "core/buffer.h"
+#include "transport/sdio.h"
 
 static ODR_t sdcard_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     storage_sdcard_t *sdcard = stream->object;
@@ -9,10 +9,10 @@ static ODR_t sdcard_property_write(OD_stream_t *stream, const void *buf, OD_size
 
     switch (stream->subIndex) {
     case STORAGE_SDCARD_BLOCK_SIZE:
-        sdcard->fs_config.block_size = *((uint32_t *)stream->dataOrig);
+        sdcard->fs_config->block_size = *((uint32_t *)stream->dataOrig);
         break;
     case STORAGE_SDCARD_BLOCK_COUNT:
-        sdcard->fs_config.block_count = *((uint32_t *)stream->dataOrig);
+        sdcard->fs_config->block_count = *((uint32_t *)stream->dataOrig);
         break;
     }
     return result;
@@ -23,16 +23,26 @@ static app_signal_t sdcard_validate(storage_sdcard_properties_t *properties) {
 }
 
 static int sdcard_lfs_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size) {
+    storage_sdcard_t *sdcard = c->context;
+    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_READ_TO_BUFFER, sdcard->sdio->actor, buffer, size / sdcard->properties->block_size,
+                                          (void *)(block + off / sdcard->properties->block_size));
+    coru_yield();
     return 0;
-
 }
 
-static int sdcard_lfs_prog(const struct lfs_config *c, lfs_block_t block,
-            lfs_off_t off, const void *buffer, lfs_size_t size) {
+static int sdcard_lfs_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
+    storage_sdcard_t *sdcard = c->context;
+    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_WRITE, sdcard->sdio->actor, (void *) buffer, size / sdcard->properties->block_size,
+                                          (void *)(block + off / sdcard->properties->block_size));
+    coru_yield();
     return 0;
 }
 
 static int sdcard_lfs_erase(const struct lfs_config *c, lfs_block_t block) {
+    storage_sdcard_t *sdcard = c->context;
+    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_ERASE, sdcard->sdio->actor, NULL, 1,
+                                          (void *)(block));
+    coru_yield();
     return 0;
 }
 
@@ -40,64 +50,45 @@ static int sdcard_lfs_sync(const struct lfs_config *c) {
     return 0;
 }
 
-
 static app_signal_t sdcard_construct(storage_sdcard_t *sdcard) {
-    sdcard->fs_config.read_size = sdcard->properties->fs_read_size;
-    sdcard->fs_config.prog_size = sdcard->properties->fs_program_size;
-    sdcard->fs_config.cache_size = sdcard->properties->fs_cache_size;
-    sdcard->fs_config.lookahead_size = sdcard->properties->fs_lookahead_size;
-    sdcard->fs_config.block_cycles = sdcard->properties->fs_block_cycles;
-    sdcard->fs_config.read = sdcard_lfs_read;
-    sdcard->fs_config.prog = sdcard_lfs_prog;
-    sdcard->fs_config.erase = sdcard_lfs_erase;
-    sdcard->fs_config.sync = sdcard_lfs_sync;
+    actor_event_subscribe(sdcard->actor, APP_EVENT_DIAGNOSE);
+    sdcard->fs =(lfs_t *) app_malloc(sizeof(lfs_t));
+    sdcard->fs_file = (lfs_file_t *) app_malloc(sizeof(lfs_file_t));
+    sdcard->fs_config = (struct lfs_config *) app_malloc(sizeof(struct lfs_config));
+    
+    sdcard->coroutine_stack_buffer = app_buffer_aligned(sdcard->actor, 2048, 4);
+    coru_create_inplace(&sdcard->io, (void (*)(void *))app_job_execute, &sdcard->job, sdcard->coroutine_stack_buffer->data, 2048);
+    
+    sdcard->fs_config->read_size = sdcard->properties->fs_read_size;
+    sdcard->fs_config->prog_size = sdcard->properties->fs_program_size;
+    sdcard->fs_config->cache_size = sdcard->properties->fs_cache_size;
+    sdcard->fs_config->lookahead_size = sdcard->properties->fs_lookahead_size;
+    sdcard->fs_config->block_cycles = sdcard->properties->fs_block_cycles;
+    sdcard->fs_config->read = sdcard_lfs_read;
+    sdcard->fs_config->prog = sdcard_lfs_prog;
+    sdcard->fs_config->erase = sdcard_lfs_erase;
+    sdcard->fs_config->sync = sdcard_lfs_sync;
+    sdcard->fs_config->context = sdcard;
 
     sdcard->lookahead_buffer = app_buffer_aligned(sdcard->actor, sdcard->properties->fs_lookahead_size, 16);
     sdcard->read_buffer = app_buffer_aligned(sdcard->actor, sdcard->properties->fs_read_size, 16);
     sdcard->prog_buffer = app_buffer_aligned(sdcard->actor, sdcard->properties->fs_program_size, 16);
 
-    sdcard->fs_config.read_buffer = sdcard->read_buffer->data;
-    sdcard->fs_config.prog_buffer = sdcard->prog_buffer->data;
-    sdcard->fs_config.lookahead_buffer = sdcard->lookahead_buffer->data;
+    sdcard->fs_config->read_buffer = sdcard->read_buffer->data;
+    sdcard->fs_config->prog_buffer = sdcard->prog_buffer->data;
+    sdcard->fs_config->lookahead_buffer = sdcard->lookahead_buffer->data;
     return 0;
 }
 
-static app_signal_t sdcard_mount(storage_sdcard_t *sdcard) {
-    return app_publish(sdcard->actor->app, &((app_event_t){
-                                               .type = APP_EVENT_MOUNT,
-                                               .producer = sdcard->actor,
-                                               .consumer = sdcard->sdio->actor,
-                                           }))
-}
-static app_signal_t sdcard_unmount(storage_sdcard_t *sdcard) {
-    return app_publish(sdcard->actor->app, &((app_event_t){
-                                               .type = APP_EVENT_UNMOUNT,
-                                               .producer = sdcard->actor,
-                                               .consumer = sdcard->sdio->actor,
-                                           }));
-}
 static app_signal_t sdcard_read(storage_sdcard_t *sdcard) {
-    return app_publish(sdcard->actor->app, &((app_event_t){
-                                               .type = APP_EVENT_UNMOUNT,
-                                               .producer = sdcard->actor,
-                                               .consumer = sdcard->sdio->actor,
-                                           }));
-}
-
-static void sdcard_io_coroutine(void *context) {
-    //storage_sdcard_t *sdcard = context;
-
+    return 0;
 }
 
 static app_signal_t sdcard_start(storage_sdcard_t *sdcard) {
-    sdcard_mount(sdcard);
-
-    coru_create(sdcard->io, sdcard_io_coroutine, &sdcard, 128);
 
     actor_set_phase(sdcard->actor, ACTOR_PREPARING);
     return 0;
 }
-
 
 static app_signal_t sdcard_stop(storage_sdcard_t *sdcard) {
     return 0;
@@ -109,8 +100,7 @@ static app_signal_t sdcard_link(storage_sdcard_t *sdcard) {
 }
 static app_signal_t sdcard_on_phase(storage_sdcard_t *sdcard, actor_phase_t phase) {
     switch (phase) {
-    case ACTOR_PREPARING:
-        sdcard_mount(sdcard);
+    case ACTOR_STARTING:
         break;
     default:
         break;
@@ -119,15 +109,7 @@ static app_signal_t sdcard_on_phase(storage_sdcard_t *sdcard, actor_phase_t phas
 }
 
 static app_signal_t sdcard_on_report(storage_sdcard_t *sdcard, app_event_t *event) {
-    switch (event->type) {
-    case APP_EVENT_MOUNT:
-        app_thread_actor_schedule(sdcard->job.thread, sdcard->actor, sdcard->job.thread->current_time);
-        break;
-    case APP_EVENT_UNMOUNT:
-        break;
-    default:
-        break;
-    }
+    app_thread_actor_schedule(sdcard->job.thread, sdcard->actor, sdcard->job.thread->current_time);
     return 0;
 }
 
@@ -140,24 +122,60 @@ static app_signal_t sdcard_on_signal(storage_sdcard_t *sdcard, actor_t *actor, a
 }
 
 static app_job_signal_t sdcard_job_diagnose(app_job_t *job) {
-    switch (job->job_phase) {
-    case 0:
-        break;
+    return APP_JOB_SUCCESS;
+}
+
+static app_job_signal_t sdcard_job_mount(app_job_t *job) {
+    storage_sdcard_t *sdcard = job->actor->object;
+
+    actor_publish_event_for(sdcard->actor, APP_EVENT_MOUNT, sdcard->sdio->actor);
+
+    coru_yield();
+    if (sdcard->properties->block_size != 0) {
+
+    }
+    
+
+    int err = lfs_mount(sdcard->fs, sdcard->fs_config);
+
+    // reformat if we can't mount the filesystem
+    // this should only happen on the first boot
+    if (err == LFS_ERR_CORRUPT) {
+        lfs_format(sdcard->fs, sdcard->fs_config);
+        err = lfs_mount(sdcard->fs, sdcard->fs_config);
+        if (err) {
+            return APP_JOB_FAILURE;
+        }
     }
 
-    return APP_JOB_SUCCESS;
+/*
+    // read current count
+    uint32_t boot_count = 0;
+    lfs_file_open(sdcard->fs, sdcard->fs_file, "boot_count.txt", LFS_O_RDWR | LFS_O_CREAT);
+    lfs_file_read(sdcard->fs, sdcard->fs_file, &boot_count, sizeof(boot_count));
+
+    // update boot count
+    boot_count += 1;
+    lfs_file_rewind(sdcard->fs, sdcard->fs_file);
+    lfs_file_write(sdcard->fs, sdcard->fs_file, &boot_count, sizeof(boot_count));
+    // remember the storage is not updated until the file is closed successfully
+    lfs_file_close(sdcard->fs, sdcard->fs_file);
+*/
+    return APP_JOB_HALT;
 }
 
 static app_signal_t sdcard_worker_medium_priority(storage_sdcard_t *sdcard, app_event_t *event, actor_worker_t *tick,
                                                   app_thread_t *thread) {
-    return app_job_execute_if_running_in_thread(&sdcard->job, thread);
+    app_job_execute_in_coroutine_if_running_in_thread(&sdcard->job, thread, &sdcard->io);
+    return 0;
 }
 
 static app_signal_t sdcard_on_input(storage_sdcard_t *sdcard, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
-    case APP_EVENT_DIAGNOSE:
+    case APP_EVENT_THREAD_ALARM:
+        debug_log_inhibited = false;
         return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
-                                                sdcard_job_diagnose);
+                                                sdcard_job_mount);
     default:
         break;
     }
@@ -175,6 +193,7 @@ actor_class_t storage_sdcard_class = {
     .stop = (app_method_t)sdcard_stop,
     .on_phase = (actor_on_phase_t)sdcard_on_phase,
     .on_signal = (actor_on_signal_t)sdcard_on_signal,
+    .on_report = (actor_on_report_t)sdcard_on_report,
     .worker_input = (actor_on_worker_t)sdcard_on_input,
     .worker_medium_priority = (actor_on_worker_t)sdcard_worker_medium_priority,
     .property_write = sdcard_property_write,

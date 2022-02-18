@@ -368,3 +368,10 @@ void *actor_get_property_pointer(actor_t *actor, uint8_t index) {
     }
     return odo->dataOrig;
 }
+
+app_event_t app_prepared_event;
+app_signal_t actor_publish_event_generic(actor_t *actor, app_event_type_t type, actor_t *target, uint8_t *data, uint32_t size, void *argument) {
+    app_prepared_event =                                                                                                                  
+         (app_event_t){.type = type, .data = data, .size = size, .argument = argument, .consumer = target, .producer = actor};             
+    return app_publish(actor->app, &app_prepared_event);
+}

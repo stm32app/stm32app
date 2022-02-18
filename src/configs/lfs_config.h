@@ -16,6 +16,7 @@ extern "C"
 #include <string.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include "lib/bytes.h"
 
 #define LFS_TRACE trace_printf
 #define LFS_DEBUG debug_printf
@@ -137,9 +138,6 @@ static inline uint32_t lfs_frombe32(uint32_t a) {
 static inline uint32_t lfs_tobe32(uint32_t a) {
     return lfs_frombe32(a);
 }
-
-// Calculate CRC-32 with polynomial = 0x04c11db7
-uint32_t lfs_crc(uint32_t crc, const void *buffer, size_t size);
 
 // Allocate memory, only used if buffers are not provided to littlefs
 // Note, memory must be 64-bit aligned

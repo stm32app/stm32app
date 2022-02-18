@@ -12,7 +12,7 @@ int32_t cycntoffset;
 uint32_t lasttaskswitch;
 uint32_t lasttasksoffset;
 
-volatile uint8_t debug_log_inhibited = false;
+volatile uint8_t debug_log_inhibited = true;
 
 #if DEBUG_LOG_LEVEL > 0 && DEBUG_BUFFER_SIZE > 0 
 char debug_buffer[DEBUG_BUFFER_SIZE] = {};

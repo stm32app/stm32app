@@ -71,7 +71,7 @@ app_buffer_t *app_buffer_acquire_with_options(actor_t *owner, uint8_t *data, uin
 app_buffer_t *app_buffer_target_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options);
 // Get an empty buffer of given `size` *to write to*, either pointing to given `data` or freshly allocated 
 // When `size` is `-1`, it assumes data points to another buffer that can be used directly with reference tracking
-#define app_buffer_target(owner, size, alignment) app_buffer_target_with_options(owner, size, alignment, 0)
+#define app_buffer_target(owner, data, size) app_buffer_target_with_options(owner, data, size, 0)
 
 // Allocate an empty oversized buffer *to write to*, with shifted data pointer matching byte `alignment`, accepts options
 app_buffer_t *app_buffer_aligned_with_options(actor_t *owner, uint32_t size, uint8_t options, uint8_t alignment);

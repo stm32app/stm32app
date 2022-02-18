@@ -104,7 +104,7 @@ multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 5
 /* Heap region number (1..8) */
 
 #define HEAP_NUM 3
-#define HEAP_REGIONS {{(uint8_t *)&ucHeap0, sizeof(ucHeap0)}, {(uint8_t *)0x10000000, 0x10000}, {(uint8_t *)0xd0000000, 0x100000}};
+#define HEAP_REGIONS {{(uint8_t *)&ucHeap0, sizeof(ucHeap0)}, {(uint8_t *)0x10000000, 0x10000}, {(uint8_t *)0x68000000, 0x100000}};
 #define RTOSREGION 0               // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 0
 #define MALLOC_REGION 0, 1, 2      // malloc, calloc, realloc, heapsize : region 2 + region 1 + region 0
 #define MALLOC_DMAREGION 0, -1, -1 // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma : region 0

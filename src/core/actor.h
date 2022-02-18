@@ -56,7 +56,6 @@ struct actor {
     void *object;                   /* Pointer to the actor own struct */
     uint8_t seq;                    /* Sequence number of the actor in its family  */
     int16_t index;                  /* Actual OD address of this actor */
-    actor_phase_t phase;           /* Current lifecycle phase of the actor */
     actor_class_t *class;          /* Per-class methods and callbacks */
     actor_workers_t *ticks;          /* Per-actor thread subscription */
     app_t *app;                     /* Reference to root actor */
@@ -213,6 +212,16 @@ app_signal_t actor_event_report(actor_t *actor, app_event_t *event);
 app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event);
 
 app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *tick);
+
+app_signal_t actor_publish_event_generic(actor_t *actor, app_event_type_t type, actor_t *target, uint8_t *data, uint32_t size, void *argument);
+#define actor_publish_event(actor, type) actor_publish_event_generic(actor, type, NULL, NULL, 0, NULL)
+#define actor_publish_event_for(actor, type, target) actor_publish_event_generic(actor, type, target, NULL, 0, NULL)
+#define actor_publish_event_with_data(actor, type, data, size) actor_publish_event_generic(actor, type, NULL, data, size, NULL)
+#define actor_publish_event_with_data_for(actor, type, target, data, size)                                                                 \
+    actor_publish_event_generic(actor, type, target, data, size, NULL)
+#define actor_publish_event_with_argument(actor, type, data, size, arg) actor_publish_event_generic(actor, type, NULL, data, size, arg)
+#define actor_publish_event_with_argument_for(actor, type, target, data, size, arg)                                                        \
+    actor_publish_event_generic(actor, type, target, data, size, arg)
 
 #ifdef __cplusplus
 }

@@ -45,7 +45,7 @@ app_buffer_t *app_buffer_target_with_options(actor_t *owner, uint8_t *data, uint
         buffer = (app_buffer_t *)data;
         app_buffer_reference(buffer);
     } else {
-        app_buffer_acquire_with_options(owner, data, size, options);
+        buffer = app_buffer_acquire_with_options(owner, data, size, options);
     }
     return buffer;
 }
