@@ -25,6 +25,7 @@ typedef struct app_mothership {
     app_threads_t *threads;
     system_mcu_t *mcu;
     system_canopen_t *canopen;
+    system_database_t *database;
     module_timer_t *timer;
     app_buffer_t *buffers;
     app_job_t job;

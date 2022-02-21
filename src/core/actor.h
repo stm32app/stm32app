@@ -56,8 +56,8 @@ struct actor {
     void *object;                   /* Pointer to the actor own struct */
     uint8_t seq;                    /* Sequence number of the actor in its family  */
     int16_t index;                  /* Actual OD address of this actor */
-    actor_class_t *class;          /* Per-class methods and callbacks */
-    actor_workers_t *ticks;          /* Per-actor thread subscription */
+    actor_class_t *class;           /* Per-class methods and callbacks */
+    actor_workers_t *workers;       /* Per-actor thread subscription */
     app_t *app;                     /* Reference to root actor */
     OD_entry_t *entry;              /* OD entry containing propertiesuration for actor*/
     OD_extension_t entry_extension; /* OD IO handlers for properties changes */
@@ -100,6 +100,10 @@ struct actor_class {
     ODR_t (*property_write)(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten);
     uint32_t property_read_handlers;  // bit masks of properties that have custom reader logic
     uint32_t property_write_handlers; // bit mask of properties that have custom writer logic
+};
+
+struct app_generic_device_t {
+    actor_t *actor;
 };
 
 // Faster versions of OD_set_value that has assumptions:

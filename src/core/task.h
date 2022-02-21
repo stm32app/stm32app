@@ -9,13 +9,12 @@
 #define APP_JOB_SUCCESS_INDEX -1
 
 struct app_job {
-    char *name;
-
     actor_t *actor;
     app_thread_t *thread;
 
     app_event_t inciting_event;
     app_event_t awaited_event;
+    app_signal_t incoming_signal;
 
     uint32_t counter;
 

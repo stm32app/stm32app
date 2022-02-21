@@ -41,4 +41,6 @@ typedef app_signal_t (*actor_on_buffer_t)(void *object, app_buffer_t *buffer, ui
 typedef app_signal_t (*app_method_t)(void *object);
 
 
+typedef struct app_generic_device_t app_generic_device_t; // unknown polymorphic object type
+
 #endif

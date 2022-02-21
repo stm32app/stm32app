@@ -257,7 +257,7 @@ app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event) {
 
 app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *tick) {
     if (tick == NULL)
-        tick = actor->ticks->input;
+        tick = actor->workers->input;
     if (tick != NULL) {
         app_thread_t *thread = tick->catchup;
         if (thread) {

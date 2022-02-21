@@ -225,6 +225,13 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .nodeID = 0x00,
         .bitrate = 0x03E8
     },
+    .x6080_systemDatabase = {
+        .highestSub_indexSupported = 0x04,
+        .storageIndex = 29952,
+        .journalBufferSize = 0x00002000,
+        .path = {'s', 'q', 'l', 'i', 't', 'e', '3', '.', 'd', 'b', 0},
+        .phase = 0x00
+    },
     .x6100_moduleTimer_1 = {
         .highestSub_indexSupported = 0x05,
         .prescaler = 0x00,
@@ -418,7 +425,7 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .SDIO_Index = 0x62A0,
         .FS_ReadSize = 0x00000200,
         .FS_ProgramSize = 0x00000200,
-        .FS_BlockCycles = 500,
+        .FS_BlockCycles = -1,
         .FS_CacheSize = 0x0200,
         .FS_LookaheadSize = 0x00000200,
         .FS_NameMaxSize = 0x00000000,
@@ -570,6 +577,7 @@ typedef struct {
     OD_obj_record_t o_4000_deviceCircuit_1[12];
     OD_obj_record_t o_6000_systemMCU[7];
     OD_obj_record_t o_6020_systemCANopen[11];
+    OD_obj_record_t o_6080_systemDatabase[5];
     OD_obj_record_t o_6100_moduleTimer_1[6];
     OD_obj_record_t o_6101_moduleTimer_2[6];
     OD_obj_record_t o_6102_moduleTimer_3[6];
@@ -1682,6 +1690,38 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .subIndex = 10,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 2
+        }
+    },
+    .o_6080_systemDatabase = {
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6080_systemDatabase.highestSub_indexSupported,
+            .subIndex = 0,
+            .attribute = ODA_SDO_R,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6080_systemDatabase.storageIndex,
+            .subIndex = 1,
+            .attribute = ODA_RSRDO | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6080_systemDatabase.journalBufferSize,
+            .subIndex = 2,
+            .attribute = ODA_RSRDO | ODA_MB,
+            .dataLength = 4
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6080_systemDatabase.path[0],
+            .subIndex = 3,
+            .attribute = ODA_RSRDO | ODA_STR,
+            .dataLength = 10
+        },
+        {
+            .dataOrig = &OD_PERSIST_COMM.x6080_systemDatabase.phase,
+            .subIndex = 4,
+            .attribute = ODA_RSRDO,
+            .dataLength = 1
         }
     },
     .o_6100_moduleTimer_1 = {
@@ -3172,6 +3212,7 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x4000, 0x0C, ODT_REC, &ODObjs.o_4000_deviceCircuit_1, NULL},
     {0x6000, 0x07, ODT_REC, &ODObjs.o_6000_systemMCU, NULL},
     {0x6020, 0x0B, ODT_REC, &ODObjs.o_6020_systemCANopen, NULL},
+    {0x6080, 0x05, ODT_REC, &ODObjs.o_6080_systemDatabase, NULL},
     {0x6100, 0x06, ODT_REC, &ODObjs.o_6100_moduleTimer_1, NULL},
     {0x6101, 0x06, ODT_REC, &ODObjs.o_6101_moduleTimer_2, NULL},
     {0x6102, 0x06, ODT_REC, &ODObjs.o_6102_moduleTimer_3, NULL},

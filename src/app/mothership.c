@@ -10,6 +10,7 @@
 #include "storage/w25.h"
 #include "system/canopen.h"
 #include "system/mcu.h"
+#include "system/database.h"
 //#include "screen/epaper.h"
 //#include "transport/can.h"
 //#include "transport/i2c.h"
@@ -17,6 +18,7 @@
 #include "transport/i2c.h"
 #include "transport/sdio.h"
 #include "transport/spi.h"
+#include "transport/can.h"
 //#include "transport/usart.h"
 
 static ODR_t mothership_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
@@ -80,6 +82,7 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     count += app_actor_type_enumerate(app, od, &app_mothership_class, destination, count);
     count += app_actor_type_enumerate(app, od, &system_mcu_class, destination, count);
     count += app_actor_type_enumerate(app, od, &system_canopen_class, destination, count);
+    count += app_actor_type_enumerate(app, od, &system_database_class, destination, count);
     count += app_actor_type_enumerate(app, od, &module_timer_class, destination, count);
     count += app_actor_type_enumerate(app, od, &module_adc_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_can_class, destination, count);
@@ -107,8 +110,8 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
         module_timer_timeout(mothership->timer, mothership->actor, (void *)123, 1000000);
 
 //        tick->next_time = thread->current_time + 1000;
-
-        return app_publish(mothership->actor->app, &((app_event_t){.type = APP_EVENT_DIAGNOSE, .producer = mothership->actor}));
+        actor_publish_event(mothership->actor, APP_EVENT_DIAGNOSE);
+        return actor_publish_event(mothership->actor, APP_EVENT_START);
     }
     if (event->type == APP_EVENT_THREAD_ALARM && mothership->initialized && !mothership->sdram) {
         //finish_sdram();

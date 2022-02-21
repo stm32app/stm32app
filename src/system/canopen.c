@@ -1,5 +1,6 @@
 #include "canopen.h"
 #include "indicator/led.h"
+#include "transport/can.h"
 
 static void app_thread_canopen_notify(app_thread_t *thread);
 static void system_canopen_initialize_class(system_canopen_t *canopen);

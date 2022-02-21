@@ -146,6 +146,7 @@ app_signal_t app_job_execute_if_running_in_thread(app_job_t *job, app_thread_t *
     }
     return 0;
 }
+
 app_signal_t app_job_execute_in_coroutine_if_running_in_thread(app_job_t *job, app_thread_t *thread, coru_t *coroutine) {
     if (job != NULL && job->handler != NULL && job->thread == thread) {
         cm_disable_interrupts();

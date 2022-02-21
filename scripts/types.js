@@ -144,7 +144,7 @@ ODR_t ${name}_read_${attribute}(${type}_${name}_t *${name}, ${dataType} value) {
       types[typeName] = true;
       if (!files[filePath]) files[filePath] = { types: [], accessors: [], prototypes: [], defs: [] };
       files[filePath].types.push(`/* 0x${index}: ${definition.label}${definition.description && '\n   ' + definition.description} */\ntypedef struct ${typeName} {\n    uint8_t parameter_count;\n${struct}\n} ${typeName}_t;`)
-      files[filePath].defs.push(`typedef enum ${typeName}_properties {\n  ${defs.join(',\n  ')}\n} ${typeName}_properties_t;`)
+      files[filePath].defs.push(`typedef enum ${typeName}_indecies {\n  ${defs.join(',\n  ')}\n} ${typeName}_indecies_t;`)
       files[filePath].accessors.push(accessors.join('\n'))
       files[filePath].prototypes.push(prototypes.join(''))
       files[filePath].struct = structName;

@@ -20,10 +20,17 @@ glob(`./src/**/*.h`, (err, files) => {
         if (!key) return;
         if (v) {
           const hex = v.match(/0x([A-F0-9]+)/i)
-          if (hex) v = parseInt(hex[1], 16)
-          else v = parseInt(v);
+          if (hex) {
+            v = parseInt(hex[1], 16)
+          } else {
+            const shifted = v.match(/1\s<<\s\d+/i)
+            if (shifted) {
+              v = eval(shifted[0])
+            }
+          }
         } else {
-          v = value;
+          
+          v = parseInt(value);
         }
         result += `case ${v}: return "${key}";\n`
         

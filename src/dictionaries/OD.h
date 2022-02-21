@@ -16,7 +16,7 @@
 
         Created:      9/25/2021 2:03:07 AM
         Created By:   
-        Modified:     2/16/2022 11:04:06 PM
+        Modified:     2/21/2022 1:04:40 AM
         Modified By:  
 
     Device Info:
@@ -282,6 +282,13 @@ typedef struct {
         uint8_t nodeID;
         uint16_t bitrate;
     } x6020_systemCANopen;
+    struct {
+        uint8_t highestSub_indexSupported;
+        int16_t storageIndex;
+        uint32_t journalBufferSize;
+        char path[11];
+        uint8_t phase;
+    } x6080_systemDatabase;
     struct {
         uint8_t highestSub_indexSupported;
         uint8_t prescaler;
@@ -640,29 +647,30 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H4000 &OD->list[34]
 #define OD_ENTRY_H6000 &OD->list[35]
 #define OD_ENTRY_H6020 &OD->list[36]
-#define OD_ENTRY_H6100 &OD->list[37]
-#define OD_ENTRY_H6101 &OD->list[38]
-#define OD_ENTRY_H6102 &OD->list[39]
-#define OD_ENTRY_H6106 &OD->list[40]
-#define OD_ENTRY_H6200 &OD->list[41]
-#define OD_ENTRY_H6220 &OD->list[42]
-#define OD_ENTRY_H6240 &OD->list[43]
-#define OD_ENTRY_H6260 &OD->list[44]
-#define OD_ENTRY_H6280 &OD->list[45]
-#define OD_ENTRY_H62A0 &OD->list[46]
-#define OD_ENTRY_H6300 &OD->list[47]
-#define OD_ENTRY_H7000 &OD->list[48]
-#define OD_ENTRY_H7100 &OD->list[49]
-#define OD_ENTRY_H7200 &OD->list[50]
-#define OD_ENTRY_H7300 &OD->list[51]
-#define OD_ENTRY_H7400 &OD->list[52]
-#define OD_ENTRY_H7500 &OD->list[53]
-#define OD_ENTRY_H8000 &OD->list[54]
-#define OD_ENTRY_H8100 &OD->list[55]
-#define OD_ENTRY_H9000 &OD->list[56]
-#define OD_ENTRY_H9800 &OD->list[57]
-#define OD_ENTRY_H9801 &OD->list[58]
-#define OD_ENTRY_H9900 &OD->list[59]
+#define OD_ENTRY_H6080 &OD->list[37]
+#define OD_ENTRY_H6100 &OD->list[38]
+#define OD_ENTRY_H6101 &OD->list[39]
+#define OD_ENTRY_H6102 &OD->list[40]
+#define OD_ENTRY_H6106 &OD->list[41]
+#define OD_ENTRY_H6200 &OD->list[42]
+#define OD_ENTRY_H6220 &OD->list[43]
+#define OD_ENTRY_H6240 &OD->list[44]
+#define OD_ENTRY_H6260 &OD->list[45]
+#define OD_ENTRY_H6280 &OD->list[46]
+#define OD_ENTRY_H62A0 &OD->list[47]
+#define OD_ENTRY_H6300 &OD->list[48]
+#define OD_ENTRY_H7000 &OD->list[49]
+#define OD_ENTRY_H7100 &OD->list[50]
+#define OD_ENTRY_H7200 &OD->list[51]
+#define OD_ENTRY_H7300 &OD->list[52]
+#define OD_ENTRY_H7400 &OD->list[53]
+#define OD_ENTRY_H7500 &OD->list[54]
+#define OD_ENTRY_H8000 &OD->list[55]
+#define OD_ENTRY_H8100 &OD->list[56]
+#define OD_ENTRY_H9000 &OD->list[57]
+#define OD_ENTRY_H9800 &OD->list[58]
+#define OD_ENTRY_H9801 &OD->list[59]
+#define OD_ENTRY_H9900 &OD->list[60]
 
 
 /*******************************************************************************
@@ -705,29 +713,30 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H4000_deviceCircuit_1 &OD->list[34]
 #define OD_ENTRY_H6000_systemMCU &OD->list[35]
 #define OD_ENTRY_H6020_systemCANopen &OD->list[36]
-#define OD_ENTRY_H6100_moduleTimer_1 &OD->list[37]
-#define OD_ENTRY_H6101_moduleTimer_2 &OD->list[38]
-#define OD_ENTRY_H6102_moduleTimer_3 &OD->list[39]
-#define OD_ENTRY_H6106_moduleTimer_7 &OD->list[40]
-#define OD_ENTRY_H6200_transportCAN_1 &OD->list[41]
-#define OD_ENTRY_H6220_transportSPI_1 &OD->list[42]
-#define OD_ENTRY_H6240_transportUSART_1 &OD->list[43]
-#define OD_ENTRY_H6260_transportI2C_1 &OD->list[44]
-#define OD_ENTRY_H6280_transportModbus_1 &OD->list[45]
-#define OD_ENTRY_H62A0_transportSDIO &OD->list[46]
-#define OD_ENTRY_H6300_moduleADC_1 &OD->list[47]
-#define OD_ENTRY_H7000_storageEeprom_1 &OD->list[48]
-#define OD_ENTRY_H7100_storageW25 &OD->list[49]
-#define OD_ENTRY_H7200_storageFlash &OD->list[50]
-#define OD_ENTRY_H7300_memorySRAM_1 &OD->list[51]
-#define OD_ENTRY_H7400_storageAT24C &OD->list[52]
-#define OD_ENTRY_H7500_storageSDCard &OD->list[53]
-#define OD_ENTRY_H8000_inputSensor_1 &OD->list[54]
-#define OD_ENTRY_H8100_controlTouchscreen_1 &OD->list[55]
-#define OD_ENTRY_H9000_screenEpaper_1 &OD->list[56]
-#define OD_ENTRY_H9800_indicatorLED_1 &OD->list[57]
-#define OD_ENTRY_H9801_indicatorLED_2 &OD->list[58]
-#define OD_ENTRY_H9900_signalBeeper_1 &OD->list[59]
+#define OD_ENTRY_H6080_systemDatabase &OD->list[37]
+#define OD_ENTRY_H6100_moduleTimer_1 &OD->list[38]
+#define OD_ENTRY_H6101_moduleTimer_2 &OD->list[39]
+#define OD_ENTRY_H6102_moduleTimer_3 &OD->list[40]
+#define OD_ENTRY_H6106_moduleTimer_7 &OD->list[41]
+#define OD_ENTRY_H6200_transportCAN_1 &OD->list[42]
+#define OD_ENTRY_H6220_transportSPI_1 &OD->list[43]
+#define OD_ENTRY_H6240_transportUSART_1 &OD->list[44]
+#define OD_ENTRY_H6260_transportI2C_1 &OD->list[45]
+#define OD_ENTRY_H6280_transportModbus_1 &OD->list[46]
+#define OD_ENTRY_H62A0_transportSDIO &OD->list[47]
+#define OD_ENTRY_H6300_moduleADC_1 &OD->list[48]
+#define OD_ENTRY_H7000_storageEeprom_1 &OD->list[49]
+#define OD_ENTRY_H7100_storageW25 &OD->list[50]
+#define OD_ENTRY_H7200_storageFlash &OD->list[51]
+#define OD_ENTRY_H7300_memorySRAM_1 &OD->list[52]
+#define OD_ENTRY_H7400_storageAT24C &OD->list[53]
+#define OD_ENTRY_H7500_storageSDCard &OD->list[54]
+#define OD_ENTRY_H8000_inputSensor_1 &OD->list[55]
+#define OD_ENTRY_H8100_controlTouchscreen_1 &OD->list[56]
+#define OD_ENTRY_H9000_screenEpaper_1 &OD->list[57]
+#define OD_ENTRY_H9800_indicatorLED_1 &OD->list[58]
+#define OD_ENTRY_H9801_indicatorLED_2 &OD->list[59]
+#define OD_ENTRY_H9900_signalBeeper_1 &OD->list[60]
 
 
 /*******************************************************************************

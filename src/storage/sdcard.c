@@ -1,5 +1,6 @@
 #include "sdcard.h"
 #include "core/buffer.h"
+#include "core/file.h"
 #include "transport/sdio.h"
 
 static ODR_t sdcard_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
@@ -24,25 +25,24 @@ static app_signal_t sdcard_validate(storage_sdcard_properties_t *properties) {
 
 static int sdcard_lfs_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size) {
     storage_sdcard_t *sdcard = c->context;
-    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_READ_TO_BUFFER, sdcard->sdio->actor, buffer, size / sdcard->properties->block_size,
-                                          (void *)(block + off / sdcard->properties->block_size));
+    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_READ_TO_BUFFER, sdcard->sdio->actor, buffer,
+                                          size / sdcard->properties->block_size, (void *)(block + off / sdcard->properties->block_size));
     coru_yield();
     return 0;
 }
 
 static int sdcard_lfs_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
     storage_sdcard_t *sdcard = c->context;
-    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_WRITE, sdcard->sdio->actor, (void *) buffer, size / sdcard->properties->block_size,
-                                          (void *)(block + off / sdcard->properties->block_size));
+    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_WRITE, sdcard->sdio->actor, (void *)buffer,
+                                          size / sdcard->properties->block_size, (void *)(block + off / sdcard->properties->block_size));
     coru_yield();
     return 0;
 }
 
 static int sdcard_lfs_erase(const struct lfs_config *c, lfs_block_t block) {
-    storage_sdcard_t *sdcard = c->context;
-    actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_ERASE, sdcard->sdio->actor, NULL, 1,
-                                          (void *)(block));
-    coru_yield();
+    // actor_publish_event_with_argument_for(sdcard->actor, APP_EVENT_ERASE, sdcard->sdio->actor, NULL, 1,
+    //                                      (void *)(block));
+    // coru_yield();
     return 0;
 }
 
@@ -52,13 +52,13 @@ static int sdcard_lfs_sync(const struct lfs_config *c) {
 
 static app_signal_t sdcard_construct(storage_sdcard_t *sdcard) {
     actor_event_subscribe(sdcard->actor, APP_EVENT_DIAGNOSE);
-    sdcard->fs =(lfs_t *) app_malloc(sizeof(lfs_t));
-    sdcard->fs_file = (lfs_file_t *) app_malloc(sizeof(lfs_file_t));
-    sdcard->fs_config = (struct lfs_config *) app_malloc(sizeof(struct lfs_config));
-    
+    sdcard->fs = (lfs_t *)app_malloc(sizeof(lfs_t));
+    sdcard->fs_file = (lfs_file_t *)app_malloc(sizeof(lfs_file_t));
+    sdcard->fs_config = (struct lfs_config *)app_malloc(sizeof(struct lfs_config));
+
     sdcard->coroutine_stack_buffer = app_buffer_aligned(sdcard->actor, 2048, 4);
     coru_create_inplace(&sdcard->io, (void (*)(void *))app_job_execute, &sdcard->job, sdcard->coroutine_stack_buffer->data, 2048);
-    
+
     sdcard->fs_config->read_size = sdcard->properties->fs_read_size;
     sdcard->fs_config->prog_size = sdcard->properties->fs_program_size;
     sdcard->fs_config->cache_size = sdcard->properties->fs_cache_size;
@@ -85,7 +85,6 @@ static app_signal_t sdcard_read(storage_sdcard_t *sdcard) {
 }
 
 static app_signal_t sdcard_start(storage_sdcard_t *sdcard) {
-
     actor_set_phase(sdcard->actor, ACTOR_PREPARING);
     return 0;
 }
@@ -132,10 +131,7 @@ static app_job_signal_t sdcard_job_mount(app_job_t *job) {
 
     coru_yield();
     if (sdcard->properties->block_size != 0) {
-
     }
-    
-
     int err = lfs_mount(sdcard->fs, sdcard->fs_config);
 
     // reformat if we can't mount the filesystem
@@ -148,20 +144,87 @@ static app_job_signal_t sdcard_job_mount(app_job_t *job) {
         }
     }
 
-/*
-    // read current count
-    uint32_t boot_count = 0;
-    lfs_file_open(sdcard->fs, sdcard->fs_file, "boot_count.txt", LFS_O_RDWR | LFS_O_CREAT);
-    lfs_file_read(sdcard->fs, sdcard->fs_file, &boot_count, sizeof(boot_count));
+    /*
+        // read current count
+        uint32_t boot_count = 0;
+        lfs_file_open(sdcard->fs, sdcard->fs_file, "boot_count.txt", LFS_O_RDWR | LFS_O_CREAT);
+        lfs_file_read(sdcard->fs, sdcard->fs_file, &boot_count, sizeof(boot_count));
 
-    // update boot count
-    boot_count += 1;
-    lfs_file_rewind(sdcard->fs, sdcard->fs_file);
-    lfs_file_write(sdcard->fs, sdcard->fs_file, &boot_count, sizeof(boot_count));
-    // remember the storage is not updated until the file is closed successfully
-    lfs_file_close(sdcard->fs, sdcard->fs_file);
-*/
+        // update boot count
+        boot_count += 1;
+        lfs_file_rewind(sdcard->fs, sdcard->fs_file);
+        lfs_file_write(sdcard->fs, sdcard->fs_file, &boot_count, sizeof(boot_count));
+        // remember the storage is not updated until the file is closed successfully
+        lfs_file_close(sdcard->fs, sdcard->fs_file);
+    */
     return APP_JOB_HALT;
+}
+
+static app_job_signal_t sdcard_job_open(app_job_t *job) {
+    storage_sdcard_t *sdcard = job->actor->object;
+    app_file_t *file = (app_file_t *)job->inciting_event.argument;
+    configASSERT(file);
+    configASSERT(file->path);
+
+    file->handle = app_malloc(sizeof(lfs_file_t));
+    lfs_file_open(sdcard->fs, file->handle, (const char *) file->path, file->flags);
+    return APP_JOB_HALT;
+}
+
+static app_job_signal_t sdcard_job_close(app_job_t *job) {
+    storage_sdcard_t *sdcard = job->actor->object;
+    app_file_t *file = (app_file_t *)job->inciting_event.argument;
+    configASSERT(file);
+    configASSERT(file->handle);
+
+    lfs_file_close(sdcard->fs, file->handle);
+    app_free(file->handle);
+    return APP_JOB_HALT;
+}
+
+static app_job_signal_t sdcard_job_erase(app_job_t *job) {
+    storage_sdcard_t *sdcard = job->actor->object;
+    app_file_t *file = (app_file_t *)job->inciting_event.argument;
+    configASSERT(file);
+    configASSERT(file->path);
+
+    lfs_remove(sdcard->fs, file->path);
+    app_free(file->handle);
+    return APP_JOB_HALT;
+}
+
+static app_job_signal_t sdcard_job_read(app_job_t *job) {
+    storage_sdcard_t *sdcard = job->actor->object;
+    app_file_t *file = (app_file_t *)job->inciting_event.argument;
+    configASSERT(file);
+    configASSERT(file->handle);
+
+    uint32_t size = job->inciting_event.size;
+    if (size == 0) {
+        size = ((uint32_t) lfs_file_size(sdcard->fs, file->handle));
+    }
+    app_buffer_t *buffer = app_buffer_target_aligned(job->actor, job->inciting_event.data, job->inciting_event.size, 16);
+    if (lfs_file_read(sdcard->fs, file->handle, buffer->data, size) < 0) {
+        return APP_JOB_FAILURE;
+    } else {
+        return APP_JOB_HALT;
+    }
+}
+
+static app_job_signal_t sdcard_job_write(app_job_t *job) {
+    storage_sdcard_t *sdcard = job->actor->object;
+    app_file_t *file = (app_file_t *)job->inciting_event.argument;
+    configASSERT(file);
+    configASSERT(file->handle);
+    configASSERT(job->inciting_event.size);
+    configASSERT(job->inciting_event.data);
+
+    lfs_file_seek(sdcard->fs, file->handle, file->position, LFS_SEEK_SET);
+    app_buffer_t *buffer = app_buffer_source(job->actor, job->inciting_event.data, job->inciting_event.size);
+    if (lfs_file_write(sdcard->fs, file->handle, buffer->data, buffer->size) < 0) {
+        return APP_JOB_FAILURE;
+    }
+    return 0;
 }
 
 static app_signal_t sdcard_worker_medium_priority(storage_sdcard_t *sdcard, app_event_t *event, actor_worker_t *tick,
@@ -176,6 +239,25 @@ static app_signal_t sdcard_on_input(storage_sdcard_t *sdcard, app_event_t *event
         debug_log_inhibited = false;
         return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
                                                 sdcard_job_mount);
+    case APP_EVENT_READ_TO_BUFFER:
+    case APP_EVENT_READ:
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+                                                sdcard_job_read);
+    case APP_EVENT_WRITE:
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+                                                sdcard_job_write);
+    case APP_EVENT_OPEN:
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+                                                sdcard_job_open);
+    case APP_EVENT_CLOSE:
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+                                                sdcard_job_close);
+    case APP_EVENT_ERASE:
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+                                                sdcard_job_erase);
+    case APP_EVENT_STATS:
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+                                                sdcard_job_open);
     default:
         break;
     }
