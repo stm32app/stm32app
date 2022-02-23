@@ -107,7 +107,7 @@ static app_signal_t sdcard_on_phase(storage_sdcard_t *sdcard, actor_phase_t phas
     return 0;
 }
 
-static app_signal_t sdcard_on_report(storage_sdcard_t *sdcard, app_event_t *event) {
+static app_signal_t sdcard_on_event_report(storage_sdcard_t *sdcard, app_event_t *event) {
     app_thread_actor_schedule(sdcard->job.thread, sdcard->actor, sdcard->job.thread->current_time);
     return 0;
 }
@@ -233,35 +233,44 @@ static app_signal_t sdcard_worker_medium_priority(storage_sdcard_t *sdcard, app_
     return 0;
 }
 
-static app_signal_t sdcard_on_input(storage_sdcard_t *sdcard, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t sdcard_worker_on_input(storage_sdcard_t *sdcard, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_THREAD_ALARM:
         debug_log_inhibited = false;
-        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->medium_priority,
                                                 sdcard_job_mount);
     case APP_EVENT_READ_TO_BUFFER:
     case APP_EVENT_READ:
-        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->medium_priority,
                                                 sdcard_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->medium_priority,
                                                 sdcard_job_write);
     case APP_EVENT_OPEN:
-        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->medium_priority,
                                                 sdcard_job_open);
     case APP_EVENT_CLOSE:
-        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->medium_priority,
                                                 sdcard_job_close);
     case APP_EVENT_ERASE:
-        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->medium_priority,
                                                 sdcard_job_erase);
     case APP_EVENT_STATS:
-        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->threads->medium_priority,
+        return actor_event_handle_and_start_job(sdcard->actor, event, &sdcard->job, sdcard->actor->app->medium_priority,
                                                 sdcard_job_open);
     default:
         break;
     }
     return 0;
+}
+
+static app_signal_t sdcard_on_worker_assignment(storage_sdcard_t *sdcard, app_thread_t *thread) {
+    if (thread == sdcard->actor->app->input) {
+        return sdcard_worker_on_input;
+    } else if (thread == sdcard->actor->app->medium_priority) {
+        return sdcard_worker_medium_priority;
+    }
+    return NULL;
 }
 
 actor_class_t storage_sdcard_class = {
@@ -275,8 +284,7 @@ actor_class_t storage_sdcard_class = {
     .stop = (app_method_t)sdcard_stop,
     .on_phase = (actor_on_phase_t)sdcard_on_phase,
     .on_signal = (actor_on_signal_t)sdcard_on_signal,
-    .on_report = (actor_on_report_t)sdcard_on_report,
-    .worker_input = (actor_on_worker_t)sdcard_on_input,
-    .worker_medium_priority = (actor_on_worker_t)sdcard_worker_medium_priority,
+    .on_event_report = (actor_on_event_report_t)sdcard_on_event_report,
+    .on_worker_assignment = (actor_on_worker_t) sdcard_on_worker_assignment,
     .property_write = sdcard_property_write,
 };

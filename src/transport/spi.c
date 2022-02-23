@@ -363,7 +363,7 @@ static app_signal_t spi_worker_input(transport_spi_t *spi, app_event_t *event, a
     }
 }
 
-static app_signal_t spi_on_report(transport_spi_t *spi, app_event_t *event) {
+static app_signal_t spi_on_event_report(transport_spi_t *spi, app_event_t *event) {
     if (event->type == APP_EVENT_RESPONSE) {
     }
     return 0;
@@ -378,7 +378,7 @@ actor_class_t transport_spi_class = {
     .destruct = (app_method_t)spi_destruct,
     .start = (app_method_t)spi_start,
     .worker_input = (actor_on_worker_t)spi_worker_input,
-    .on_report = (actor_on_report_t)spi_on_report,
+    .on_event_report = (actor_on_event_report_t)spi_on_event_report,
     .on_signal = (actor_on_signal_t)spi_on_signal,
     .stop = (app_method_t)spi_stop,
 };

@@ -30,14 +30,16 @@ typedef enum app_job_signal app_job_signal_t;   /* Commands to advance step mach
 typedef struct actor_blank actor_blank_t; /* Example blank actor */
 typedef struct app_buffer app_buffer_t; /* Growable owned buffer */
 typedef struct app_double_buffer app_double_buffer_t; /* Typical read operation for peripheral*/
-typedef app_job_signal_t (*actor_on_job_t)(app_job_t *job);
-typedef app_signal_t (*actor_on_report_t)(void *object, app_event_t *event);
+typedef app_job_signal_t (*actor_on_job_complete_t)(app_job_t *job);
+typedef app_signal_t (*actor_on_event_report_t)(void *object, app_event_t *event);
 typedef app_signal_t (*actor_on_worker_t)(void *object, app_event_t *event, actor_worker_t *tick, app_thread_t *thread);
 typedef app_signal_t (*actor_on_phase_t)(void *object, actor_phase_t phase);
 typedef app_signal_t (*actor_on_value_t)(void *object, actor_t *actor, void *value, void *argument);
 typedef app_signal_t (*actor_on_link_t)(void *object, actor_t *actor, void *argument);
 typedef app_signal_t (*actor_on_signal_t)(void *object, actor_t *actor, app_signal_t signal, void *argument);
-typedef app_signal_t (*actor_on_buffer_t)(void *object, app_buffer_t *buffer, uint32_t size);
+typedef app_signal_t (*actor_on_buffer_allocation_t)(void *object, app_buffer_t *buffer, uint32_t size);
+typedef actor_worker_t *(*on_worker_assignment_t)(void *object, app_thread_t *thread);
+
 typedef app_signal_t (*app_method_t)(void *object);
 
 

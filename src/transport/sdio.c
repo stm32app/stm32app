@@ -691,19 +691,19 @@ static app_signal_t sdio_on_input(transport_sdio_t *sdio, app_event_t *event, ac
     switch (event->type) {
     case APP_EVENT_READ:
     case APP_EVENT_READ_TO_BUFFER:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
                                                 sdio_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
                                                 sdio_job_write);
     case APP_EVENT_ERASE:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
                                                 sdio_job_erase);
     case APP_EVENT_MOUNT:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
                                                 sdio_job_mount);
     case APP_EVENT_UNMOUNT:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->threads->high_priority,
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
                                                 sdio_job_unmount);
     default:
         break;
@@ -713,6 +713,16 @@ static app_signal_t sdio_on_input(transport_sdio_t *sdio, app_event_t *event, ac
 
 void sdio_isr(void) {
     sdio_notify(0);
+}
+
+
+static app_signal_t sdio_on_worker_assignment(transport_sdio_t *sdio, app_thread_t *thread) {
+    if (thread == sdio->actor->app->input) {
+        return sdio_on_input;
+    } else if (thread == sdio->actor->app->high_priority) {
+        return sdio_on_high_priority;
+    }
+    return NULL;
 }
 
 actor_class_t transport_sdio_class = {
@@ -726,7 +736,6 @@ actor_class_t transport_sdio_class = {
     .stop = (app_method_t)sdio_stop,
     .on_phase = (actor_on_phase_t)sdio_on_phase,
     .on_signal = (actor_on_signal_t)sdio_on_signal,
-    .worker_input = (actor_on_worker_t)sdio_on_input,
-    .worker_high_priority = (actor_on_worker_t)sdio_on_high_priority,
+    .on_worker_assignment = (on_worker_assignment_t) sdio_on_worker_assignment, 
     .property_write = sdio_property_write,
 };

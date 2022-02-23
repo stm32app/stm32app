@@ -10,11 +10,16 @@
 
 struct app_job {
     actor_t *actor;
-    app_thread_t *thread;
+    app_thread_t *thread;         // thread that job currently was assigned to
 
-    app_event_t inciting_event;
-    app_event_t awaited_event;
-    app_signal_t incoming_signal;
+    app_event_t inciting_event;   // event that started the job
+    app_event_t outgoing_event;   // event that actor produced during the job 
+    app_event_t incoming_event;    // event that was receieved from other actors during the job
+    app_signal_t incoming_signal; // signal that was passed to the job
+
+    app_buffer_t *source_buffer;  // buffer that is used as a source for write operations
+    app_buffer_t *target_buffer;  // buffer that is used as a target for read operations
+    app_buffer_t *result_buffer;  // buffer that is returned 
 
     uint32_t counter;
 
@@ -23,7 +28,7 @@ struct app_job {
     size_t job_phase;
     size_t task_phase;
 
-    actor_on_job_t handler;
+    actor_on_job_complete_t handler;
 };
 
 enum app_job_signal {
@@ -47,4 +52,5 @@ app_job_signal_t app_job_advance(app_job_t *job, app_job_signal_t signal);
 app_signal_t app_job_finalize(app_job_t *job);
 app_signal_t app_job_execute_if_running_in_thread(app_job_t *job, app_thread_t *thread);
 app_signal_t app_job_execute_in_coroutine_if_running_in_thread(app_job_t *job, app_thread_t *thread, coru_t *coroutine);
+
 #endif

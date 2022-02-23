@@ -98,7 +98,7 @@ static app_signal_t i2c_construct(transport_i2c_t *i2c) {
         i2c->er_irq = NVIC_I2C2_ER_IRQ;
         break;
 #else
-        return 1;
+        return APP_SIGNAL_INVALID_ARGUMENT;
 #endif
 #ifdef I2C3_BASE
     case 2:
@@ -108,7 +108,7 @@ static app_signal_t i2c_construct(transport_i2c_t *i2c) {
         i2c->er_irq = NVIC_I2C3_ER_IRQ;
         break;
 #else
-        return 1;
+        return APP_SIGNAL_INVALID_ARGUMENT;
 #endif
     }
     return 0;
@@ -426,7 +426,7 @@ static void i2c_notify(size_t index) {
     (void)s2;
 }
 
-static app_signal_t i2c_on_report(transport_i2c_t *i2c, app_event_t *event) {
+static app_signal_t i2c_on_event_report(transport_i2c_t *i2c, app_event_t *event) {
     return 0;
 }
 
@@ -448,13 +448,13 @@ static app_signal_t i2c_on_signal(transport_i2c_t *i2c, actor_t *actor, app_sign
     return 0;
 }
 
-static app_signal_t i2c_worker_input(transport_i2c_t *i2c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t i2c_worker_on_input(transport_i2c_t *i2c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_READ:
     case APP_EVENT_READ_TO_BUFFER:
-        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->job, i2c->actor->app->threads->medium_priority, i2c_job_read);
+        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->job, i2c->actor->app->medium_priority, i2c_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->job, i2c->actor->app->threads->medium_priority, i2c_job_write);
+        return actor_event_handle_and_start_job(i2c->actor, event, &i2c->job, i2c->actor->app->medium_priority, i2c_job_write);
     default:
         return 0;
     }
@@ -464,7 +464,7 @@ static app_signal_t i2c_worker_medium_priority(transport_i2c_t *i2c, app_event_t
     return app_job_execute_if_running_in_thread(&i2c->job, thread);
 }
 
-static app_signal_t i2c_on_buffer(transport_i2c_t *i2c, app_buffer_t *buffer, uint32_t size) {
+static app_signal_t i2c_on_buffer_allocation(transport_i2c_t *i2c, app_buffer_t *buffer, uint32_t size) {
     if (buffer == i2c->ring_buffer) {
         return app_buffer_reserve_with_limits(buffer, size, i2c->properties->dma_rx_circular_buffer_size, 0, 0);
     } else if (buffer == i2c->output_buffer) {
@@ -475,6 +475,16 @@ static app_signal_t i2c_on_buffer(transport_i2c_t *i2c, app_buffer_t *buffer, ui
     }
 }
 
+static app_signal_t i2c_on_worker_assignment(transport_i2c_t *i2c, app_thread_t *thread) {
+    if (thread == i2c->actor->app->input) {
+        return i2c_worker_on_input;
+    } else if (thread == i2c->actor->app->medium_priority) {
+        return i2c_worker_medium_priority;
+    }
+    return NULL;
+}
+
+
 actor_class_t transport_i2c_class = {
     .type = TRANSPORT_I2C,
     .size = sizeof(transport_i2c_t),
@@ -484,13 +494,11 @@ actor_class_t transport_i2c_class = {
     .link = (app_method_t)i2c_link,
     .start = (app_method_t)i2c_start,
     .stop = (app_method_t)i2c_stop,
-    .on_report = (actor_on_report_t)i2c_on_report,
+    .on_event_report = (actor_on_event_report_t)i2c_on_event_report,
     .on_phase = (actor_on_phase_t)i2c_phase,
     .on_signal = (actor_on_signal_t)i2c_on_signal,
-    .on_buffer = (actor_on_buffer_t)i2c_on_buffer,
-    .property_write = i2c_property_write,
-    .worker_input = (actor_on_worker_t)i2c_worker_input,
-    .worker_medium_priority = (actor_on_worker_t)i2c_worker_medium_priority,
+    .on_buffer_allocation = (actor_on_buffer_allocation_t)i2c_on_buffer_allocation,
+    .on_worker_assignment = (actor_on_worker_t) i2c_on_worker_assignment,
 };
 
 void i2c1_ev_isr(void) {

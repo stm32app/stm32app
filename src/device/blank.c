@@ -39,6 +39,12 @@ static app_signal_t blank_on_input(actor_blank_t *blank, app_event_t *event, act
     return 0;
 }
 
+static app_signal_t blank_on_worker_assignment(actor_blank_t *blank, app_thread_t *thread) {
+    if (thread == blank->actor->app->input) {
+        return blank_on_input;
+    }
+}
+
 actor_class_t actor_blank_class = {
     .type = 0,//SYSTEM_MCU,
     .size = sizeof(actor_blank_t),
@@ -50,6 +56,6 @@ actor_class_t actor_blank_class = {
     .stop = (app_method_t)blank_stop,
     .on_phase = (actor_on_phase_t)blank_on_phase,
     .on_signal = (actor_on_signal_t)blank_on_signal,
-    .worker_input = (actor_on_worker_t)blank_on_input,
+    .on_worker_assignment = blank_on_worker_assignment,
     .property_write = blank_property_write,
 };

@@ -7,6 +7,7 @@
 typedef struct app_file {
     actor_t *owner;     // actor that works with the file
     actor_t *storage;   // actor that handles FS operations
+    app_job_t *job;     // (optional) job that will receieve the results
     const char *path;      // point to filename
     int flags;          // flags with which file needs to be open
     uint32_t position; // desired position in the file

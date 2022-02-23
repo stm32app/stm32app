@@ -9,16 +9,16 @@
 #include "storage/sdcard.h"
 #include "storage/w25.h"
 #include "system/canopen.h"
-#include "system/mcu.h"
 #include "system/database.h"
+#include "system/mcu.h"
 //#include "screen/epaper.h"
 //#include "transport/can.h"
 //#include "transport/i2c.h"
 #include "indicator/led.h"
+#include "transport/can.h"
 #include "transport/i2c.h"
 #include "transport/sdio.h"
 #include "transport/spi.h"
-#include "transport/can.h"
 //#include "transport/usart.h"
 
 static ODR_t mothership_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
@@ -34,11 +34,24 @@ static app_signal_t mothership_validate(app_mothership_properties_t *properties)
 }
 
 static app_signal_t mothership_construct(app_mothership_t *mothership) {
-    if (!app_threads_allocate((app_t *)mothership)) {
-        mothership->buffers = app_buffer_malloc(mothership->actor);
-        return mothership->buffers == NULL;
-    };
-    return 1;
+    mothership->buffers = app_buffer_malloc(mothership->actor);
+    app_thread_allocate(&mothership->input, app, (void (*)(void *ptr))app_thread_execute, "Input", 300, 20, 5, NULL);
+    app_thread_allocate(&mothership->catchup, app, (void (*)(void *ptr))app_thread_execute, "Catchup", 200, 100, 5, NULL);
+    app_thread_allocate(&mothership->high_priority, app, (void (*)(void *ptr))app_thread_execute, "High P", 200, 1, 4, NULL);
+    app_thread_allocate(&mothership->medium_priority, app, (void (*)(void *ptr))app_thread_execute, "Medium P", 200, 1, 3, NULL);
+    app_thread_allocate(&mothership->low_priority, app, (void (*)(void *ptr))app_thread_execute, "Low P", 200, 1, 2, NULL);
+    app_thread_allocate(&mothership->bg_priority, app, (void (*)(void *ptr))app_thread_execute, "Bg P", 200, 0, 1, NULL);
+    return mothership->buffers != NULL && mothership->input != NULL && mothership->catchup != NULL && mothership->high_priority != NULL &&
+           mothership->medium_priority != NULL && mothership->low_priority != NULL && mothership->idle_priority != NULL;
+}
+
+static app_signal_t mothership_destruct(app_mothership_t *mothership) {
+    app_thread_free(mothership->input);
+    app_thread_free(mothership->medium_priority);
+    app_thread_free(mothership->high_priority);
+    app_thread_free(mothership->low_priority);
+    app_thread_free(mothership->bg_priority);
+    app_buffer_release(mothership->buffers);
 }
 
 static app_signal_t mothership_start(app_mothership_t *mothership) {
@@ -64,7 +77,7 @@ static app_signal_t mothership_phase(app_mothership_t *mothership, actor_phase_t
     switch (phase) {
     case ACTOR_CONSTRUCTING:
 
-//        start_sdram();
+        //        start_sdram();
         break;
 
     case ACTOR_RUNNING:
@@ -87,10 +100,10 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     count += app_actor_type_enumerate(app, od, &module_adc_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_can_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_spi_class, destination, count);
-    //count += app_actor_type_enumerate(app, od, &transport_i2c_class, destination, count);
-     count += app_actor_type_enumerate(app, od, &transport_sdio_class, destination, count);
+    // count += app_actor_type_enumerate(app, od, &transport_i2c_class, destination, count);
+    count += app_actor_type_enumerate(app, od, &transport_sdio_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_w25_class, destination, count);
-    //count += app_actor_type_enumerate(app, od, &storage_at24c_class, destination, count);
+    // count += app_actor_type_enumerate(app, od, &storage_at24c_class, destination, count);
     count += app_actor_type_enumerate(app, od, &storage_sdcard_class, destination, count);
     count += app_actor_type_enumerate(app, od, &indicator_led_class, destination, count);
     // count += app_actor_type_enumerate(MODULE_USART, &transport_usart_class, sizeof(transport_usart_t), destination, count);
@@ -101,7 +114,7 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     return count;
 }
 
-static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t mothership_worker_high_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     (void)tick;
     (void)thread;
     if (event->type == APP_EVENT_THREAD_ALARM && !mothership->initialized) {
@@ -109,13 +122,17 @@ static app_signal_t mothership_high_priority(app_mothership_t *mothership, app_e
         // test simple timeout
         module_timer_timeout(mothership->timer, mothership->actor, (void *)123, 1000000);
 
-//        tick->next_time = thread->current_time + 1000;
+        //        tick->next_time = thread->current_time + 1000;
         actor_publish_event(mothership->actor, APP_EVENT_DIAGNOSE);
         return actor_publish_event(mothership->actor, APP_EVENT_START);
     }
     if (event->type == APP_EVENT_THREAD_ALARM && mothership->initialized && !mothership->sdram) {
-        //finish_sdram();
+        // finish_sdram();
     }
+    return 0;
+}
+
+static app_signal_t mothership_worker_input(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     return 0;
 }
 
@@ -139,11 +156,11 @@ static app_job_signal_t mothership_job_stats(app_job_t *job) {
     return APP_JOB_SUCCESS;
 }
 
-static app_signal_t mothership_low_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t mothership_worker_low_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_THREAD_ALARM:
-       // if (mothership->sdram)
-            actor_event_receive_and_start_job(mothership->actor, event, &mothership->job, thread, mothership_job_stats);
+        // if (mothership->sdram)
+        actor_event_receive_and_start_job(mothership->actor, event, &mothership->job, thread, mothership_job_stats);
 
         break;
     default:
@@ -164,8 +181,7 @@ static app_signal_t mothership_on_signal(app_mothership_t mothership, actor_t *a
     return 0;
 };
 
-static app_signal_t mothership_on_buffer(app_mothership_t *mothership, app_buffer_t *buffer, uint32_t size) {
-
+static app_signal_t mothership_on_buffer_allocation(app_mothership_t *mothership, app_buffer_t *buffer, uint32_t size) {
     // allocate another slab chunk for buffers that will be used by other moduels in the app
     if (app_buffer_get_last_page(buffer) == app_buffer_get_last_page(mothership->buffers)) {
         app_buffer_t *next = mothership->buffers->allocated_size == 0 ? mothership->buffers : app_buffer_malloc(mothership->actor);
@@ -179,19 +195,30 @@ static app_signal_t mothership_on_buffer(app_mothership_t *mothership, app_buffe
     return 0;
 }
 
+static app_signal_t mothership_on_worker_assignment(app_mothership_t *mothership, app_thread_t *thread) {
+    if (thread == mothership->input) {
+        return mothership_worker_input;
+    } else if (thread == mothership->high_priority) {
+        return mothership_worker_high_priority;
+    } else if (thread == mothership->low_priority) {
+        return mothership_worker_low_priority;
+    }
+    return NULL;
+}
+
 actor_class_t app_mothership_class = {
     .type = CORE_APP,
     .size = sizeof(app_mothership_t),
     .phase_subindex = CORE_APP_PHASE,
     .validate = (app_method_t)mothership_validate,
     .construct = (app_method_t)mothership_construct,
+    .destruct = (app_method_t)mothership_destruct,
     .link = (app_method_t)mothership_link,
     .start = (app_method_t)mothership_start,
     .stop = (app_method_t)mothership_stop,
     .on_phase = (actor_on_phase_t)mothership_phase,
     .on_signal = (actor_on_signal_t)mothership_on_signal,
-    .worker_high_priority = (actor_on_worker_t)mothership_high_priority,
-    .worker_low_priority = (actor_on_worker_t)mothership_low_priority,
+    .on_worker_assignment = (on_worker_assignment_t)mothership_on_worker_assignment,
     .property_write = mothership_property_write,
-    .on_buffer = (actor_on_buffer_t)mothership_on_buffer,
+    .on_buffer_allocation = (actor_on_buffer_allocation_t)mothership_on_buffer_allocation,
 };

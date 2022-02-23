@@ -6,12 +6,12 @@ static int registerFunctions(sqlite3 *db, const char **pzErrMsg, const struct sq
     return SQLITE_OK;
 }
 
- int sqlite3_os_init(void) {
+int sqlite3_os_init(void) {
     return 1;
- };
- int sqlite3_os_end(void) {
-     return 0;
- };
+};
+int sqlite3_os_end(void) {
+    return 0;
+};
 /*
 ** The maximum pathname length supported by this VFS.
 */
@@ -40,7 +40,7 @@ static int vfs_DirectWrite(vfs_File *p,          /* File handle */
 ) {
     app_file_seek_to(&p->file, (uint32_t)position);
     app_file_write(&p->file, data, size);
-    trace_printf("fn:DirectWrite:Success");
+    trace_printf("fn:DirectWrite:Success\n");
     return SQLITE_OK;
 }
 
@@ -51,12 +51,12 @@ static int vfs_DirectWrite(vfs_File *p,          /* File handle */
 */
 static int vfs_FlushBuffer(vfs_File *p) {
     int rc = SQLITE_OK;
-    trace_printf("fn: FlushBuffer");
+    trace_printf("fn: FlushBuffer\n");
     if (p->cache) {
         rc = vfs_DirectWrite(p, p->cache->data, p->cache->size, p->cache_offset);
         p->cache->size = 0;
     }
-    trace_printf("fn:FlushBuffer:Successs");
+    trace_printf("fn:FlushBuffer:Successs\n");
     return rc;
 }
 
@@ -66,10 +66,10 @@ static int vfs_FlushBuffer(vfs_File *p) {
 static int vfs_Close(sqlite3_file *pFile) {
     int rc;
     vfs_File *p = (vfs_File *)pFile;
-    trace_printf("fn: Close");
+    trace_printf("fn: Close\n");
     rc = vfs_FlushBuffer(p);
     app_file_close(&p->file);
-    trace_printf("fn:Close:Success");
+    trace_printf("fn:Close:Success\n");
     return rc;
 }
 
@@ -77,14 +77,14 @@ static int vfs_Close(sqlite3_file *pFile) {
 ** Read data from a file.
 */
 static int vfs_Read(sqlite3_file *pFile, void *data, int size, sqlite_int64 offset) {
-    trace_printf("fn: Read");
+    trace_printf("fn: Read\n");
     vfs_File *p = (vfs_File *)pFile;
     app_file_seek_to(&p->file, (uint32_t)offset);
     app_file_read(&p->file, data, size);
 
     // Todo: Short read
     // if (nRead == size) {
-    trace_printf("fn:Read:Success");
+    trace_printf("fn:Read:Success\n");
     return SQLITE_OK;
     //} else if (nRead >= 0) {
     //    return SQLITE_IOERR_SHORT_READ;
@@ -97,7 +97,7 @@ static int vfs_Read(sqlite3_file *pFile, void *data, int size, sqlite_int64 offs
 ** Write data to a crash-file.
 */
 static int vfs_Write(sqlite3_file *pFile, const void *data, int size, sqlite_int64 offset) {
-    trace_printf("fn: Write");
+    trace_printf("fn: Write\n");
     vfs_File *p = (vfs_File *)pFile;
 
     if (p->cache->data) {
@@ -143,9 +143,9 @@ static int vfs_Write(sqlite3_file *pFile, const void *data, int size, sqlite_int
    does not configure SQLite to use "journal_mode=truncate", or use both "journal_mode=persist" and ATTACHed databases. */
 static int vfs_Truncate(sqlite3_file *pFile, sqlite_int64 size) {
     vfs_File *p = (vfs_File *)pFile;
-    trace_printf("fn: Truncate");
+    trace_printf("fn: Truncate\n");
     app_file_truncate(&p->file);
-    trace_printf("fn:Truncate:Success");
+    trace_printf("fn:Truncate:Success\n");
     return SQLITE_OK;
 }
 
@@ -154,7 +154,7 @@ static int vfs_Truncate(sqlite3_file *pFile, sqlite_int64 size) {
 */
 static int vfs_Sync(sqlite3_file *pFile, int flags) {
     vfs_File *p = (vfs_File *)pFile;
-    trace_printf("fn: Sync");
+    trace_printf("fn: Sync\n");
     int rc = vfs_FlushBuffer(p);
     if (rc != SQLITE_OK) {
         return rc;
@@ -221,11 +221,11 @@ static int vfs_DeviceCharacteristics(sqlite3_file *pFile) {
 ** is both readable and writable.
 */
 static int vfs_Access(sqlite3_vfs *pVfs, const char *zPath, int flags, int *pResOut) {
-    trace_printf("fn: Access %s", zPath);
+    trace_printf("fn: Access %s\n", zPath);
     app_file_t file = {};
     app_file_open(&file, zPath, APP_FILE_EXCLUSIVE);
     *pResOut = ((file.flags & APP_FILE_ERROR) ? 0 : 1);
-    trace_printf("fn:Access:Success");
+    trace_printf("fn:Access:Success\n");
     return SQLITE_OK;
 }
 
@@ -238,7 +238,7 @@ static int vfs_Open(sqlite3_vfs *pVfs,   /* VFS */
                     int flags,           /* Input SQLITE_OPEN_XXX flags */
                     int *pOutFlags       /* Output SQLITE_OPEN_XXX flags (or NULL) */
 ) {
-    trace_printf("fn: Open");
+    trace_printf("fn: Open\n");
     system_database_t *database = pVfs->pAppData;
     vfs_File *p = (vfs_File *)pFile; /* Populate this structure */
     memset(p, 0, sizeof(vfs_File));
@@ -271,7 +271,7 @@ static int vfs_Open(sqlite3_vfs *pVfs,   /* VFS */
     }
     p->base.pMethods = &database->vfs_io;
 
-    trace_printf("fn:Open:Success");
+    trace_printf("fn:Open:Success\n");
     return SQLITE_OK; // SQLITE_IOERR_DELETE
 }
 
@@ -281,11 +281,11 @@ static int vfs_Open(sqlite3_vfs *pVfs,   /* VFS */
 ** file has been synced to disk before returning.
 */
 static int vfs_Delete(sqlite3_vfs *pVfs, const char *zPath, int dirSync) {
-    trace_printf("fn: Delete");
+    trace_printf("fn: Delete\n");
     system_database_t *database = pVfs->pAppData;
     app_file_t file = {.owner = database->actor, .storage = database->storage->actor, .path = zPath};
     app_file_delete(&file);
-    trace_printf("fn:Delete:Success");
+    trace_printf("fn:Delete:Success\n");
     return SQLITE_OK; // SQLITE_IOERR_DELETE
 }
 
@@ -307,7 +307,7 @@ static int vfs_FullPathname(sqlite3_vfs *pVfs, /* VFS */
 ) {
     strncpy(zPathOut, zPath, nPathOut);
     zPathOut[nPathOut - 1] = '\0';
-    trace_printf("fn:Fullpathname:Success");
+    trace_printf("fn:Fullpathname:Success\n");
 
     return SQLITE_OK;
 }
@@ -391,6 +391,7 @@ static app_signal_t database_validate(system_database_properties_t *properties) 
 }
 
 static app_signal_t database_construct(system_database_t *database) {
+    actor_event_subscribe(database->actor, APP_EVENT_START);
     app_thread_allocate(&database->thread, database, (void (*)(void *ptr))app_thread_execute, "DB", 1024, 0, 4, NULL);
     database->journal_buffer = app_buffer_target(database->actor, NULL, database->properties->journal_buffer_size);
     if (database->journal_buffer == NULL) {
@@ -445,7 +446,7 @@ static app_signal_t database_construct(system_database_t *database) {
     };
 
     sqlite3_vfs_register(&database->vfs, 1);
-    //sqlite3_auto_extension((void (*)())registerFunctions);
+    // sqlite3_auto_extension((void (*)())registerFunctions);
     return 0;
 }
 
@@ -481,10 +482,11 @@ static app_signal_t database_on_signal(system_database_t *database, actor_t *act
     return 0;
 }
 
-static app_signal_t database_medium_priority(system_database_t *database, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t database_worker_sql(system_database_t *database, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     return app_job_execute_if_running_in_thread(&database->job, thread);
 }
-static app_signal_t database_on_input(system_database_t *database, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+
+static app_signal_t database_worker_on_input(system_database_t *database, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_START:
         debug_log_inhibited = false;
@@ -497,6 +499,16 @@ static app_signal_t database_on_input(system_database_t *database, app_event_t *
     return 0;
 }
 
+static app_signal_t database_on_worker_assignment(system_database_t *database, app_thread_t *thread) {
+    if (thread == database->actor->app->input) {
+        return database_worker_on_input;
+    } else if (thread == database->thread) {
+        return database_worker_sql;
+    }
+    return NULL;
+}
+
+
 actor_class_t system_database_class = {
     .type = SYSTEM_DATABASE,
     .size = sizeof(system_database_t),
@@ -508,7 +520,5 @@ actor_class_t system_database_class = {
     .stop = (app_method_t)database_stop,
     .on_phase = (actor_on_phase_t)database_on_phase,
     .on_signal = (actor_on_signal_t)database_on_signal,
-    .worker_input = (actor_on_worker_t)database_on_input,
-    .worker_medium_priority = (actor_on_worker_t)database_medium_priority,
     .property_write = database_property_write,
 };

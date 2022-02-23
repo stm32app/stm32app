@@ -5,12 +5,11 @@
 #define MAX_THREAD_SLEEP_TIME 60000
 #define IS_IN_ISR (SCB_ICSR & SCB_ICSR_VECTACTIVE)
 
-static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t worker_index);
+static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event);
 static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_worker_t *worker);
 static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event, app_event_status_t previous_status);
 static void app_thread_event_await(app_thread_t *thread, app_event_t *event);
 static inline bool_t app_thread_event_queue_shift(app_thread_t *thread, app_event_t *event, size_t deferred_count);
-static inline actor_worker_t *actor_worker_by_index(actor_t *actor, uint8_t index);
 
 /* A generic RTOS task function that handles all typical propertiesurations of threads. It supports following features or combinations of
   them:
@@ -40,22 +39,14 @@ void app_thread_execute(app_thread_t *thread) {
     thread->current_time = xTaskGetTickCount();
     thread->last_time = thread->current_time;
     thread->next_time = thread->current_time + MAX_THREAD_SLEEP_TIME;
-    uint8_t worker_index = app_thread_get_worker_index(thread);   // Which actor worker handles this thread
-    size_t deferred_count = 0;                               // Counter of re-queued events
-    actor_t *first_actor = app_thread_filter_actors(thread); // linked list of actors declaring the worker
+    size_t deferred_count = 0; // Counter of re-queued events
     app_event_t event = {.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
-
-    if (first_actor == NULL) {
-        debug_printf("~ %s:  does not have any listener actors and will self-terminate\n", app_thread_get_name(thread));
-        vTaskDelete(NULL);
-        portYIELD();
-    }
 
     while (true) {
         app_event_status_t previous_event_status = event.status;
 
         // route event to its listeners
-        app_thread_event_dispatch(thread, &event, first_actor, worker_index);
+        app_thread_event_dispatch(thread, &event);
 
         // keep event for later processing if needed
         deferred_count += app_thread_event_requeue(thread, &event, previous_event_status);
@@ -69,8 +60,8 @@ void app_thread_execute(app_thread_t *thread) {
 }
 
 /*
-  Devices may indicate which types of events they want to be notified about. But there're also internal synthetic events that they receieve
-  unconditionally.
+  Devices may indicate which types of events they want to be notified about. But there're also internal synthetic events that they
+  receieve unconditionally.
 */
 static inline bool_t app_thread_should_notify_actor(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_worker_t *worker) {
     switch (event->type) {
@@ -94,16 +85,14 @@ static inline bool_t app_thread_should_notify_actor(app_thread_t *thread, app_ev
 }
 
 /* Notify interested actors of a new event. Events may either be targeted to a specific actor, or broadcasted to all/*/
-static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event, actor_t *first_actor, size_t worker_index) {
-
-    // If event has no indicated reciepent, all actors that are subscribed to thread and event will need to be notified
-    actor_t *actor = event->consumer ? event->consumer : first_actor;
-    actor_worker_t *worker;
+static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t *event) {
     app_signal_t signal = 0;
 
-    while (actor) {
-        worker = actor_worker_by_index(actor, worker_index);
-        signal = app_thread_event_actor_dispatch(thread, event, actor, worker);
+    for (size_t i = 0; i < thread->workers_count; i++) {
+        // If event has no indicated reciepent, all actors that are subscribed to thread and event will need to be notified
+        actor_worker_t *worker = event->consumer ? app_thread_worker_for(thread, event->consumer) : thread->workers_count[i];
+
+        signal = app_thread_event_actor_dispatch(thread, event, worker->actor, worker);
 
         // let worker know that it has events to catch up later
         if (signal == APP_SIGNAL_BUSY) {
@@ -114,8 +103,6 @@ static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t 
         if (event->consumer != NULL) {
             break;
         }
-
-        actor = worker->next_actor;
     }
 
     return signal;
@@ -130,10 +117,9 @@ static app_signal_t app_thread_event_dispatch(app_thread_t *thread, app_event_t 
 static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_event_t *event, actor_t *actor, actor_worker_t *worker) {
     app_signal_t signal = 0;
 
-
     if (app_thread_should_notify_actor(thread, event, actor, worker)) {
-        debug_printf("├ %-22s#%s from %s\n", 
-                   get_actor_type_name(actor->class->type), get_app_event_type_name(event->type), get_actor_type_name(event->producer->class->type));
+        debug_printf("├ %-22s#%s from %s\n", get_actor_type_name(actor->class->type), get_app_event_type_name(event->type),
+                     get_actor_type_name(event->producer->class->type));
 
         if (event->type == APP_EVENT_THREAD_ALARM || event->type == APP_EVENT_THREAD_START) {
             worker->next_time = -1;
@@ -141,7 +127,6 @@ static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_ev
         // Tick callback may change event status, set software timer or both
         signal = worker->callback(actor->object, event, worker, thread);
         worker->last_time = thread->current_time;
-        
 
         // Mark event as processed
         if (event->status == APP_EVENT_WAITING) {
@@ -163,8 +148,8 @@ static app_signal_t app_thread_event_actor_dispatch(app_thread_t *thread, app_ev
 
 /* Some threads may want to redirect their stale messages to another thread */
 app_thread_t *app_thread_get_catchup_thread(app_thread_t *thread) {
-    if (thread == thread->actor->app->threads->input) {
-        return thread->actor->app->threads->catchup;
+    if (thread == thread->actor->app->input) {
+        return thread->actor->app->catchup;
     } else {
         return thread;
     }
@@ -178,9 +163,9 @@ static inline QueueHandle_t app_thread_get_catchup_queue(app_thread_t *thread) {
 }
 
 /*
-  A broadcasted event may be claimed for exclusive processing by actor that is too busy to process it right away. In that case event then
-  gets pushed to the back of the queue, so the thread can keep on processing other events. When all is left in queue is deferred events, the
-  thread will sleep and wait for either new events or notification from actor that is now ready to process a deferred event.
+  A broadcasted event may be claimed for exclusive processing by actor that is too busy to process it right away. In that case event
+  then gets pushed to the back of the queue, so the thread can keep on processing other events. When all is left in queue is deferred
+  events, the thread will sleep and wait for either new events or notification from actor that is now ready to process a deferred event.
 */
 static size_t app_thread_event_requeue(app_thread_t *thread, app_event_t *event, app_event_status_t previous_status) {
     QueueHandle_t queue;
@@ -264,13 +249,14 @@ static inline bool_t app_thread_event_queue_shift(app_thread_t *thread, app_even
 
 /*
   A thread goes to sleep to allow tasks with lower priority to run, when it does not have any events that can be processed right now.
-  - Publishing new events also sends the notification for the thread to wake up. If an event was published to the back of the queue that had
-  deferred events in it, the thread will need to rotate the whole queue to get to to the new events. This is due to FreeRTOS only allowing
-  to take first event in the queue.
+  - Publishing new events also sends the notification for the thread to wake up. If an event was published to the back of the queue that
+  had deferred events in it, the thread will need to rotate the whole queue to get to to the new events. This is due to FreeRTOS only
+  allowing to take first event in the queue.
   - A actor that was previously busy can send a `APP_SIGNAL_CATCHUP` notification, indicating that it is ready to catch up with events
     that it deferred previously. In that case thread will attempt to re-dispatch all the events in the queue.
 */
-static inline void app_thread_event_await(app_thread_t *thread, app_event_t *event) {
+static inline app_signal_t app_thread_event_await(app_thread_t *thread, app_event_t *event) {
+    app_signal_t signal = 0;
 
     for (bool_t stop = false; stop == false;) {
         // task gets blocked expecting notification, with a timeout to simulate software alarm.
@@ -294,8 +280,8 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
             // if no notification was recieved (value of signal being zero) within scheduled time,
             // it means that thread is woken up by schedule so synthetic wake up event is broadcasted
             *event = (app_event_t){.producer = thread->actor->app->actor, .type = APP_EVENT_THREAD_ALARM};
-            debug_printf("├ Wakeup\t\tafter %lims (timeout of %lims)\n", 
-                       ((xTaskGetTickCount() - thread->current_time) * portTICK_PERIOD_MS), timeout);
+            debug_printf("├ Wakeup\t\tafter %lims (timeout of %lims)\n",
+                         ((xTaskGetTickCount() - thread->current_time) * portTICK_PERIOD_MS), timeout);
             stop = true;
             break;
 
@@ -310,18 +296,22 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
             debug_printf("├ Catchup\n");
             __attribute__((fallthrough));
         default:
-            // event publishers set address of event in notification slot instead of a signal
-            // it is only read in threads that dont use queues
-            if (thread->queue != NULL) {
-                // threads with queue that receieve notification expect a new message in queue
-                if (!xQueueReceive(thread->queue, event, 0)) {
-                    debug_printf("├  Was woken up by notification but its queue is empty\n");
-                    continue;
+            // memory address in the notification slot means there's an incoming event in the queue
+            if (notification > 50) {
+                if (thread->queue != NULL) {
+                    // threads with queue that receieve notification expect a new message in queue
+                    if (!xQueueReceive(thread->queue, event, 0)) {
+                        debug_printf("├  Was woken up by notification but its queue is empty\n");
+                        continue;
+                    }
+                } else {
+                    // if thread doesnt have queue, event is passed as address in notification slot instead.
+                    // publisher will have to ensure that event memory survives until thread is ready for it.
+                    memcpy(event, (uint32_t *)notification, sizeof(app_event_t));
                 }
-            } else if (notification > 50) {
-                // if thread doesnt have queue, event is passed as address in notification slot instead.
-                // publisher will have to ensure that event memory survives until thread is ready for it.
-                memcpy(event, (uint32_t *)notification, sizeof(app_event_t));
+                // notifying with signal is used by custom threads
+            } else {
+                signal = notification;
             }
             stop = true;
         }
@@ -333,6 +323,8 @@ static inline void app_thread_event_await(app_thread_t *thread, app_event_t *eve
     // tell thread to sleep if no work co
     if (thread->next_time <= thread->current_time)
         thread->next_time = thread->current_time + MAX_THREAD_SLEEP_TIME;
+
+    return signal;
 }
 
 bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t overwrite) {
@@ -350,8 +342,8 @@ bool_t app_thread_notify_generic(app_thread_t *thread, uint32_t value, bool_t ov
 
 bool_t app_thread_publish_generic(app_thread_t *thread, app_event_t *event, bool_t to_front) {
     debug_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", get_app_event_type_name(event->type),
-               get_actor_type_name(event->producer->class->type),
-               event->consumer ? get_actor_type_name(event->consumer->class->type) : "broadcast", app_thread_get_name(thread));
+                 get_actor_type_name(event->producer->class->type),
+                 event->consumer ? get_actor_type_name(event->consumer->class->type) : "broadcast", app_thread_get_name(thread));
     bool_t result = false;
 
     if (IS_IN_ISR) {
@@ -386,49 +378,35 @@ void app_thread_worker_schedule(app_thread_t *thread, actor_worker_t *worker, ui
     app_thread_schedule(thread, time);
 }
 
-int actor_worker_allocate(actor_worker_t **destination, actor_on_worker_t callback) {
-    if (callback != NULL) {
-        *destination = app_malloc(sizeof(actor_worker_t));
-        if (*destination == NULL) {
-            return APP_SIGNAL_OUT_OF_MEMORY;
-        }
-        actor_worker_initialize(*destination);
-        (*destination)->callback = callback;
-    }
-    return 0;
-}
-
-void actor_worker_initialize(actor_worker_t *worker) {
-    *worker = (actor_worker_t){};
-}
-
-void actor_worker_free(actor_worker_t **worker) {
-    if (*worker != NULL) {
-        app_free(*worker);
-        *worker = NULL;
-    }
-}
-
 int app_thread_allocate(app_thread_t **destination, void *app_or_object, void (*callback)(void *ptr), const char *const name,
                         uint16_t stack_depth, size_t queue_size, size_t priority, void *argument) {
-    *destination = (app_thread_t *) app_malloc(sizeof(app_thread_t));
-    app_thread_t *thread = *destination;
-    thread->actor = ((app_t *)app_or_object)->actor;
-    xTaskCreate(callback, name, stack_depth, (void *)thread, priority, (void *)&thread->task);
-    if (thread->task == NULL) {
-        return APP_SIGNAL_OUT_OF_MEMORY;
-    }
-    if (queue_size > 0) {
-        thread->queue = xQueueCreate(queue_size, sizeof(app_event_t));
-        if (thread->queue == NULL) {
-            return APP_SIGNAL_OUT_OF_MEMORY;
-        }
-#if propertiesQUEUE_REGISTRY_SIZE > 0
-        vQueueAddToRegistry(thread->queue, name);
-#endif
-    }
+    app_thread_t *thread = (app_thread_t *)app_malloc(sizeof(app_thread_t));
+    if (thread != NULL) {
+        thread->actor = ((app_t *)app_or_object)->actor;
+        thread->argument = argument;
 
-    thread->argument = argument;
+        // initialize workers for all listneing actors
+        size_t worker_count = app_thread_iterate_workers(thread, NULL);
+        thread->workers = app_calloc_int(worker_count, sizeof(actor_worker_t));
+        if (thread->workers != NULL) {
+            app_thread_iterate_workers(thread, thread->workers);
+
+            // initialize task & queue
+            xTaskCreate(callback, name, stack_depth, (void *)thread, priority, (void *)&thread->task);
+
+            if (thread->task != NULL) {
+                if (queue_size > 0) {
+                    thread->queue = xQueueCreate(queue_size, sizeof(app_event_t));
+                }
+                if (queue_size == 0 || thread->queue != NULL) {
+                    *destination = thread;
+                    return 0;
+                }
+            }
+        }
+
+        app_thread_free(&thread);
+    }
     return 0;
 }
 
@@ -437,116 +415,43 @@ int app_thread_free(app_thread_t **thread) {
     if ((*thread)->queue != NULL) {
         vQueueDelete((*thread)->queue);
     }
+    if (thread->task) {
+        vTaskDelete(thread->task);
+    }
     *thread = NULL;
     return 0;
 }
 
-/* Returns specific member of app_threads_t struct by its numeric index*/
-static inline actor_worker_t *actor_worker_by_index(actor_t *actor, uint8_t index) {
-    if (index == (uint8_t) -1) {
-        index = 2; // custom thread invoke medium-priority worker
+actor_worker_t *app_thread_worker_for(actor_t *actor, app_thread_t *thread) {
+    for (uint16_t i = 0; i < thread->workers_count; i++) {
+        if (thread->workers[i]->actor == actor) {
+            return thread->workers[i];
+        }
     }
-    return ((actor_worker_t **)actor->workers)[index]; 
+    return NULL;
 }
 
-/* Returns specific member of actor_workers_t struct by its numeric index*/
-static inline app_thread_t *app_thread_by_index(app_t *app, uint8_t index) {
-    return ((app_thread_t **)app->threads)[index];
-}
-
-/* Returns actor worker handling given thread */
-actor_worker_t *actor_worker_for_thread(actor_t *actor, app_thread_t *thread) {
-    return actor_worker_by_index(actor, app_thread_get_worker_index(thread));
-}
-
-actor_t *app_thread_filter_actors(app_thread_t *thread) {
+size_t *app_thread_iterate_workers(app_thread_t *thread, actor_worker_t **destination) {
     app_t *app = thread->actor->app;
-    uint8_t worker_index = app_thread_get_worker_index(thread);
-    // custom workers only invoke their actor owners by default
-    if (worker_index == (uint8_t) -1) {
-        return thread->actor;
-    }
-    actor_t *first_actor = NULL;
-    actor_t *last_actor = NULL;
+    size_t count = 0;
     for (size_t i = 0; i < app->actor_count; i++) {
         actor_t *actor = &app->actor[i];
-        actor_worker_t *worker = actor_worker_by_index(actor, worker_index);
-        // Subscribed actors have corresponding worker handler
-        if (worker == NULL) {
+        if (!actor->class->on_worker_assignment) {
             continue;
         }
-
-        // Return first actor
-        if (first_actor == NULL) {
-            first_actor = actor;
+        actor_on_worker_t *handler = actor->class->on_worker_assignment(actor->object, thread);
+        if (!handler) {
+            continue;
         }
-
-        // double link the workers for fast iteration
-        if (last_actor != NULL) {
-            actor_worker_by_index(last_actor, worker_index)->next_actor = actor;
-            worker->prev_actor = actor;
+        if (destination) {
+            *destination[count] = (actor_worker_t){.callback = handler, .thread = thread, .actor = actor};
         }
-
-        last_actor = actor;
+        count++;
     }
 
-    return first_actor;
-}
-
-size_t app_thread_get_worker_index(app_thread_t *thread) {
-    for (size_t i = 0; i < sizeof(app_threads_t) / sizeof(app_thread_t *); i++) {
-        if (app_thread_by_index(thread->actor->app, i) == thread) {
-            // Both input and immediate threads invoke same input worker
-            if (i > 0) {
-                return i - 1;
-            } else {
-                return i;
-            }
-        }
-    }
-    return -1;
-}
-
-int actor_workers_allocate(actor_t *actor) {
-    actor->workers = app_malloc(sizeof(actor_workers_t));
-    return actor_worker_allocate(&actor->workers->input, actor->class->worker_input) ||
-           actor_worker_allocate(&actor->workers->medium_priority, actor->class->worker_medium_priority) ||
-           actor_worker_allocate(&actor->workers->high_priority, actor->class->worker_high_priority) ||
-           actor_worker_allocate(&actor->workers->low_priority, actor->class->worker_low_priority) ||
-           actor_worker_allocate(&actor->workers->bg_priority, actor->class->worker_bg_priority);
-}
-
-int actor_workers_free(actor_t *actor) {
-    actor_worker_free(&actor->workers->input);
-    actor_worker_free(&actor->workers->medium_priority);
-    actor_worker_free(&actor->workers->high_priority);
-    actor_worker_free(&actor->workers->low_priority);
-    actor_worker_free(&actor->workers->bg_priority);
-    app_free(actor->workers);
-    return 0;
-}
-
-int app_threads_allocate(app_t *app) {
-    app->threads = app_malloc(sizeof(app_threads_t));
-    return app_thread_allocate(&app->threads->input, app, (void (*)(void *ptr))app_thread_execute, "Input", 300, 20, 5, NULL) ||
-           app_thread_allocate(&app->threads->catchup, app, (void (*)(void *ptr))app_thread_execute, "Catchup", 200, 100, 5, NULL) ||
-           app_thread_allocate(&app->threads->high_priority, app, (void (*)(void *ptr))app_thread_execute, "High P", 200, 1, 4, NULL) ||
-           app_thread_allocate(&app->threads->medium_priority, app, (void (*)(void *ptr))app_thread_execute, "Medium P", 200, 1, 3, NULL) ||
-           app_thread_allocate(&app->threads->low_priority, app, (void (*)(void *ptr))app_thread_execute, "Low P", 200, 1, 2, NULL) ||
-           app_thread_allocate(&app->threads->bg_priority, app, (void (*)(void *ptr))app_thread_execute, "Bg P", 200, 0, 1, NULL);
+    return count;
 }
 
 char *app_thread_get_name(app_thread_t *thread) {
     return pcTaskGetTaskName(thread->task);
-}
-
-
-int app_threads_free(app_t *app) {
-    app_thread_free(&app->threads->input);
-    app_thread_free(&app->threads->medium_priority);
-    app_thread_free(&app->threads->high_priority);
-    app_thread_free(&app->threads->low_priority);
-    app_thread_free(&app->threads->bg_priority);
-    app_free(app->threads);
-    return 0;
 }

@@ -28,24 +28,24 @@ default: return "Unknown";
 char* get_app_signal_name (uint32_t v) {
 switch (v) {
 case 0: return "APP_SIGNAL_OK";
-case 1: return "APP_SIGNAL_FAILURE";
-case 2: return "APP_SIGNAL_TIMEOUT";
-case 3: return "APP_SIGNAL_TIMER";
-case 4: return "APP_SIGNAL_DMA_ERROR";
-case 5: return "APP_SIGNAL_DMA_TRANSFERRING";
-case 6: return "APP_SIGNAL_DMA_IDLE";
-case 7: return "APP_SIGNAL_RX_COMPLETE";
-case 8: return "APP_SIGNAL_TX_COMPLETE";
-case 9: return "APP_SIGNAL_CATCHUP";
-case 10: return "APP_SIGNAL_RESCHEDULE";
-case 11: return "APP_SIGNAL_INCOMING";
-case 12: return "APP_SIGNAL_BUSY";
-case 13: return "APP_SIGNAL_NOT_FOUND";
-case 14: return "APP_SIGNAL_UNCONFIGURED";
-case 15: return "APP_SIGNAL_INCOMPLETE";
-case 16: return "APP_SIGNAL_CORRUPTED";
-case 17: return "APP_SIGNAL_NO_RESPONSE";
-case 18: return "APP_SIGNAL_OUT_OF_MEMORY";
+case 1: return "APP_SIGNAL_TIMER";
+case 2: return "APP_SIGNAL_DMA_TRANSFERRING";
+case 3: return "APP_SIGNAL_DMA_IDLE";
+case 4: return "APP_SIGNAL_RX_COMPLETE";
+case 5: return "APP_SIGNAL_TX_COMPLETE";
+case 6: return "APP_SIGNAL_CATCHUP";
+case 7: return "APP_SIGNAL_RESCHEDULE";
+case 8: return "APP_SIGNAL_INCOMING";
+case -1: return "APP_SIGNAL_FAILURE";
+case -2: return "APP_SIGNAL_TIMEOUT";
+case -3: return "APP_SIGNAL_DMA_ERROR";
+case -4: return "APP_SIGNAL_BUSY";
+case -5: return "APP_SIGNAL_NOT_FOUND";
+case -6: return "APP_SIGNAL_UNCONFIGURED";
+case -7: return "APP_SIGNAL_INCOMPLETE";
+case -8: return "APP_SIGNAL_CORRUPTED";
+case -9: return "APP_SIGNAL_NO_RESPONSE";
+case -10: return "APP_SIGNAL_OUT_OF_MEMORY";
 default: return "Unknown";
 }
 };
@@ -111,6 +111,20 @@ case 2: return "APP_EVENT_ADDRESSED";
 case 3: return "APP_EVENT_HANDLED";
 case 4: return "APP_EVENT_DEFERRED";
 case 5: return "APP_EVENT_FINALIZED";
+default: return "Unknown";
+}
+};
+
+char* get_app_file_mode_name (uint32_t v) {
+switch (v) {
+case 1: return "APP_FILE_READ";
+case 2: return "APP_FILE_WRITE";
+case 3: return "APP_FILE_READ_WRITE";
+case 256: return "APP_FILE_CREATE";
+case 512: return "APP_FILE_EXCLUSIVE";
+case 1024: return "APP_FILE_TRUNCATE";
+case 2048: return "APP_FILE_APPEND";
+case 524288: return "APP_FILE_ERROR";
 default: return "Unknown";
 }
 };
@@ -197,20 +211,6 @@ case 3: return "INPUT_SENSOR_PIN";
 case 4: return "INPUT_SENSOR_ADC_INDEX";
 case 5: return "INPUT_SENSOR_ADC_CHANNEL";
 case 6: return "INPUT_SENSOR_PHASE";
-default: return "Unknown";
-}
-};
-
-char* get_app_file_mode_name (uint32_t v) {
-switch (v) {
-case 1: return "APP_FILE_READ";
-case 2: return "APP_FILE_WRITE";
-case 3: return "APP_FILE_READ_WRITE";
-case 256: return "APP_FILE_CREATE";
-case 512: return "APP_FILE_EXCLUSIVE";
-case 1024: return "APP_FILE_TRUNCATE";
-case 2048: return "APP_FILE_APPEND";
-case 524288: return "APP_FILE_ERROR";
 default: return "Unknown";
 }
 };

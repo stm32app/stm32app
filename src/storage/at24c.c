@@ -170,19 +170,19 @@ static app_job_signal_t at24c_job_erase(app_job_t *job) {
 static app_signal_t at24c_worker_input(storage_at24c_t *at24c, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_DIAGNOSE:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->low_priority,
                                                   at24c_job_diagnose);
     case APP_EVENT_RESPONSE:
         return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->job, at24c->job.thread, at24c->job.handler);
 
     case APP_EVENT_READ:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->low_priority,
                                                   at24c_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->low_priority,
                                                   at24c_job_write);
     case APP_EVENT_ERASE:
-        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
+        return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->low_priority,
                                                   at24c_job_erase);
     default:
         return 0;
@@ -196,11 +196,11 @@ static app_signal_t at24c_worker_low_priority(storage_at24c_t *at24c, app_event_
     return app_job_execute_if_running_in_thread(&at24c->job, thread);
 }
 
-static app_signal_t at24c_on_report(storage_at24c_t *at24c, app_event_t *event) {
+static app_signal_t at24c_on_event_report(storage_at24c_t *at24c, app_event_t *event) {
     switch (event->type) {
     case APP_EVENT_WRITE:
     case APP_EVENT_READ_TO_BUFFER:
-        // return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->job, at24c->actor->app->threads->low_priority,
+        // return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->job, at24c->actor->app->low_priority,
         //                                        at24c->job.handler);
 
         // app_job_execute(&at24c->job);
@@ -210,6 +210,17 @@ static app_signal_t at24c_on_report(storage_at24c_t *at24c, app_event_t *event) 
     default:
         return 0;
     }
+}
+
+static app_signal_t at24c_on_worker_assignment(storage_at24c_t *at24c, app_thread_t *thread) {
+    if (thread == at24c->actor->app->input) {
+        return at24c_worker_input;
+    } else if (thread == at24c->actor->app->high_priority) {
+        return at24c_worker_high_priority;
+    } else if (thread == at24c->actor->app->low_priority) {
+        return at24c_worker_low_priority;
+    }
+    return NULL;
 }
 
 actor_class_t storage_at24c_class = {
@@ -224,8 +235,6 @@ actor_class_t storage_at24c_class = {
     .on_phase = (actor_on_phase_t)at24c_phase,
     .property_write = at24c_property_write,
     .on_signal = (actor_on_signal_t)at24c_on_signal,
-    .on_report = (actor_on_report_t)at24c_on_report,
-    .worker_low_priority = (actor_on_worker_t)at24c_worker_low_priority,
-    .worker_high_priority = (actor_on_worker_t)at24c_worker_high_priority,
-    .worker_input = (actor_on_worker_t)at24c_worker_input,
+    .on_event_report = (actor_on_event_report_t)at24c_on_event_report,
+    .on_worker_assignment = (on_worker_assignment_t) at24c_on_worker_assignment,
 };

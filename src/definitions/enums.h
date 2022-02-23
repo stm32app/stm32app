@@ -13,6 +13,8 @@ char* get_app_buffer_flag_name (uint32_t v);
 char* get_app_event_type_name (uint32_t v);
 // defined in ./src/core/event.h
 char* get_app_event_status_name (uint32_t v);
+// defined in ./src/core/file.h
+char* get_app_file_mode_name (uint32_t v);
 // defined in ./src/core/task.h
 char* get_app_job_signal_name (uint32_t v);
 // defined in ./src/definitions/dictionary.h
@@ -23,8 +25,6 @@ char* get_device_circuit_properties_indecies_name (uint32_t v);
 char* get_indicator_led_properties_indecies_name (uint32_t v);
 // defined in ./src/input/sensor.h
 char* get_input_sensor_properties_indecies_name (uint32_t v);
-// defined in ./src/lib/file.h
-char* get_app_file_mode_name (uint32_t v);
 // defined in ./src/module/adc.h
 char* get_module_adc_properties_indecies_name (uint32_t v);
 // defined in ./src/module/timer.h

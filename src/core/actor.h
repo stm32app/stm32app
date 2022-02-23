@@ -8,9 +8,8 @@ extern "C" {
 #include "301/CO_ODinterface.h"
 #include "core/app.h"
 #include "core/thread.h"
-#include "lib/gpio.h"
 #include "env.h"
-
+#include "lib/gpio.h"
 
 /*#define OD_ACCESSORS(OD_TYPE, NAME, SUBTYPE, PROPERTY, SUBINDEX, TYPE, SHORT_TYPE) \
     static inline ODR_t OD_TYPE##_##NAME##_set_##PROPERTY(OD_TYPE##_##NAME##_t *NAME, TYPE value) {                                        \
@@ -62,13 +61,13 @@ struct actor {
     OD_entry_t *entry;              /* OD entry containing propertiesuration for actor*/
     OD_extension_t entry_extension; /* OD IO handlers for properties changes */
     uint32_t event_subscriptions;   /* Mask for different event types that actor recieves */
-    #if DEBUG
-        actor_phase_t previous_phase;
-    #endif
+#if DEBUG
+    actor_phase_t previous_phase;
+#endif
 };
 
 struct actor_class {
-    actor_type_t type;     /* OD index of a first actor of this type */
+    actor_type_t type;      /* OD index of a first actor of this type */
     uint8_t phase_subindex; /* OD subindex containing phase property*/
     uint8_t phase_offset;   /* OD subindex containing phase property*/
     size_t size;            /* Memory requirements for actor struct */
@@ -82,19 +81,14 @@ struct actor_class {
     app_signal_t (*pause)(void *object);        /* Put actor to sleep temporarily */
     app_signal_t (*resume)(void *object);       /* Wake actor up from sleep */
 
-    app_signal_t (*on_job)(void *object, app_job_t *job);                                   /* Task has been complete */
-    app_signal_t (*on_report)(void *object, app_event_t *event);                                /* Somebody processed the event */
+    app_signal_t (*on_job_complete)(void *object, app_job_t *job);                            /* Task has been complete */
+    app_signal_t (*on_event_report)(void *object, app_event_t *event);                        /* Somebody processed the event */
     app_signal_t (*on_phase)(void *object, actor_phase_t phase);                              /* Handle phase change */
     app_signal_t (*on_signal)(void *object, actor_t *origin, app_signal_t signal, void *arg); /* Send signal to actor */
-    app_signal_t (*on_value)(void *object, actor_t *actor, void *value, void *arg);          /* Accept value from linked actor */
+    app_signal_t (*on_value)(void *object, actor_t *actor, void *value, void *arg);           /* Accept value from linked actor */
     app_signal_t (*on_link)(void *object, actor_t *origin, void *arg);                        /* Accept linking request*/
-    app_signal_t (*on_buffer)(void *object, app_buffer_t *buffer, uint32_t size);                        /* Accept linking request*/
-
-    app_signal_t (*worker_input)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);         /* Processing input events asap */
-    app_signal_t (*worker_high_priority)(void *o, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Important work that isnt input */
-    app_signal_t (*worker_medium_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t); /* Medmium importance periphery */
-    app_signal_t (*worker_low_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);    /* Low-importance periodical */
-    app_signal_t (*worker_bg_priority)(void *p, app_event_t *e, actor_worker_t *tick, app_thread_t *t);     /* Lowest priority work that i*/
+    app_signal_t (*on_buffer_allocation)(void *object, app_buffer_t *buffer, uint32_t size);  /* Accept linking request*/
+    actor_worker_t *(*on_worker_assignment)(void *object, app_thread_t *thread);              /* Assign worker handlers to threads */
 
     ODR_t (*property_read)(OD_stream_t *stream, void *buf, OD_size_t count, OD_size_t *countRead);
     ODR_t (*property_write)(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten);
@@ -117,7 +111,8 @@ ODR_t actor_set_property_numeric(actor_t *actor, uint8_t index, uint32_t value, 
 // Write value with trailing NULL character
 ODR_t actor_set_property_string(actor_t *actor, uint8_t index, char *data, size_t size);
 // Run getters to stream property (will initialize stream if needed)
-ODR_t actor_compute_property_stream(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size, OD_stream_t *stream, OD_size_t *count_read) ;
+ODR_t actor_compute_property_stream(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size, OD_stream_t *stream,
+                                    OD_size_t *count_read);
 // Run getters to compute property and store it in given buffer (or fall back to internal memory)
 ODR_t actor_compute_property_into_buffer(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size);
 // Run getters for the property
@@ -134,7 +129,8 @@ void *actor_get_property_pointer(actor_t *actor, uint8_t index);
 // Optimized getter for actor phase
 #define actor_get_phase(actor) actor_get_properties(actor)[actor->class->phase_offset]
 // Optimized setter for actor phase (will not trigger observers)
-#define actor_set_phase(actor, phase) actor_set_property_numeric(actor, (actor)->class->phase_subindex, (uint32_t) phase, sizeof(actor_phase_t)) 
+#define actor_set_phase(actor, phase)                                                                                                      \
+    actor_set_property_numeric(actor, (actor)->class->phase_subindex, (uint32_t)phase, sizeof(actor_phase_t))
 // Default state machine for basic phases
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase);
 
@@ -159,73 +155,6 @@ uint32_t actor_gpio_get(uint8_t port, uint8_t pin);
 /* Check if event will invoke input tick on this actor */
 bool_t actor_event_is_subscribed(actor_t *actor, app_event_t *event);
 void actor_event_subscribe(actor_t *actor, app_event_type_t type);
-
-/* Attempt to store event in a memory destination if it's not occupied yet */
-app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t *event, app_event_t *destination,
-                                                     app_event_status_t ready_status, app_event_status_t busy_status,
-                                                     actor_on_report_t handler);
-
-app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
-                                                        actor_on_job_t handler, app_event_status_t ready_status,
-                                                        app_event_status_t busy_status);
-
-app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
-                                                          actor_on_job_t handler, app_event_status_t ready_status,
-                                                          app_event_status_t busy_status);
-
-/* Consume event if not busy, otherwise keep it enqueued for later without allowing others to take it  */
-#define actor_event_handle(actor, event, destination)                                                                                    \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_DEFERRED, NULL)
-/* Consume event with a given handler  if not busy, otherwise keep it enqueued for later without allowing others to take it  */
-#define actor_event_handle_and_process(actor, event, destination, handler)                                                               \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_DEFERRED, (actor_on_report_t)handler)
-/* Consume event by starting a task if not busy, otherwise keep it enqueued for later without allowing others to take it  */
-#define actor_event_handle_and_start_job(actor, event, task, thread, handler)                                                           \
-    actor_event_accept_and_start_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
-/* Consume event with a running task if not busy, otherwise keep it enqueued for later without allowing others to take it  */
-#define actor_event_handle_and_pass_to_job(actor, event, task, thread, handler)                                                         \
-    actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
-
-/* Consume event if not busy, otherwise keep it enqueued for later unless other actors take it first  */
-#define actor_event_accept(actor, event, destination)                                                                                    \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED, NULL)
-/* Consume event with a given handler if not busy, otherwise keep it enqueued for later unless other actors take it first */
-#define actor_event_accept_and_process(actor, event, destination, handler)                                                               \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED, (app_event_t)handler)
-/* Consume event by starting a task if not busy, otherwise keep it enqueued for later unless other actors take it first  */
-#define actor_event_accept_and_start_job(actor, event, task, thread, handler)                                                           \
-    actor_event_accept_and_start_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
-/* Consume event with a running task  if not busy, otherwise keep it enqueued for later unless other actors take it first */
-#define actor_event_accept_and_pass_to_job(actor, event, task, thread, handler)                                                         \
-    actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
-
-/* Process event and let others receieve it too */
-#define actor_event_receive(actor, event, destination)                                                                                   \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED, NULL)
-/* Process event with a given handler and let others receieve it too */
-#define actor_event_receive_and_process(actor, event, destination, handler)                                                              \
-    actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED, (app_event_t)handler)
-/* Consume even by starting a task if not busy, and let others receieve it too  */
-#define actor_event_receive_and_start_job(actor, event, task, thread, handler)                                                          \
-    actor_event_accept_and_start_job_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
-/* Consume event with a running task  if not busy, and let others receieve it too  */
-#define actor_event_receive_and_pass_to_job(actor, event, task, thread, handler)                                                        \
-    actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
-
-app_signal_t actor_event_report(actor_t *actor, app_event_t *event);
-app_signal_t actor_event_finalize(actor_t *actor, app_event_t *event);
-
-app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *tick);
-
-app_signal_t actor_publish_event_generic(actor_t *actor, app_event_type_t type, actor_t *target, uint8_t *data, uint32_t size, void *argument);
-#define actor_publish_event(actor, type) actor_publish_event_generic(actor, type, NULL, NULL, 0, NULL)
-#define actor_publish_event_for(actor, type, target) actor_publish_event_generic(actor, type, target, NULL, 0, NULL)
-#define actor_publish_event_with_data(actor, type, data, size) actor_publish_event_generic(actor, type, NULL, data, size, NULL)
-#define actor_publish_event_with_data_for(actor, type, target, data, size)                                                                 \
-    actor_publish_event_generic(actor, type, target, data, size, NULL)
-#define actor_publish_event_with_argument(actor, type, data, size, arg) actor_publish_event_generic(actor, type, NULL, data, size, arg)
-#define actor_publish_event_with_argument_for(actor, type, target, data, size, arg)                                                        \
-    actor_publish_event_generic(actor, type, target, data, size, arg)
 
 #ifdef __cplusplus
 }

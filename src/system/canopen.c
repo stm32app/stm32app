@@ -186,7 +186,7 @@ static app_signal_t canopen_worker_high_priority(system_canopen_t *canopen, void
 }
 
 /* CANopen accepts its input from interrupts */
-static app_signal_t canopen_worker_input(system_canopen_t *canopen, void *argument, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t canopen_worker_on_input(system_canopen_t *canopen, void *argument, actor_worker_t *tick, app_thread_t *thread) {
     (void)argument;
 
     uint32_t us_since_last = (thread->current_time - tick->last_time) * 1000;
@@ -228,6 +228,15 @@ static void app_thread_canopen_notify(app_thread_t *thread) {
     app_thread_publish(thread, &event);
 }
 
+static app_signal_t canopen_on_worker_assignment(system_canopen_t *canopen, app_thread_t *thread) {
+    if (thread == canopen->actor->app->input) {
+        return canopen_worker_on_input;
+    } else if (thread == canopen->actor->app->high_priority) {
+        return canopen_worker_high_priority;
+    }
+    return NULL;
+}
+
 actor_class_t system_canopen_class = {
     .type = SYSTEM_CANOPEN,
     .size = sizeof(system_canopen_t),
@@ -240,11 +249,9 @@ actor_class_t system_canopen_class = {
     .start = (app_method_t)canopen_start,
     .stop = (app_method_t)canopen_stop,
 
-    .worker_input = (actor_on_worker_t)canopen_worker_input,
-    .worker_high_priority = (actor_on_worker_t)canopen_worker_high_priority,
-
     .on_phase = (actor_on_phase_t)canopen_phase,
     .property_write = canopen_property_write,
+    .on_worker_assignment = (on_worker_assignment_t) canopen_on_worker_assignment,
 };
 
 static void system_canopen_initialize_class(system_canopen_t *canopen) {
@@ -252,51 +259,51 @@ static void system_canopen_initialize_class(system_canopen_t *canopen) {
 
     /* Mainline tasks */
     if (CO_GET_CNT(EM) == 1) {
-        CO_EM_initCallbackPre(canopen->instance->em, (void *)&app->threads->input, (void (*)(void *))app_thread_canopen_notify);
+        CO_EM_initCallbackPre(canopen->instance->em, (void *)&app->input, (void (*)(void *))app_thread_canopen_notify);
     }
     if (CO_GET_CNT(NMT) == 1) {
-        CO_NMT_initCallbackPre(canopen->instance->NMT, (void *)&app->threads->input, (void (*)(void *))app_thread_canopen_notify);
+        CO_NMT_initCallbackPre(canopen->instance->NMT, (void *)&app->input, (void (*)(void *))app_thread_canopen_notify);
     }
 #if (CO_CONFIG_SRDO) & CO_CONFIG_SRDO_SRV_ENABLE
     for (int16_t i = 0; i < CO_GET_CNT(SRDO); i++) {
-        CO_SRDO_initCallbackPre(&canopen->instance->SRDO[i], (void *)&app->threads->input, (void (*)(void *))app_thread_canopen_notify);
+        CO_SRDO_initCallbackPre(&canopen->instance->SRDO[i], (void *)&app->input, (void (*)(void *))app_thread_canopen_notify);
     }
 #endif
 #if (CO_CONFIG_HB_CONS) & CO_CONFIG_HB_CONS_ENABLE
     if (CO_GET_CNT(HB_CONS) == 1) {
-        CO_HBconsumer_initCallbackPre(canopen->instance->HBCons, (void *)&app->threads->input, (void (*)(void *))app_thread_canopen_notify);
+        CO_HBconsumer_initCallbackPre(canopen->instance->HBCons, (void *)&app->input, (void (*)(void *))app_thread_canopen_notify);
     }
 #endif
 #if (CO_CONFIG_TIME) & CO_CONFIG_TIME_ENABLE
     if (CO_GET_CNT(TIME) == 1) {
-        CO_TIME_initCallbackPre(canopen->instance->TIME, (void *)&app->threads->input, (void (*)(void *))app_thread_canopen_notify);
+        CO_TIME_initCallbackPre(canopen->instance->TIME, (void *)&app->input, (void (*)(void *))app_thread_canopen_notify);
     }
 #endif
 #if (CO_CONFIG_SDO_CLI) & CO_CONFIG_SDO_CLI_ENABLE
     for (int16_t i = 0; i < CO_GET_CNT(SDO_CLI); i++) {
-        CO_SDOclient_initCallbackPre(&canopen->instance->SDOclient[i], (void *)&app->threads->input,
+        CO_SDOclient_initCallbackPre(&canopen->instance->SDOclient[i], (void *)&app->input,
                                      (void (*)(void *))app_thread_canopen_notify);
     }
 #endif
     for (int16_t i = 0; i < CO_GET_CNT(SDO_SRV); i++) {
-        CO_SDOserver_initCallbackPre(&canopen->instance->SDOserver[i], (void *)&app->threads->input,
+        CO_SDOserver_initCallbackPre(&canopen->instance->SDOserver[i], (void *)&app->input,
                                      (void (*)(void *))app_thread_canopen_notify);
     }
 #if (CO_CONFIG_LSS) & CO_CONFIG_LSS_MASTER
-    CO_LSSmaster_initCallbackPre(canopen->instance->LSSmaster, (void *)&app->threads->input, (void (*)(void *))app_thread_canopen_notify);
+    CO_LSSmaster_initCallbackPre(canopen->instance->LSSmaster, (void *)&app->input, (void (*)(void *))app_thread_canopen_notify);
 #endif
 #if (CO_CONFIG_LSS) & CO_CONFIG_LSS_SLAVE
-    CO_LSSslave_initCallbackPre(canopen->instance->LSSslave, (void *)&app->threads->input, (void (*)(void *))app_thread_canopen_notify);
+    CO_LSSslave_initCallbackPre(canopen->instance->LSSslave, (void *)&app->input, (void (*)(void *))app_thread_canopen_notify);
 #endif
 /* Processing tasks */
 #if (CO_CONFIG_SYNC) & CO_CONFIG_SYNC_ENABLE
     if (CO_GET_CNT(SYNC) == 1) {
-        CO_SYNC_initCallbackPre(canopen->instance->SYNC, (void *)&app->threads->high_priority, (void (*)(void *))app_thread_canopen_notify);
+        CO_SYNC_initCallbackPre(canopen->instance->SYNC, (void *)&app->high_priority, (void (*)(void *))app_thread_canopen_notify);
     }
 #endif
 #if (CO_CONFIG_PDO) & CO_CONFIG_RPDO_ENABLE
     for (int i = 0; i < CO_NO_RPDO; i++) {
-        CO_RPDO_initCallbackPre(c & anopen->instance->RPDO[i], (void *)&app->threads->high_priority, app_thread_canopen_notify);
+        CO_RPDO_initCallbackPre(c & anopen->instance->RPDO[i], (void *)&app->high_priority, app_thread_canopen_notify);
     }
 #endif
 }

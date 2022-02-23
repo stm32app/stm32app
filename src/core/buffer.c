@@ -111,8 +111,8 @@ app_signal_t app_buffer_reserve(app_buffer_t *buffer, uint32_t size) {
     if (size > buffer->allocated_size) {
         // only managed buffers can be reallocated
         debug_assert(buffer->owner);
-        if (buffer->owner->class->on_buffer) {
-            return buffer->owner->class->on_buffer(buffer->owner->object, buffer, size);
+        if (buffer->owner->class->on_buffer_allocation) {
+            return buffer->owner->class->on_buffer_allocation(buffer->owner->object, buffer, size);
         } else {
             app_buffer_reserve_with_limits(buffer, size, 0, 0, 0);
         }

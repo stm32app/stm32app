@@ -15,8 +15,8 @@ app_signal_t app_job_execute(app_job_t *job) {
         switch (job_signal) {
         case APP_JOB_HALT:
             debug_printf("│ │ ├ %s\t\t%u:%u\n", "Halt", job->job_phase, job->task_phase);
-            if (job->actor->class->on_job != NULL) {
-                job->actor->class->on_job(job->actor->object, job);
+            if (job->actor->class->on_job_complete != NULL) {
+                job->actor->class->on_job_complete(job->actor->object, job);
             }
             app_job_finalize(job);
             actor_worker_catchup(job->actor, NULL);
@@ -26,8 +26,8 @@ app_signal_t app_job_execute(app_job_t *job) {
         case APP_JOB_FAILURE:
             if (job->job_phase == job_signal) {
                 debug_printf("│ │ ├ %s\t\t%u:%u\n", job_signal == APP_JOB_SUCCESS ? "Success" : "Failure", job->job_phase, job->task_phase);
-                if (job->actor->class->on_job != NULL) {
-                    job->actor->class->on_job(job->actor->object, job);
+                if (job->actor->class->on_job_complete != NULL) {
+                    job->actor->class->on_job_complete(job->actor->object, job);
                 }
             } else {
                 app_job_finalize(job);
@@ -53,12 +53,13 @@ app_signal_t app_job_execute(app_job_t *job) {
         case APP_JOB_TASK_FAILURE:
             break;
         case APP_JOB_TASK_WAIT:
-            actor_event_finalize(job->actor, &job->awaited_event); // free up room for a new event
+            actor_event_finalize(job->actor, &job->incoming_event); // free up room for a new event
             halt = true;
             break;
         default:
             halt = true;
         }
+        job->incoming_signal = APP_SIGNAL_PENDING;
     }
     debug_printf("│ │ └ Yield\t\t%u:%u\n", job->job_phase, job->task_phase);
     cm_enable_interrupts();
@@ -67,7 +68,7 @@ app_signal_t app_job_execute(app_job_t *job) {
 
 app_signal_t app_job_finalize(app_job_t *job) {
     actor_event_finalize(job->actor, &job->inciting_event);
-    actor_event_finalize(job->actor, &job->awaited_event);
+    actor_event_finalize(job->actor, &job->incoming_event);
     job->handler = NULL;
     return 0;
 }
@@ -155,4 +156,19 @@ app_signal_t app_job_execute_in_coroutine_if_running_in_thread(app_job_t *job, a
         return a;
     }
     return 0;
+}
+
+app_job_signal_t app_job_wait_t(app_job_t *job) {
+    configASSERT(job->thread);
+    // todo: better solution
+    if (app_thread_get_worker_index(job->thread) == (uint8_t)-1) {
+        job->incoming_signal = app_thread_event_await(job->thread, job->inciting_event);
+    } else {
+        return APP_JOB_TASK_WAIT;
+    }
+}
+
+app_signal_t job_publish_event_generic(app_job_t *job, app_event_type_t type, actor_t *target, uint8_t *data, uint32_t size,
+                                       void *argument) {
+                                         task->
 }
