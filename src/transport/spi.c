@@ -209,7 +209,7 @@ static app_signal_t spi_dma_transceive(transport_spi_t *spi, uint8_t *data, size
         do {
             spi_xfer(spi->address,0x05);
             sr1 = spi_xfer(spi->address,0x00);
-            printf("busy %u\n", sr1);
+            error_printf("busy %u\n", sr1);
         } while (sr1 & 0x01);
 
         spi_disable(spi->address);
@@ -218,7 +218,7 @@ static app_signal_t spi_dma_transceive(transport_spi_t *spi, uint8_t *data, size
         do {
             spi_xfer(spi->address,0x05);
             sr1 = spi_xfer(spi->address,0x00);
-            printf("busy %u\n", sr1);
+            error_printf("busy %u\n", sr1);
         } while (sr1 & 0x01);
         spi_disable(spi->address);
     spi_enable(spi->address);
@@ -230,14 +230,14 @@ static app_signal_t spi_dma_transceive(transport_spi_t *spi, uint8_t *data, size
         uint8_t me = spi_xfer(spi->address,0x0);// Memory Type
         uint8_t ca = spi_xfer(spi->address,0x0);// Capacity
 
-    printf("result %u %u %u\n", ma, me, ca);*/
+    error_printf("result %u %u %u\n", ma, me, ca);*/
 
     spi->rx_bytes_target = response_size;
     spi->tx_bytes_target = size;
     spi->dma_rx_circular_buffer_cursor = 0;
     volatile uint8_t temp_data __attribute__((unused));
     while (SPI_SR(spi->address) & (SPI_SR_RXNE | SPI_SR_OVR)) {
-        printf("Reading spi dr???\n");
+        error_printf("Reading spi dr???\n");
         temp_data = SPI_DR(spi->address);
     }
     spi_dma_write(spi, data);
@@ -258,7 +258,7 @@ static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
 
     volatile uint8_t temp_data __attribute__((unused));
     while (SPI_SR(spi->address) & (SPI_SR_RXNE | SPI_SR_OVR)) {
-        printf("Reading spi dr?!?!?\n");
+        error_printf("Reading spi dr?!?!?\n");
         temp_data = SPI_DR(spi->address);
     }
 
@@ -369,6 +369,13 @@ static app_signal_t spi_on_event_report(transport_spi_t *spi, app_event_t *event
     return 0;
 }
 
+static actor_worker_callback_t spi_on_worker_assignment(transport_spi_t *spi, app_thread_t *thread) {
+    if (spi->actor->app->input == thread) {
+        return (actor_worker_callback_t) spi_worker_input;
+    }
+    return NULL;
+}
+
 actor_class_t transport_spi_class = {
     .type = TRANSPORT_SPI,
     .size = sizeof(transport_spi_t),
@@ -377,8 +384,8 @@ actor_class_t transport_spi_class = {
     .construct = (app_method_t)spi_construct,
     .destruct = (app_method_t)spi_destruct,
     .start = (app_method_t)spi_start,
-    .worker_input = (actor_on_worker_t)spi_worker_input,
     .on_event_report = (actor_on_event_report_t)spi_on_event_report,
     .on_signal = (actor_on_signal_t)spi_on_signal,
+    .on_worker_assignment = (actor_on_worker_assignment_t) spi_on_worker_assignment,
     .stop = (app_method_t)spi_stop,
 };

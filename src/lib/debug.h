@@ -1,13 +1,14 @@
 #ifndef INC_DEBUG
 #define INC_DEBUG
-
+#include "configs/app_config.h"
 #include <libopencm3/cm3/dwt.h>
 #include <libopencm3/cm3/scb.h>
 #include <libopencm3/stm32/dbgmcu.h>
+#if DEBUG_LOG_LEVEL > 0
 #include <stdio.h>
+#endif
 
 #define IS_DEBUGGER_ATTACHED (DBGMCU_CR & 0x07)
-#define DEBUG_LOG_LEVEL 4
 #define DEBUG_BUFFER_SIZE 0
 #define DEBUG_BUFFER_FLUSH_SIZE DEBUG_BUFFER_SIZE * 0.9
 
@@ -41,9 +42,13 @@ void buffered_printf_flush(void);
 #define buffered_printf_flush DEBUG_NOOP
 #endif
 
+#if DEBUG_LOG_LEVEL > 0
 #define conditional_printf(...) (!debug_log_inhibited ? buffered_printf(__VA_ARGS__) : (void) 0)
-
 #define debug_timestamp_printf(...) (log_ccycnt_before(), conditional_printf(__VA_ARGS__), log_ccycnt_after())
+#else
+#define conditional_printf DEBUG_NOOP
+#define debug_timestamp_printf DEBUG_NOOP
+#endif 
 
 #if DEBUG_LOG_LEVEL > 3
 #define _trace_printf conditional_printf
@@ -68,8 +73,11 @@ void buffered_printf_flush(void);
 #define log_printf DEBUG_NOOP
 #endif
 
-#ifdef DEBUG
+#define error_printf debug_printf
 
+
+
+#ifdef DEBUG
 #define traceTASK_SWITCHED_OUT() log_job_out()
 #define traceTASK_SWITCHED_IN() log_job_in()
 
@@ -77,24 +85,17 @@ void buffered_printf_flush(void);
 //#define traceMALLOC(pvAddress, uiSize)  debug_printf("%x %d malloc\r\n", pvAddress, (unsigned int)uiSize)
 //#define traceFREE(pvAddress, uiSize)    debug_printf("%x %d free\r\n", pvAddress, (unsigned int)uiSize)
 
-#define error_printf debug_printf
-
 void log_ccycnt_before(void);
 void log_ccycnt_after(void);
 void log_job_out(void);
 void log_job_in(void);
 
-void vApplicationMallocFailedHook(void);
-void vApplicationIdleHook(void);
-;
 __attribute__((naked)) void my_hard_fault_handler(void);
 __attribute__((used)) void hard_fault_handler_inside(struct scb_exception_stack_frame *frame);
 
-#else
-
-#define debug_printf ((void))
-#define error_printf printf
-
 #endif
+
+void vApplicationMallocFailedHook(void);
+void vApplicationIdleHook(void);
 
 #endif

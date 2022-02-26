@@ -95,16 +95,18 @@
 #ifdef DEBUG
 #define configCHECK_FOR_STACK_OVERFLOW 2
 #define configUSE_MALLOC_FAILED_HOOK 1
+#define configUSE_IDLE_HOOK 1
 
 #include "lib/debug.h"
 #define configASSERT debug_assert
 
 #define traceTASK_SWITCHED_OUT() log_job_out()
 #define traceTASK_SWITCHED_IN() log_job_in()
+#else
+#define configUSE_IDLE_HOOK 0
 #endif
 
 #define configUSE_PREEMPTION 1
-#define configUSE_IDLE_HOOK 1
 #define configUSE_TICK_HOOK 0
 #define configCPU_CLOCK_HZ F_CPU
 #define configSYSTICK_CLOCK_HZ (configCPU_CLOCK_HZ / 8) /* fix for vTaskDelay() */

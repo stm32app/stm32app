@@ -95,8 +95,10 @@ app_buffer_t *app_buffer_snapshot_with_options(actor_t *owner, uint8_t *data, ui
 // Size of -1 indicates that `data` points to another buffer, but it will not be referenced directly
 #define app_buffer_snapshot(owner, data, size) app_buffer_snapshot_with_options(owner, data, size, 0)
 
-app_buffer_t *app_buffer_take_from_pool(actor_t *actor);
-void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor);
+void *app_pool_allocate(app_buffer_t *pool, uint16_t size);
+void app_pool_free(void *memory, uint16_t size);
+app_buffer_t *app_pool_allocate_buffer(app_buffer_t *pool);
+void app_pool_free_buffer(app_buffer_t *buffer);
 app_buffer_t *app_buffer_malloc(actor_t *actor);
 
 app_buffer_t *app_buffer_get_next_page(app_buffer_t *buffer, app_buffer_t *first);

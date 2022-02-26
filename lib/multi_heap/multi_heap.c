@@ -491,9 +491,7 @@ BlockLink_t *pxLink;
 					traceFREE(pv, pxLink->xBlockSize);
 					prvInsertBlockIntoFreeList(i, ((BlockLink_t *)pxLink));
 				}
-        #ifdef  osCMSIS
-				(void)xTaskResumeAll();
-        #endif
+			  xTaskResumeAll();
 			}
 			else
 			{
@@ -1002,7 +1000,7 @@ size_t heapsize_dma(void)
 /* Internal memory region(s) (MALLOC_INTREGION) */
 #ifdef MALLOC_INTREGION
 
-void *multi_malloc_int(size_t xWantedSize)
+void *multi_malloc_fast(size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_INTREGION) >= 0
@@ -1049,7 +1047,7 @@ void *multi_malloc_int(size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_calloc_int(size_t nmemb, size_t xWantedSize)
+void *multi_calloc_fast(size_t nmemb, size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_INTREGION) >= 0
@@ -1096,11 +1094,11 @@ void *multi_calloc_int(size_t nmemb, size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_realloc_int(void *pv, size_t xWantedSize)
+void *multi_realloc_fast(void *pv, size_t xWantedSize)
 {
   int32_t region;
   if(pv == NULL)
-    return multi_malloc_int(xWantedSize);
+    return multi_malloc_fast(xWantedSize);
   else
   {
     region = multiRegionSearch(pv);
@@ -1112,7 +1110,7 @@ void *multi_realloc_int(void *pv, size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-size_t heapsize_int(void)
+size_t heapsize_fast(void)
 {
   size_t szReturn = 0;
   #if DEFPARAM_0(MALLOC_INTREGION) >= 0

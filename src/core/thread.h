@@ -8,12 +8,17 @@ extern "C" {
 #include "env.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
-#include "task.h"
+#include "job.h"
 
 #include "core/actor.h"
 #include "core/types.h"
 
 #define TIME_DIFF(now, last) (last > now ? ((uint32_t)-1) - last + now : now - last)
+
+enum app_thread_flags {
+    APP_THREAD_SHARED = 1 << 0,
+    APP_THREAD_BLOCKABLE = 1 << 1
+};
 
 struct app_thread {
     actor_t *actor;
@@ -23,12 +28,11 @@ struct app_thread {
 
     TaskHandle_t task;
     QueueHandle_t queue;
-    void *argument;
 
     actor_worker_t *workers;
-    uint16_t *worker_count;
+    uint16_t worker_count;
 
-    uint8_t blocking;
+    uint8_t flags;
 };
 
 struct actor_worker {
@@ -37,19 +41,19 @@ struct actor_worker {
     app_thread_t *thread;
     actor_t *actor;
     app_thread_t *catchup; /* Did tick miss any messages? */
-    actor_on_worker_t callback;
+    actor_worker_callback_t callback;
 };
 
-int app_thread_allocate(app_thread_t **thread, void *app_or_object, void (*callback)(void *ptr), const char *const name,
-                        uint16_t stack_depth, size_t queue_size, size_t priority, void *argument);
+app_thread_t *app_thread_allocate(app_thread_t **thread_slot, actor_t *actor, void (*callback)(void *ptr), const char *const name,
+                        uint16_t stack_depth, size_t queue_size, size_t priority, uint8_t flags);
 
-int app_thread_free(app_thread_t **thread);
-
-/* Find out numeric index of a tick that given standard thread handles  */
-size_t app_thread_get_worker_index(app_thread_t *thread);
+void app_thread_free(app_thread_t *thread);
 
 /* Returns actor worker handling given thread */
-actor_worker_t *app_thread_worker_for(actor_t *actor, app_thread_t *thread);
+actor_worker_t *app_thread_worker_for(app_thread_t *thread, actor_t *actor);
+
+
+size_t app_thread_iterate_workers(app_thread_t *thread, actor_worker_t *destination);
 
 /*
 Callback methods that is invoked as FreeRTOS tasks.
@@ -78,9 +82,14 @@ void app_thread_actor_schedule(app_thread_t *thread, actor_t *actor, uint32_t ti
 #define app_thread_publish(thread, event) app_thread_publish_generic(thread, event, 0)
 #define app_publish(app, event) app_thread_publish_generic(app->input, event, 0);
 
-#define app_thread_actor_schedule(thread, actor, time) app_thread_worker_schedule(thread, app_thread_worker_for(actor, thread), time);
+#define app_thread_actor_schedule(thread, actor, time) app_thread_worker_schedule(thread, app_thread_worker_for(thread, actor), time);
 
 char *app_thread_get_name(app_thread_t *thread);
+
+app_signal_t app_thread_event_await(app_thread_t *thread, app_event_t *event);
+
+bool_t app_thread_is_interrupted(app_thread_t *thread);
+bool_t app_thread_is_blockable(app_thread_t *thread);
 
 #ifdef __cplusplus
 }

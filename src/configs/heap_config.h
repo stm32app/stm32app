@@ -18,7 +18,7 @@ Setting:
                   - the number of region parameters must be equal to HEAP_NUM
 - MALLOC_DMAREGION : which memory region(s) does the multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma functions ?
                   - the parameterization is the same as MALLOC_REGION
-- MALLOC_INTREGION : which memory region(s) does the multi_malloc_int, multi_calloc_int, multi_realloc_int, heapsize_int functions ?
+- MALLOC_INTREGION : which memory region(s) does the multi_malloc_fast, multi_calloc_fast, multi_realloc_fast, heapsize_int functions ?
                   - the parameterization is the same as MALLOC_REGION
 - MALLOC_EXTREGION : which memory region(s) does the multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext functions ?
                   - the parameterization is the same as MALLOC_REGION
@@ -49,7 +49,7 @@ This example contains 3 regions (stm32f407zet board with external 1MB sram chip 
   #define RTOSREGION        0          // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 0
   #define MALLOC_REGION     2,  1,  0  // malloc, calloc, realloc, heapsize : region 2 + region 1 + region 0
   #define MALLOC_DMAREGION  0, -1, -1  // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma : region 0
-  #define MALLOC_INTREGION  1,  0, -1  // multi_malloc_int, multi_calloc_int, multi_realloc_int, heapsize_int : region 1 + region 0
+  #define MALLOC_INTREGION  1,  0, -1  // multi_malloc_fast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
   #define MALLOC_EXTREGION  2, -1, -1  // multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 2
 This example contains 3 regions (stm32f429zit discovery with external 8MB sdram chip with FMC)
 - 0: default 192kB ram      (0x20000000..0x2002FFFF, shared with stack and bss)
@@ -62,7 +62,7 @@ This example contains 3 regions (stm32f429zit discovery with external 8MB sdram 
   #define RTOSREGION        0          // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 0
   #define MALLOC_REGION     2,  1,  0  // malloc, calloc, realloc, heapsize : region 2 + region 1 + region 0
   #define MALLOC_DMAREGION  0, -1, -1  // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma : region 0
-  #define MALLOC_INTREGION  1,  0, -1  // multi_malloc_int, multi_calloc_int, multi_realloc_int, heapsize_int : region 1 + region 0
+  #define MALLOC_INTREGION  1,  0, -1  // multi_malloc_fast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
   #define MALLOC_EXTREGION  2, -1, -1  // multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 2
 This example contains 5 regions (stm32h743vit board)
 - 0: ITC internal 64kB      (0x00000000..0x0000FFFF)
@@ -96,7 +96,7 @@ This example contains 5 regions (stm32h743vit board)
   #define RTOSREGION        2                      // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 2
   #define MALLOC_REGION     0,  1,  4,  3,  2,  5  // malloc, calloc, realloc, heapsize : region 0 + region 1 + region 4 + region 3 + region
 2 + region 5 #define MALLOC_DMAREGION  4,  3,  2, -1, -1, -1  // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma :
-region 4 + region 3 + region 2 #define MALLOC_INTREGION  0,  1,  4,  3,  2, -1  // multi_malloc_int, multi_calloc_int, multi_realloc_int,
+region 4 + region 3 + region 2 #define MALLOC_INTREGION  0,  1,  4,  3,  2, -1  // multi_malloc_fast, multi_calloc_fast, multi_realloc_fast,
 heapsize_int : region 0 + region 1 + region 4 + region 3 + region 2 #define MALLOC_EXTREGION  5, -1, -1, -1, -1, -1  // multi_malloc_ext,
 multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 5
 */
@@ -108,21 +108,21 @@ multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 5
 #define RTOSREGION 0               // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 0
 #define MALLOC_REGION 0, 1, 2      // malloc, calloc, realloc, heapsize : region 2 + region 1 + region 0
 #define MALLOC_DMAREGION 0, -1, -1 // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma : region 0
-#define MALLOC_INTREGION 1, 0, -1  // multi_malloc_int, multi_calloc_int, multi_realloc_int, heapsize_int : region 1 + region 0
+#define MALLOC_INTREGION 0, 1, -1  // multi_malloc_fast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
 #define MALLOC_EXTREGION 2, -1, -1 // multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 2
 
 #define app_malloc(size) (trace_printf("    ! Malloc %db\t\t%s \n", size, __func__), multi_malloc(size))
 #define app_malloc_dma(size) (trace_printf("    ! Malloc DMA %db\t\t%s \n", size, __func__), multi_malloc_dma(size))
 #define app_malloc_ext(size) (trace_printf("    ! Malloc EXT %db\t\t%s \n", size, __func__), multi_malloc_ext(size))
-#define app_malloc_int(size) (trace_printf("    ! Malloc INT %db\t\t%s \n", size, __func__), multi_malloc_int(size))
+#define app_malloc_fast(size) (trace_printf("    ! Malloc INT %db\t\t%s \n", size, __func__), multi_malloc_fast(size))
 #define app_calloc(number, size) (trace_printf("    ! Calloc %db\t\t%s \n", size, __func__), multi_calloc(number, size))
 #define app_calloc_dma(number, size) (trace_printf("    ! Calloc DMA %db\t\t%s \n", size, __func__), multi_calloc_dma(number, size))
 #define app_calloc_ext(number, size) (trace_printf("    ! Calloc EXT %db\t\t%s \n", size, __func__), multi_calloc_ext(number, size))
-#define app_calloc_int(number, size) (trace_printf("    ! Calloc INT %db\t\t%s \n", size, __func__), multi_calloc_int(number, size))
+#define app_calloc_fast(number, size) (trace_printf("    ! Calloc INT %db\t\t%s \n", size, __func__), multi_calloc_fast(number, size))
 #define app_realloc(ptr, size) (trace_printf("    ! Realloc %lub\t\t%s \n", size, __func__), multi_realloc(ptr, size))
 #define app_realloc_dma(ptr, size) (trace_printf("    ! Realloc DMA %lub\t\t%s \n", size, __func__), multi_realloc_dma(ptr, size))
 #define app_realloc_ext(ptr, size) (trace_printf("    ! Realloc EXT %lub\t\t%s \n", size, __func__), multi_realloc_ext(ptr, size))
-#define app_realloc_int(ptr, size) (trace_printf("    ! Realloc INT %lub\t\t%s \n", size, __func__), multi_realloc_int(ptr, size))
+#define app_realloc_fast(ptr, size) (trace_printf("    ! Realloc INT %lub\t\t%s \n", size, __func__), multi_realloc_fast(ptr, size))
 #define app_free(ptr) (trace_printf("    ! Free %s\t\t\n", __func__), multi_free(ptr))
 
 #endif

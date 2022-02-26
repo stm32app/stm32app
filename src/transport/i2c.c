@@ -254,7 +254,7 @@ static app_job_signal_t i2c_task_write_data(app_job_t *job, uint8_t address, uin
     switch (job->task_phase) {
     case 0:
         nvic_disable_irq(i2c->ev_irq);
-        if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
+        if (app_thread_is_interrupted(job->thread)) {
             return APP_JOB_TASK_QUIT_ISR;
         } else {
             i2c->source_buffer = app_buffer_source(i2c->actor, data, size);
@@ -298,7 +298,7 @@ static app_job_signal_t i2c_task_read_data(app_job_t *job, uint8_t address, uint
     switch (job->task_phase) {
     case 0:
         nvic_disable_irq(i2c->ev_irq);
-        if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
+        if (app_thread_is_interrupted(job->thread)) {
             return APP_JOB_TASK_QUIT_ISR;
         } else {
             i2c->output_buffer = app_double_buffer_target(i2c->ring_buffer, i2c->actor, data, size);
@@ -416,7 +416,7 @@ static app_signal_t i2c_job_erase(app_job_t *job) {
 static void i2c_notify(size_t index) {
     debug_printf("> I2C%i interrupt\n", index);
     transport_i2c_t *i2c = i2c_units[index - 1];
-    if (i2c != NULL && i2c->job.handler) {
+    if (i2c != NULL && i2c->job != NULL) {
         app_job_execute(&i2c->job);
     }
     volatile uint32_t s1 = I2C_SR1(i2c->address);
@@ -475,11 +475,11 @@ static app_signal_t i2c_on_buffer_allocation(transport_i2c_t *i2c, app_buffer_t 
     }
 }
 
-static app_signal_t i2c_on_worker_assignment(transport_i2c_t *i2c, app_thread_t *thread) {
+static actor_worker_callback_t i2c_on_worker_assignment(transport_i2c_t *i2c, app_thread_t *thread) {
     if (thread == i2c->actor->app->input) {
-        return i2c_worker_on_input;
+        return (actor_worker_callback_t) i2c_worker_on_input;
     } else if (thread == i2c->actor->app->medium_priority) {
-        return i2c_worker_medium_priority;
+        return (actor_worker_callback_t) i2c_worker_medium_priority;
     }
     return NULL;
 }
@@ -498,7 +498,7 @@ actor_class_t transport_i2c_class = {
     .on_phase = (actor_on_phase_t)i2c_phase,
     .on_signal = (actor_on_signal_t)i2c_on_signal,
     .on_buffer_allocation = (actor_on_buffer_allocation_t)i2c_on_buffer_allocation,
-    .on_worker_assignment = (actor_on_worker_t) i2c_on_worker_assignment,
+    .on_worker_assignment = (actor_on_worker_assignment_t) i2c_on_worker_assignment,
 };
 
 void i2c1_ev_isr(void) {

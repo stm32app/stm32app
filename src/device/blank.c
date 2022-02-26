@@ -39,9 +39,9 @@ static app_signal_t blank_on_input(actor_blank_t *blank, app_event_t *event, act
     return 0;
 }
 
-static app_signal_t blank_on_worker_assignment(actor_blank_t *blank, app_thread_t *thread) {
+static actor_worker_callback_t blank_on_worker_assignment(actor_blank_t *blank, app_thread_t *thread) {
     if (thread == blank->actor->app->input) {
-        return blank_on_input;
+        return (actor_worker_callback_t) blank_on_input;
     }
 }
 

@@ -27,7 +27,7 @@ struct system_database {
 
     app_thread_t *thread;
     actor_worker_t worker;
-    app_job_t job;
+    app_job_t *job;
 
     app_generic_device_t *storage;
     app_buffer_t *journal_buffer;

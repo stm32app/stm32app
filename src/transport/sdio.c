@@ -46,7 +46,7 @@ transport_sdio_t *sdio_units[SDIO_UNITS];
 static void sdio_notify(uint8_t index) {
     debug_printf("> SDIO Interrupt\n");
     transport_sdio_t *sdio = sdio_units[index];
-    if (sdio != NULL && sdio->job.handler) {
+    if (sdio != NULL && sdio->job != NULL) {
         app_job_execute(&sdio->job);
     } else {
         SDIO_ICR = 0xfffffff;
@@ -82,7 +82,6 @@ static app_signal_t sdio_start(transport_sdio_t *sdio) {
 
     nvic_set_priority(sdio->irq, 10 << 4);
 
-
     return 0;
 }
 
@@ -110,6 +109,7 @@ static app_signal_t sdio_on_signal(transport_sdio_t *sdio, actor_t *actor, app_s
     }
     return 0;
 }
+
 static app_job_signal_t sdio_send_command(uint32_t cmd, uint32_t arg, uint32_t wait) {
     SDIO_ICR = SDIO_ICR_CMD;
     SDIO_ARG = arg;
@@ -189,7 +189,7 @@ static void sdio_parse_cid(storage_sdcard_t *sdcard) {
     sdio_read_r2((uint32_t *)&cid);
     storage_sdcard_set_manufacturer_id(sdcard, cid[0]);
     storage_sdcard_set_oem_id(sdcard, bitswap16(cid[1]));
-    storage_sdcard_set_product_name(sdcard, (char *) &cid[5], 5);
+    storage_sdcard_set_product_name(sdcard, (char *)&cid[5], 5);
     storage_sdcard_set_product_revision(sdcard, cid[8]);
     storage_sdcard_set_serial_number(sdcard, bitswap32(cid[9]));
     storage_sdcard_set_manufacturing_date(sdcard, bitswap16(cid[13]));
@@ -236,7 +236,6 @@ static void sdio_dma_rx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t si
     debug_printf("│ │ ├ SDIO%u\t\t", sdio->actor->seq + 1);
     debug_printf("RX started\tDMA%u(%u/%u)\n", sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel);
 
-    
     actor_dma_rx_start((uint32_t)&SDIO_FIFO, sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->properties->dma_channel, data,
                        size / 4, false, 4, 1, 1);
 }
@@ -251,13 +250,12 @@ static void sdio_dma_rx_stop(transport_sdio_t *sdio) {
     // Hack: DMA for some reason doesnt copy last 4 double-words (full SDIO fifo load)
     size_t position =
         actor_dma_get_buffer_position(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->target_buffer->size / 4);
-    
+
     debug_printf("RX flush %lub\n", (sdio->target_buffer->size - position * 4));
     sdio_blocking_rx_start(sdio, &sdio->target_buffer->data[position * 4], (sdio->target_buffer->size - position * 4), true);
 
     actor_unregister_dma(sdio->properties->dma_unit, sdio->properties->dma_stream);
 }
-
 
 static void sdio_dma_tx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t size) {
     actor_register_dma(sdio->properties->dma_unit, sdio->properties->dma_stream, sdio->actor);
@@ -300,7 +298,7 @@ static void sdio_dma_tx_stop(transport_sdio_t *sdio) {
 }
 
 static app_job_signal_t sdio_task_erase_block(app_job_t *job, uint32_t block_id, uint32_t block_count) {
-    //transport_sdio_t *sdio = job->actor->object;
+    // transport_sdio_t *sdio = job->actor->object;
     storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     uint32_t start_address = storage_sdcard_get_high_capacity(sdcard) ? block_id : block_id * 512;
     uint32_t end_address = (block_id + block_count) * (storage_sdcard_get_high_capacity(sdcard) ? 1 : 512);
@@ -324,12 +322,11 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id,
 
     switch (job->task_phase) {
     case 0:
-        if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
+        if (app_thread_is_interrupted(job->thread)) {
             return APP_JOB_TASK_QUIT_ISR;
         } else {
             // if target buffer is not provided, sdio has ability to allocate buffer aligned to 16b to use dma burst
-            sdio->source_buffer =
-                data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
+            sdio->source_buffer = data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
             sdio->source_buffer->size = size;
 
             if (sdio->source_buffer == NULL) {
@@ -393,7 +390,7 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id,
         }
     default:
         if (job->task_phase == APP_JOB_FAILURE) {
-            printf("Fail\n");
+            error_printf("Fail\n");
         }
     }
     return APP_JOB_TASK_SUCCESS;
@@ -407,12 +404,11 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, 
 
     switch (job->task_phase) {
     case 0:
-        if (SCB_ICSR & SCB_ICSR_VECTACTIVE) {
+        if (app_thread_is_interrupted(job->thread)) {
             return APP_JOB_TASK_QUIT_ISR;
         } else {
             // if target buffer is not provided, sdio has ability to allocate buffer aligned to 16b to use dma burst
-            sdio->target_buffer =
-                data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
+            sdio->target_buffer = data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
             sdio->target_buffer->size = size;
             if (sdio->target_buffer == NULL) {
                 return APP_JOB_FAILURE;
@@ -469,7 +465,7 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, 
         }
     default:
         if (job->task_phase == APP_JOB_FAILURE) {
-            printf("Fail\n");
+            error_printf("Fail\n");
         }
     }
     return APP_JOB_TASK_SUCCESS;
@@ -538,9 +534,9 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         return sdio_send_command_and_wait(2, 0, SDIO_CMD_WAITRESP_LONG); // ALL_SEND_CID
     case 9:
         sdio_parse_cid(sdcard);
-        printf("│ │ ├ Card name %.*s\n", 3, storage_sdcard_get_product_name(sdcard));
+        error_printf("│ │ ├ Card name %.*s\n", 3, storage_sdcard_get_product_name(sdcard));
         if (storage_sdcard_get_product_name(sdcard)[0] == '\0') {
-            printf("Bad card\n");
+            error_printf("Bad card\n");
         }
         return APP_JOB_TASK_CONTINUE;
 
@@ -561,13 +557,15 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         return sdio_send_command_and_wait(9, (storage_sdcard_get_relative_card_address(sdcard) << 16), SDIO_CMD_WAITRESP_LONG); // SEND_CSD
     case 13:
         sdio_parse_csd(sdcard);
-        printf("│ │ ├ Card capacity %luMB (%ld x %ldb blocks)\n", storage_sdcard_get_capacity(sdcard) >> 10, storage_sdcard_get_block_count(sdcard), storage_sdcard_get_block_size(sdcard));
+        error_printf("│ │ ├ Card capacity %luMB (%ld x %ldb blocks)\n", storage_sdcard_get_capacity(sdcard) >> 10,
+               storage_sdcard_get_block_count(sdcard), storage_sdcard_get_block_size(sdcard));
         return APP_JOB_TASK_CONTINUE;
 
     // Increase bus speed to 48mhz, set card into transfer mode
     case 14:
         sdio_set_bus_clock(SDIO_CLKCR_CLKDIV_TRANSFER);
-        return sdio_send_command_and_wait(7, storage_sdcard_get_relative_card_address(sdcard) << 16, SDIO_CMD_WAITRESP_SHORT); // SEL_DESEL_CARD
+        return sdio_send_command_and_wait(7, storage_sdcard_get_relative_card_address(sdcard) << 16,
+                                          SDIO_CMD_WAITRESP_SHORT); // SEL_DESEL_CARD
 
     // Disable the pull-up resistor on CD/DAT3 pin of card
     case 15:
@@ -605,10 +603,10 @@ static app_job_signal_t sdio_task_publish_response(app_job_t *job) {
         // if event was APP_EVENT_READ_TO_BUFFER, it is assumed that producer expects report instead of event
         if (job->inciting_event.type == APP_EVENT_READ) {
             app_publish(job->actor->app, &((app_event_t){.type = APP_EVENT_RESPONSE,
-                                                          .producer = sdio->actor,
-                                                          .consumer = job->inciting_event.producer,
-                                                          .data = (uint8_t *) sdio->target_buffer,
-                                                          .size = APP_BUFFER_DYNAMIC_SIZE}));
+                                                         .producer = sdio->actor,
+                                                         .consumer = job->inciting_event.producer,
+                                                         .data = (uint8_t *)sdio->target_buffer,
+                                                         .size = APP_BUFFER_DYNAMIC_SIZE}));
         } else {
             app_buffer_release(sdio->target_buffer, job->actor);
         }
@@ -616,7 +614,6 @@ static app_job_signal_t sdio_task_publish_response(app_job_t *job) {
     }
     return 0;
 }
-
 
 static app_job_signal_t sdio_job_mount(app_job_t *job) {
     switch (job->job_phase) {
@@ -627,11 +624,10 @@ static app_job_signal_t sdio_job_mount(app_job_t *job) {
     }
 }
 
-
 static app_job_signal_t sdio_job_unmount(app_job_t *job) {
     switch (job->job_phase) {
- //   case 0:
-//        return sdio_task_detect_card(job);
+        //   case 0:
+        //        return sdio_task_detect_card(job);
     default:
         return APP_JOB_SUCCESS;
     }
@@ -640,13 +636,13 @@ static app_job_signal_t sdio_job_unmount(app_job_t *job) {
 static app_job_signal_t sdio_job_read(app_job_t *job) {
     switch (job->job_phase) {
     case 0:
-        return sdio_task_read_block(job, (uint32_t) job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
+        return sdio_task_read_block(job, (uint32_t)job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
     case 1:
         return sdio_task_publish_response(job);
     case 2:
         return APP_JOB_SUCCESS;
     case APP_JOB_FAILURE:
-        printf("Fail!\n");
+        error_printf("Fail!\n");
     }
     return 0;
 }
@@ -654,11 +650,11 @@ static app_job_signal_t sdio_job_read(app_job_t *job) {
 static app_job_signal_t sdio_job_erase(app_job_t *job) {
     switch (job->job_phase) {
     case 0:
-        return sdio_task_erase_block(job, (uint32_t) job->inciting_event.argument, job->inciting_event.size);
+        return sdio_task_erase_block(job, (uint32_t)job->inciting_event.argument, job->inciting_event.size);
     case 1:
         return APP_JOB_SUCCESS;
     case APP_JOB_FAILURE:
-        printf("Fail!\n");
+        error_printf("Fail!\n");
     }
     return 0;
 }
@@ -673,15 +669,14 @@ static app_job_signal_t sdio_job_write(app_job_t *job) {
             return APP_JOB_TASK_SUCCESS;
         }
     case 1:
-        return sdio_task_write_block(job, (uint32_t) job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
+        return sdio_task_write_block(job, (uint32_t)job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
     case 2:
         return APP_JOB_SUCCESS;
     case APP_JOB_FAILURE:
-        printf("Fail!\n");
+        error_printf("Fail!\n");
     }
     return 0;
 }
-
 
 static app_signal_t sdio_on_high_priority(transport_sdio_t *sdio, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
     return app_job_execute_if_running_in_thread(&sdio->job, thread);
@@ -691,20 +686,15 @@ static app_signal_t sdio_on_input(transport_sdio_t *sdio, app_event_t *event, ac
     switch (event->type) {
     case APP_EVENT_READ:
     case APP_EVENT_READ_TO_BUFFER:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
-                                                sdio_job_read);
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_read);
     case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
-                                                sdio_job_write);
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_write);
     case APP_EVENT_ERASE:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
-                                                sdio_job_erase);
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_erase);
     case APP_EVENT_MOUNT:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
-                                                sdio_job_mount);
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_mount);
     case APP_EVENT_UNMOUNT:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority,
-                                                sdio_job_unmount);
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_unmount);
     default:
         break;
     }
@@ -715,12 +705,11 @@ void sdio_isr(void) {
     sdio_notify(0);
 }
 
-
-static app_signal_t sdio_on_worker_assignment(transport_sdio_t *sdio, app_thread_t *thread) {
+static actor_worker_callback_t sdio_on_worker_assignment(transport_sdio_t *sdio, app_thread_t *thread) {
     if (thread == sdio->actor->app->input) {
-        return sdio_on_input;
+        return (actor_worker_callback_t)sdio_on_input;
     } else if (thread == sdio->actor->app->high_priority) {
-        return sdio_on_high_priority;
+        return (actor_worker_callback_t)sdio_on_high_priority;
     }
     return NULL;
 }
@@ -736,6 +725,6 @@ actor_class_t transport_sdio_class = {
     .stop = (app_method_t)sdio_stop,
     .on_phase = (actor_on_phase_t)sdio_on_phase,
     .on_signal = (actor_on_signal_t)sdio_on_signal,
-    .on_worker_assignment = (on_worker_assignment_t) sdio_on_worker_assignment, 
+    .on_worker_assignment = (actor_on_worker_assignment_t)sdio_on_worker_assignment,
     .property_write = sdio_property_write,
 };

@@ -14,7 +14,7 @@ static app_signal_t app_buffer_dereference(app_buffer_t *buffer) {
 
 app_buffer_t *app_buffer_acquire_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options) {
     debug_printf("│ │ ├ Allocate\t\t%s takes buffer of size %lu\n", get_actor_type_name(owner->class->type), size);
-    app_buffer_t *buffer = app_buffer_take_from_pool(owner);
+    app_buffer_t *buffer = app_pool_allocate_buffer(owner->app->buffers);
     if (buffer != NULL) {
         buffer->options = options;
         buffer->owner = owner;
@@ -96,7 +96,7 @@ void app_buffer_release(app_buffer_t *buffer, actor_t *actor) {
             app_buffer_dereference(buffer);
         }
         if (buffer->users == 0) {
-            app_buffer_return_to_pool(buffer, actor);
+            app_pool_free_buffer(buffer);
         }
     }
 }
@@ -261,36 +261,47 @@ app_signal_t app_double_buffer_ingest_external_write(app_buffer_t *back, app_buf
     }
 }
 
-// iterate pool of buffers to find
-app_buffer_t *app_buffer_take_from_pool(actor_t *actor) {
-    app_buffer_t *pool = actor->app->buffers;
-
-    // try to find one of the buffers that arent used
+void *app_pool_allocate(app_buffer_t *pool, uint16_t size) {
+    // try to find a memory region that is all zeroes
     for (app_buffer_t *page = pool; page; page = app_buffer_get_next_page(page, pool)) {
-        for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(app_buffer_t)) {
-            app_buffer_t *buffer = (app_buffer_t *)&page->data[offset];
-            if (buffer->owner == NULL && buffer->data == NULL && buffer->allocated_size == 0) {
-                return buffer;
+        for (uint32_t offset = 0; offset < page->allocated_size; offset += size) {
+            uint16_t i = 0;
+            for (; i < size; i++) {
+                if (page->data[offset + i] == 0) {
+                    break;
+                }
+            }
+            if (i == size) {
+                return &page->data[offset];
             }
         }
     }
-
     // otherwise add another page of buffers
-    app_buffer_append(pool, NULL, sizeof(app_buffer_t));
+    if (app_buffer_append(pool, NULL, sizeof(app_buffer_t))) {
+        return NULL;
+    }
 
-    return (app_buffer_t *)app_buffer_get_last_page(pool)->data;
+    // return first byte of a new page
+    return app_buffer_get_last_page(pool)->data;
 }
 
-void app_buffer_return_to_pool(app_buffer_t *buffer, actor_t *actor) {
-    debug_printf("│ │ ├ Release\t\t%s buffer of size %lu/%lu\n", get_actor_type_name(actor->class->type), buffer->size,
-                 buffer->allocated_size);
+void app_pool_free(void *memory, uint16_t size) {
+    memset(memory, 0, size);
+}
+
+// iterate pool of buffers to find
+app_buffer_t *app_pool_allocate_buffer(app_buffer_t *pool) {
+    return app_pool_allocate(pool, sizeof(app_buffer_t));
+}
+
+void app_pool_free_buffer(app_buffer_t *buffer) {
     for (app_buffer_t *page = buffer; page; page = app_buffer_get_next_page(page, buffer)) {
         // data is only freed when managed buffer is freed
         if (!(buffer->options & APP_BUFFER_UNMANAGED)) {
             app_free(page->data - page->offset_from_allocation);
         }
         // buffers are already in pool, so they only need to be cleaned up for reuse
-        memset(page, 0, sizeof(app_buffer_t));
+        app_pool_free(page, sizeof(app_buffer_t));
     }
 }
 

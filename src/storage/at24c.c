@@ -173,7 +173,7 @@ static app_signal_t at24c_worker_input(storage_at24c_t *at24c, app_event_t *even
         return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->low_priority,
                                                   at24c_job_diagnose);
     case APP_EVENT_RESPONSE:
-        return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->job, at24c->job.thread, at24c->job.handler);
+        return actor_event_handle_and_pass_to_job(at24c->actor, event, &at24c->job, at24c->job->thread, at24c->job->handler);
 
     case APP_EVENT_READ:
         return actor_event_receive_and_start_job(at24c->actor, event, &at24c->job, at24c->actor->app->low_priority,
@@ -205,20 +205,20 @@ static app_signal_t at24c_on_event_report(storage_at24c_t *at24c, app_event_t *e
 
         // app_job_execute(&at24c->job);
 
-        app_thread_actor_schedule(at24c->job.thread, at24c->actor, at24c->job.thread->current_time);
+        app_thread_actor_schedule(at24c->job->thread, at24c->actor, at24c->job->thread->current_time);
         return 0;
     default:
         return 0;
     }
 }
 
-static app_signal_t at24c_on_worker_assignment(storage_at24c_t *at24c, app_thread_t *thread) {
+static actor_worker_callback_t at24c_on_worker_assignment(storage_at24c_t *at24c, app_thread_t *thread) {
     if (thread == at24c->actor->app->input) {
-        return at24c_worker_input;
+        return (actor_worker_callback_t) at24c_worker_input;
     } else if (thread == at24c->actor->app->high_priority) {
-        return at24c_worker_high_priority;
+        return (actor_worker_callback_t) at24c_worker_high_priority;
     } else if (thread == at24c->actor->app->low_priority) {
-        return at24c_worker_low_priority;
+        return (actor_worker_callback_t) at24c_worker_low_priority;
     }
     return NULL;
 }
@@ -236,5 +236,5 @@ actor_class_t storage_at24c_class = {
     .property_write = at24c_property_write,
     .on_signal = (actor_on_signal_t)at24c_on_signal,
     .on_event_report = (actor_on_event_report_t)at24c_on_event_report,
-    .on_worker_assignment = (on_worker_assignment_t) at24c_on_worker_assignment,
+    .on_worker_assignment = (actor_on_worker_assignment_t) at24c_on_worker_assignment,
 };

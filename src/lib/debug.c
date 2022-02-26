@@ -3,6 +3,8 @@
 #include <FreeRTOS.h>
 #include "task.h"
 
+volatile uint8_t debug_log_inhibited = false;
+
 #ifdef DEBUG
 #include <stdio.h>
 #pragma weak hard_fault_handler = my_hard_fault_handler
@@ -12,7 +14,6 @@ int32_t cycntoffset;
 uint32_t lasttaskswitch;
 uint32_t lasttasksoffset;
 
-volatile uint8_t debug_log_inhibited = true;
 
 #if DEBUG_LOG_LEVEL > 0 && DEBUG_BUFFER_SIZE > 0 
 char debug_buffer[DEBUG_BUFFER_SIZE] = {};
@@ -131,6 +132,20 @@ __attribute__((naked)) void my_hard_fault_handler(void) {
                    "bkpt #0               \n");
 };
 
+/*
+void mem_manage_handler(void)
+{
+    while (1);
+}
+void usage_fault_handler(void)
+{
+    while (1);
+}
+void bus_fault_handler(void)
+{
+    while (1);
+}*/
+
 void vApplicationIdleHook(void) {
     //printf("Idle!\n");
     buffered_printf_flush();
@@ -153,18 +168,5 @@ void vApplicationMallocFailedHook(void) {
     }
 }
 
-/*
-void mem_manage_handler(void)
-{
-    while (1);
-}
-void usage_fault_handler(void)
-{
-    while (1);
-}
-void bus_fault_handler(void)
-{
-    while (1);
-}*/
 
 #endif

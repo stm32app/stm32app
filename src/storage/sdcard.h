@@ -47,8 +47,8 @@ struct storage_sdcard {
     actor_t *actor;
     storage_sdcard_properties_t *properties;
     transport_sdio_t *sdio;
-    app_job_t job;
-    coru_t io;
+    app_job_t *job;
+    app_thread_t *thread;
     app_buffer_t *coroutine_stack_buffer;
     app_buffer_t *lookahead_buffer;
     app_buffer_t *read_buffer;

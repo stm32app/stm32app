@@ -49,9 +49,8 @@ struct transport_i2c{
     uint32_t ev_irq;
     uint32_t er_irq;
 
-
     app_signal_t incoming_signal;
-    app_job_t job;
+    app_job_t *job;
     uint16_t job_retries;
     
     app_buffer_t *ring_buffer;

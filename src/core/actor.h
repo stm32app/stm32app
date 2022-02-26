@@ -56,7 +56,6 @@ struct actor {
     uint8_t seq;                    /* Sequence number of the actor in its family  */
     int16_t index;                  /* Actual OD address of this actor */
     actor_class_t *class;           /* Per-class methods and callbacks */
-    actor_workers_t *workers;       /* Per-actor thread subscription */
     app_t *app;                     /* Reference to root actor */
     OD_entry_t *entry;              /* OD entry containing propertiesuration for actor*/
     OD_extension_t entry_extension; /* OD IO handlers for properties changes */
@@ -88,7 +87,7 @@ struct actor_class {
     app_signal_t (*on_value)(void *object, actor_t *actor, void *value, void *arg);           /* Accept value from linked actor */
     app_signal_t (*on_link)(void *object, actor_t *origin, void *arg);                        /* Accept linking request*/
     app_signal_t (*on_buffer_allocation)(void *object, app_buffer_t *buffer, uint32_t size);  /* Accept linking request*/
-    actor_worker_t *(*on_worker_assignment)(void *object, app_thread_t *thread);              /* Assign worker handlers to threads */
+    actor_worker_callback_t (*on_worker_assignment)(void *object, app_thread_t *thread);              /* Assign worker handlers to threads */
 
     ODR_t (*property_read)(OD_stream_t *stream, void *buf, OD_size_t count, OD_size_t *countRead);
     ODR_t (*property_write)(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten);

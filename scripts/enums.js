@@ -26,10 +26,11 @@ glob(`./src/**/*.h`, (err, files) => {
             const shifted = v.match(/1\s<<\s\d+/i)
             if (shifted) {
               v = eval(shifted[0])
+            } else {
+              v = parseInt(v);
             }
           }
         } else {
-          
           v = parseInt(value);
         }
         result += `case ${v}: return "${key}";\n`

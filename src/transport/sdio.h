@@ -66,7 +66,7 @@ struct transport_sdio {
     uint16_t reset;
     uint16_t peripheral_clock;
     uint8_t irq;
-    app_job_t job;
+    app_job_t *job;
     app_signal_t incoming_signal;
 
     app_buffer_t *source_buffer;

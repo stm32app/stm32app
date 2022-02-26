@@ -392,7 +392,8 @@ static app_signal_t database_validate(system_database_properties_t *properties) 
 
 static app_signal_t database_construct(system_database_t *database) {
     actor_event_subscribe(database->actor, APP_EVENT_START);
-    app_thread_allocate(&database->thread, database, (void (*)(void *ptr))app_thread_execute, "DB", 1024, 0, 4, NULL);
+    app_thread_allocate(&database->thread, database->actor, (void (*)(void *ptr))app_thread_execute, "DB", 1024, 0, 4,
+                        APP_THREAD_BLOCKABLE);
     database->journal_buffer = app_buffer_target(database->actor, NULL, database->properties->journal_buffer_size);
     if (database->journal_buffer == NULL) {
         return APP_SIGNAL_OUT_OF_MEMORY;
@@ -403,7 +404,7 @@ static app_signal_t database_construct(system_database_t *database) {
         sizeof(vfs_File), // szOsFile
         MAXPATHNAME,      // mxPathname
         0,                // pNext
-        "vfs_",           // zName
+        "vfs",            // zName
         database,         // pAppData
         vfs_Open,         // xOpen
         vfs_Delete,       // xDelete
@@ -499,15 +500,14 @@ static app_signal_t database_worker_on_input(system_database_t *database, app_ev
     return 0;
 }
 
-static app_signal_t database_on_worker_assignment(system_database_t *database, app_thread_t *thread) {
+static actor_worker_callback_t database_on_worker_assignment(system_database_t *database, app_thread_t *thread) {
     if (thread == database->actor->app->input) {
-        return database_worker_on_input;
+        return (actor_worker_callback_t)database_worker_on_input;
     } else if (thread == database->thread) {
-        return database_worker_sql;
+        return (actor_worker_callback_t)database_worker_sql;
     }
     return NULL;
 }
-
 
 actor_class_t system_database_class = {
     .type = SYSTEM_DATABASE,
@@ -520,5 +520,6 @@ actor_class_t system_database_class = {
     .stop = (app_method_t)database_stop,
     .on_phase = (actor_on_phase_t)database_on_phase,
     .on_signal = (actor_on_signal_t)database_on_signal,
+    .on_worker_assignment = (actor_on_worker_assignment_t)database_on_worker_assignment,
     .property_write = database_property_write,
 };

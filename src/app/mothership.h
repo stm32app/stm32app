@@ -24,9 +24,12 @@ typedef struct app_mothership {
     OD_t *dictionary;
     system_mcu_t *mcu;
     system_canopen_t *canopen;
+#if APP_USE_DATABASE
     system_database_t *database;
+#endif
     module_timer_t *timer;
     app_buffer_t *buffers;
+    app_buffer_t *jobs;
 
     app_thread_t *input;           /* Thread with queue of events that need immediate response*/
     app_thread_t *catchup;         /* Allow actors that were busy to catch up with input events  */
@@ -35,7 +38,7 @@ typedef struct app_mothership {
     app_thread_t *low_priority;    /* Logic that runs periodically that is not very important */
     app_thread_t *bg_priority;     /* A background thread of sorts for work that can be done in free time */
 
-    app_job_t job;
+    app_job_t *job;
     bool_t initialized;
     bool_t sdram;
 } app_mothership_t;

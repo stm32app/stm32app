@@ -4,6 +4,7 @@
 #include "system/canopen.h"
 
 int actor_send(actor_t *actor, actor_t *origin, void *value, void *argument) {
+    configASSERT(actor && origin);
     if (actor->class->on_value == NULL) {
         return 1;
     }
@@ -11,6 +12,7 @@ int actor_send(actor_t *actor, actor_t *origin, void *value, void *argument) {
 }
 
 int actor_signal(actor_t *actor, actor_t *origin, app_signal_t signal, void *argument) {
+    configASSERT(actor && origin);
     if (actor->class->on_signal == NULL) {
         return 1;
     }
@@ -21,6 +23,7 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
     if (index == 0) {
         return 0;
     }
+    configASSERT(actor);
     actor_t *target = app_actor_find(actor->app, index);
     if (target != NULL) {
         *destination = target->object;
@@ -155,13 +158,13 @@ void actor_event_subscribe(actor_t *actor, app_event_type_t type) {
     actor->event_subscriptions |= type;
 }
 
-app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *tick) {
-    if (tick == NULL)
-        tick = actor->workers->input;
-    if (tick != NULL) {
-        app_thread_t *thread = tick->catchup;
+app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *worker) {
+    if (worker == NULL)
+        worker = app_thread_worker_for(actor->app->input, actor);
+    if (worker != NULL) {
+        app_thread_t *thread = worker->catchup;
         if (thread) {
-            tick->catchup = NULL;
+            worker->catchup = NULL;
             return app_thread_catchup(thread);
         }
     }

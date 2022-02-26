@@ -25,31 +25,6 @@ default: return "Unknown";
 }
 };
 
-char* get_app_signal_name (uint32_t v) {
-switch (v) {
-case 0: return "APP_SIGNAL_OK";
-case 1: return "APP_SIGNAL_TIMER";
-case 2: return "APP_SIGNAL_DMA_TRANSFERRING";
-case 3: return "APP_SIGNAL_DMA_IDLE";
-case 4: return "APP_SIGNAL_RX_COMPLETE";
-case 5: return "APP_SIGNAL_TX_COMPLETE";
-case 6: return "APP_SIGNAL_CATCHUP";
-case 7: return "APP_SIGNAL_RESCHEDULE";
-case 8: return "APP_SIGNAL_INCOMING";
-case -1: return "APP_SIGNAL_FAILURE";
-case -2: return "APP_SIGNAL_TIMEOUT";
-case -3: return "APP_SIGNAL_DMA_ERROR";
-case -4: return "APP_SIGNAL_BUSY";
-case -5: return "APP_SIGNAL_NOT_FOUND";
-case -6: return "APP_SIGNAL_UNCONFIGURED";
-case -7: return "APP_SIGNAL_INCOMPLETE";
-case -8: return "APP_SIGNAL_CORRUPTED";
-case -9: return "APP_SIGNAL_NO_RESPONSE";
-case -10: return "APP_SIGNAL_OUT_OF_MEMORY";
-default: return "Unknown";
-}
-};
-
 char* get_app_properties_properties_name (uint32_t v) {
 switch (v) {
 case 1: return "CORE_APP_TIMER_INDEX";
@@ -75,8 +50,8 @@ default: return "Unknown";
 char* get_app_event_type_name (uint32_t v) {
 switch (v) {
 case 32: return "APP_EVENT_THREAD_START";
-case 321: return "APP_EVENT_THREAD_STOP";
-case 322: return "APP_EVENT_THREAD_ALARM";
+case 33: return "APP_EVENT_THREAD_STOP";
+case 34: return "APP_EVENT_THREAD_ALARM";
 case 0: return "APP_EVENT_IDLE";
 case 1: return "APP_EVENT_READ";
 case 2: return "APP_EVENT_READ_TO_BUFFER";
@@ -115,6 +90,33 @@ default: return "Unknown";
 }
 };
 
+char* get_app_signal_name (uint32_t v) {
+switch (v) {
+case 0: return "APP_SIGNAL_OK";
+case 1: return "APP_SIGNAL_PENDING";
+case 2: return "APP_SIGNAL_TIMER";
+case 3: return "APP_SIGNAL_DMA_TRANSFERRING";
+case 4: return "APP_SIGNAL_DMA_IDLE";
+case 5: return "APP_SIGNAL_RX_COMPLETE";
+case 6: return "APP_SIGNAL_TX_COMPLETE";
+case 7: return "APP_SIGNAL_CATCHUP";
+case 8: return "APP_SIGNAL_RESCHEDULE";
+case 9: return "APP_SIGNAL_INCOMING";
+case -1: return "APP_SIGNAL_FAILURE";
+case -2: return "APP_SIGNAL_TIMEOUT";
+case -3: return "APP_SIGNAL_DMA_ERROR";
+case -4: return "APP_SIGNAL_BUSY";
+case -5: return "APP_SIGNAL_NOT_FOUND";
+case -6: return "APP_SIGNAL_UNCONFIGURED";
+case -7: return "APP_SIGNAL_INCOMPLETE";
+case -8: return "APP_SIGNAL_CORRUPTED";
+case -9: return "APP_SIGNAL_NO_RESPONSE";
+case -10: return "APP_SIGNAL_OUT_OF_MEMORY";
+case -11: return "APP_SIGNAL_INVALID_ARGUMENT";
+default: return "Unknown";
+}
+};
+
 char* get_app_file_mode_name (uint32_t v) {
 switch (v) {
 case 1: return "APP_FILE_READ";
@@ -142,6 +144,14 @@ case 252: return "APP_JOB_TASK_SUCCESS";
 case 253: return "APP_JOB_TASK_FAILURE";
 case 254: return "APP_JOB_SUCCESS";
 case 255: return "APP_JOB_FAILURE";
+default: return "Unknown";
+}
+};
+
+char* get_app_thread_flags_name (uint32_t v) {
+switch (v) {
+case 1: return "APP_THREAD_SHARED";
+case 2: return "APP_THREAD_BLOCKABLE";
 default: return "Unknown";
 }
 };

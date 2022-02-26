@@ -172,9 +172,9 @@ static app_signal_t w25_worker_input(storage_w25_t *w25, app_event_t *event, act
         return actor_event_handle_and_start_job(w25->actor, event, &w25->job, w25->actor->app->high_priority,
                                                   w25_job_unlock);
     case APP_EVENT_RESPONSE:
-        if (event->producer == w25->spi->actor && w25->job.handler != NULL) {
+        if (event->producer == w25->spi->actor && w25->job != NULL) {
             return actor_event_handle_and_pass_to_job(w25->actor, event, &w25->job, w25->actor->app->high_priority,
-                                                        w25->job.handler);
+                                                        w25->job->handler);
         }
         break;
     default:
@@ -183,11 +183,11 @@ static app_signal_t w25_worker_input(storage_w25_t *w25, app_event_t *event, act
     return 0;
 }
 
-static app_signal_t w25_on_worker_assignment(storage_w25_t *w25, app_thread_t *thread) {
+static actor_worker_callback_t w25_on_worker_assignment(storage_w25_t *w25, app_thread_t *thread) {
     if (thread == w25->actor->app->input) {
-        return w25_worker_input;
+        return (actor_worker_callback_t) w25_worker_input;
     } else if (thread == w25->actor->app->high_priority) {
-        return w25_worker_high_priority;
+        return (actor_worker_callback_t) w25_worker_high_priority;
     }
     return NULL;
 }
@@ -201,7 +201,7 @@ actor_class_t storage_w25_class = {
     .link = (app_method_t)w25_link,
     .start = (app_method_t)w25_start,
     .stop = (app_method_t)w25_stop,
-    .on_worker_assignment = (on_worker_assignment_t) w25_on_worker_assignment,
+    .on_worker_assignment = (actor_on_worker_assignment_t) w25_on_worker_assignment,
     .on_phase = (actor_on_phase_t)w25_on_phase,
     .on_event_report = (actor_on_event_report_t)w25_on_event_report,
     .property_write = w25_property_write,

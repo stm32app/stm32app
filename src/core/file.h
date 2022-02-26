@@ -28,12 +28,14 @@ typedef enum app_file_mode {
     APP_FILE_ERROR = 0x080000    // Had error
 } app_file_mode_t;
 
+app_signal_t app_file_publish_event_with_argument_for(app_file_t *file, app_event_type_t type, actor_t *target, uint8_t *buffer, uint32_t size);
+
 app_signal_t app_file_open(app_file_t *file, const char *path, int flags);
 
 app_signal_t app_file_sync(app_file_t *file);
 
 app_signal_t app_file_seek(app_file_t *file, uint32_t position, uint8_t whence);
-app_file_t *app_file_stat(app_file_t *file);
+app_signal_t app_file_stat(app_file_t *file);
 
 app_signal_t app_file_seek_to(app_file_t *file, uint32_t position);
 
@@ -46,6 +48,9 @@ app_signal_t app_file_truncate(app_file_t *file);
 app_signal_t app_file_delete(app_file_t *file);
 
 app_signal_t app_file_close(app_file_t *file);
+
+app_signal_t app_file_wait(app_file_t *file);
+
 #define app_file_unlink app_file_delete
 
 #endif

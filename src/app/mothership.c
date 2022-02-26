@@ -9,7 +9,9 @@
 #include "storage/sdcard.h"
 #include "storage/w25.h"
 #include "system/canopen.h"
+#ifdef APP_USE_DATABASE
 #include "system/database.h"
+#endif
 #include "system/mcu.h"
 //#include "screen/epaper.h"
 //#include "transport/can.h"
@@ -35,14 +37,21 @@ static app_signal_t mothership_validate(app_mothership_properties_t *properties)
 
 static app_signal_t mothership_construct(app_mothership_t *mothership) {
     mothership->buffers = app_buffer_malloc(mothership->actor);
-    app_thread_allocate(&mothership->input, app, (void (*)(void *ptr))app_thread_execute, "Input", 300, 20, 5, NULL);
-    app_thread_allocate(&mothership->catchup, app, (void (*)(void *ptr))app_thread_execute, "Catchup", 200, 100, 5, NULL);
-    app_thread_allocate(&mothership->high_priority, app, (void (*)(void *ptr))app_thread_execute, "High P", 200, 1, 4, NULL);
-    app_thread_allocate(&mothership->medium_priority, app, (void (*)(void *ptr))app_thread_execute, "Medium P", 200, 1, 3, NULL);
-    app_thread_allocate(&mothership->low_priority, app, (void (*)(void *ptr))app_thread_execute, "Low P", 200, 1, 2, NULL);
-    app_thread_allocate(&mothership->bg_priority, app, (void (*)(void *ptr))app_thread_execute, "Bg P", 200, 0, 1, NULL);
-    return mothership->buffers != NULL && mothership->input != NULL && mothership->catchup != NULL && mothership->high_priority != NULL &&
-           mothership->medium_priority != NULL && mothership->low_priority != NULL && mothership->idle_priority != NULL;
+    mothership->jobs = app_buffer_malloc(mothership->actor);
+    app_thread_allocate(&mothership->input, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Input", 300, 20, 5,
+                        APP_THREAD_SHARED);
+    app_thread_allocate(&mothership->catchup, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Catchup", 200, 100, 5,
+                        APP_THREAD_SHARED);
+    app_thread_allocate(&mothership->high_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "High P", 200, 1, 4,
+                        APP_THREAD_SHARED);
+    app_thread_allocate(&mothership->medium_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Medium P", 200, 1, 3,
+                        APP_THREAD_SHARED);
+    app_thread_allocate(&mothership->low_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Low P", 200, 1, 2,
+                        APP_THREAD_SHARED);
+    app_thread_allocate(&mothership->bg_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Bg P", 200, 0, 1,
+                        APP_THREAD_SHARED);
+    return mothership->buffers == NULL || mothership->input == NULL || mothership->catchup == NULL || mothership->high_priority == NULL ||
+           mothership->medium_priority == NULL || mothership->low_priority == NULL || mothership->bg_priority == NULL;
 }
 
 static app_signal_t mothership_destruct(app_mothership_t *mothership) {
@@ -51,7 +60,8 @@ static app_signal_t mothership_destruct(app_mothership_t *mothership) {
     app_thread_free(mothership->high_priority);
     app_thread_free(mothership->low_priority);
     app_thread_free(mothership->bg_priority);
-    app_buffer_release(mothership->buffers);
+    app_buffer_release(mothership->buffers, mothership->actor);
+    return 0;
 }
 
 static app_signal_t mothership_start(app_mothership_t *mothership) {
@@ -95,7 +105,9 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     count += app_actor_type_enumerate(app, od, &app_mothership_class, destination, count);
     count += app_actor_type_enumerate(app, od, &system_mcu_class, destination, count);
     count += app_actor_type_enumerate(app, od, &system_canopen_class, destination, count);
+#if APP_USE_DATABASE
     count += app_actor_type_enumerate(app, od, &system_database_class, destination, count);
+#endif
     count += app_actor_type_enumerate(app, od, &module_timer_class, destination, count);
     count += app_actor_type_enumerate(app, od, &module_adc_class, destination, count);
     count += app_actor_type_enumerate(app, od, &transport_can_class, destination, count);
@@ -114,7 +126,8 @@ size_t app_mothership_enumerate_actors(app_t *app, OD_t *od, actor_t *destinatio
     return count;
 }
 
-static app_signal_t mothership_worker_high_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t mothership_worker_high_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick,
+                                                    app_thread_t *thread) {
     (void)tick;
     (void)thread;
     if (event->type == APP_EVENT_THREAD_ALARM && !mothership->initialized) {
@@ -156,7 +169,8 @@ static app_job_signal_t mothership_job_stats(app_job_t *job) {
     return APP_JOB_SUCCESS;
 }
 
-static app_signal_t mothership_worker_low_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static app_signal_t mothership_worker_low_priority(app_mothership_t *mothership, app_event_t *event, actor_worker_t *tick,
+                                                   app_thread_t *thread) {
     switch (event->type) {
     case APP_EVENT_THREAD_ALARM:
         // if (mothership->sdram)
@@ -183,7 +197,8 @@ static app_signal_t mothership_on_signal(app_mothership_t mothership, actor_t *a
 
 static app_signal_t mothership_on_buffer_allocation(app_mothership_t *mothership, app_buffer_t *buffer, uint32_t size) {
     // allocate another slab chunk for buffers that will be used by other moduels in the app
-    if (app_buffer_get_last_page(buffer) == app_buffer_get_last_page(mothership->buffers)) {
+    app_buffer_t *last_page = app_buffer_get_last_page(buffer);
+    if (last_page == app_buffer_get_last_page(mothership->buffers)) {
         app_buffer_t *next = mothership->buffers->allocated_size == 0 ? mothership->buffers : app_buffer_malloc(mothership->actor);
         app_buffer_t *previous = app_buffer_get_last_page(buffer);
         app_buffer_set_next_page(previous, next);
@@ -191,17 +206,26 @@ static app_signal_t mothership_on_buffer_allocation(app_mothership_t *mothership
             return APP_SIGNAL_OUT_OF_MEMORY;
         }
         next->size = next->allocated_size;
+        // allocate pool of jobs 10 at a time
+    } else if (last_page == app_buffer_get_last_page(mothership->jobs)) {
+        app_buffer_t *next = mothership->jobs->allocated_size == 0 ? mothership->jobs : app_buffer_malloc(mothership->actor);
+        app_buffer_t *previous = app_buffer_get_last_page(buffer);
+        app_buffer_set_next_page(previous, next);
+        if (app_buffer_set_size(next, 10 * sizeof(app_job_t))) {
+            return APP_SIGNAL_OUT_OF_MEMORY;
+        }
+        next->size = next->allocated_size;
     }
     return 0;
 }
 
-static app_signal_t mothership_on_worker_assignment(app_mothership_t *mothership, app_thread_t *thread) {
+static actor_worker_callback_t mothership_on_worker_assignment(app_mothership_t *mothership, app_thread_t *thread) {
     if (thread == mothership->input) {
-        return mothership_worker_input;
+        return (actor_worker_callback_t)mothership_worker_input;
     } else if (thread == mothership->high_priority) {
-        return mothership_worker_high_priority;
+        return (actor_worker_callback_t)mothership_worker_high_priority;
     } else if (thread == mothership->low_priority) {
-        return mothership_worker_low_priority;
+        return (actor_worker_callback_t)mothership_worker_low_priority;
     }
     return NULL;
 }
@@ -218,7 +242,7 @@ actor_class_t app_mothership_class = {
     .stop = (app_method_t)mothership_stop,
     .on_phase = (actor_on_phase_t)mothership_phase,
     .on_signal = (actor_on_signal_t)mothership_on_signal,
-    .on_worker_assignment = (on_worker_assignment_t)mothership_on_worker_assignment,
     .property_write = mothership_property_write,
+    .on_worker_assignment = (actor_on_worker_assignment_t)mothership_on_worker_assignment,
     .on_buffer_allocation = (actor_on_buffer_allocation_t)mothership_on_buffer_allocation,
 };

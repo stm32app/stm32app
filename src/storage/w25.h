@@ -45,7 +45,7 @@ struct storage_w25 {
     actor_t *actor;
     storage_w25_properties_t *properties;
     transport_spi_t *spi;
-    app_job_t job;
+    app_job_t *job;
 } ;
 
 extern actor_class_t storage_w25_class;

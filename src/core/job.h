@@ -47,10 +47,13 @@ enum app_job_signal {
     APP_JOB_FAILURE = 255,
 };
 
-app_signal_t app_job_execute(app_job_t *job);
-app_job_signal_t app_job_advance(app_job_t *job, app_job_signal_t signal);
-app_signal_t app_job_finalize(app_job_t *job);
-app_signal_t app_job_execute_if_running_in_thread(app_job_t *job, app_thread_t *thread);
-app_signal_t app_job_execute_in_coroutine_if_running_in_thread(app_job_t *job, app_thread_t *thread, coru_t *coroutine);
+app_signal_t app_job_execute(app_job_t **job_slot);
+app_signal_t app_job_finalize(app_job_t **job_slot);
+app_signal_t app_job_execute_if_running_in_thread(app_job_t **job_slot, app_thread_t *thread);
+app_job_signal_t app_job_advance(app_job_t *job_slot, app_job_signal_t signal);
+
+app_signal_t app_job_wait(app_job_t *job);
+app_job_t *app_pool_allocate_job(app_buffer_t *buffer);
+void app_pool_free_job(app_job_t *job);
 
 #endif

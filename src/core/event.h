@@ -96,17 +96,13 @@ app_signal_t actor_event_accept_and_process_generic(actor_t *actor, app_event_t 
                                                     app_event_status_t ready_status, app_event_status_t busy_status,
                                                     actor_on_event_report_t handler);
 
-app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
+app_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, app_event_t *event, app_job_t **job_slot, app_thread_t *thread,
                                                       actor_on_job_complete_t handler, app_event_status_t ready_status,
                                                       app_event_status_t busy_status);
 
-app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
+app_signal_t actor_event_accept_and_pass_to_job_generic(actor_t *actor, app_event_t *event, app_job_t **job_slot, app_thread_t *thread,
                                                         actor_on_job_complete_t handler, app_event_status_t ready_status,
                                                         app_event_status_t busy_status);
-
-app_signal_t actor_event_accept_for_job_generic(actor_t *actor, app_event_t *event, app_job_t *job, app_thread_t *thread,
-                                                actor_on_job_complete_t handler, app_event_status_t ready_status,
-                                                app_event_status_t busy_status);
 
 /* Consume event if not busy, otherwise keep it enqueued for later without allowing others to take it  */
 #define actor_event_handle(actor, event, destination)                                                                                      \
@@ -121,9 +117,6 @@ app_signal_t actor_event_accept_for_job_generic(actor_t *actor, app_event_t *eve
 /* Consume event with a running task if not busy, otherwise keep it enqueued for later without allowing others to take it  */
 #define actor_event_handle_and_pass_to_job(actor, event, task, thread, handler)                                                            \
     actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
-/* Consume event with a running taskor start one if not busy, otherwise keep it enqueued for later without allowing others to take it  */
-#define actor_event_handle_for_job(actor, event, task, thread, handler)                                                                    \
-    actor_event_accept_for_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_DEFERRED)
 
 /* Consume event if not busy, otherwise keep it enqueued for later unless other actors take it first  */
 #define actor_event_accept(actor, event, destination)                                                                                      \
@@ -137,10 +130,6 @@ app_signal_t actor_event_accept_for_job_generic(actor_t *actor, app_event_t *eve
 /* Consume event with a running task  if not busy, otherwise keep it enqueued for later unless other actors take it first */
 #define actor_event_accept_and_pass_to_job(actor, event, task, thread, handler)                                                            \
     actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
-/* Consume event with a running task or start one if not busy, otherwise keep it enqueued for later unless other actors take it first */
-#define actor_event_accept_for_job(actor, event, task, thread, handler)                                                                    \
-    actor_event_accept_for_job(actor, event, task, thread, handler, APP_EVENT_HANDLED, APP_EVENT_ADDRESSED)
-
 /* Process event and let others receieve it too */
 #define actor_event_receive(actor, event, destination)                                                                                     \
     actor_event_accept_and_process_generic(actor, event, destination, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED, NULL)
@@ -153,14 +142,11 @@ app_signal_t actor_event_accept_for_job_generic(actor_t *actor, app_event_t *eve
 /* Consume event with a running task  if not busy, and let others receieve it too  */
 #define actor_event_receive_and_pass_to_job(actor, event, task, thread, handler)                                                           \
     actor_event_accept_and_pass_to_job_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
-/* Consume event with a running task or start one if not busy, and let others receieve it too  */
-#define actor_event_receive_for_job(actor, event, task, thread, handler)                                                                   \
-    actor_event_accept_for_job_generic(actor, event, task, thread, handler, APP_EVENT_RECEIVED, APP_EVENT_RECEIVED)
 
 /* Pass signal to job, schedule it to run in the given thread */
-app_signal_t actor_signal_pass_to_job(actor_t *actor, app_signal_t signal, app_job_t *job, app_thread_t *thread);
+app_signal_t actor_signal_pass_to_job(actor_t *actor, app_signal_t signal, app_job_t **job_slot, app_thread_t *thread);
 /* Pass signal to job and run it right away */
-app_signal_t actor_signal_job(actor_t *actor, app_signal_t signal, app_job_t *job);
+app_signal_t actor_signal_job(actor_t *actor, app_signal_t signal, app_job_t **job_slot);
 
 app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *tick);
 

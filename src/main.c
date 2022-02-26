@@ -28,6 +28,7 @@ static void app_boot(void *pvParameters) {
 
 
 int main(void) {
+    debug_log_inhibited = false;
     
 #ifdef SEMIHOSTING
     initialise_monitor_handles();

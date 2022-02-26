@@ -228,11 +228,11 @@ static void app_thread_canopen_notify(app_thread_t *thread) {
     app_thread_publish(thread, &event);
 }
 
-static app_signal_t canopen_on_worker_assignment(system_canopen_t *canopen, app_thread_t *thread) {
+static actor_worker_callback_t canopen_on_worker_assignment(system_canopen_t *canopen, app_thread_t *thread) {
     if (thread == canopen->actor->app->input) {
-        return canopen_worker_on_input;
+        return (actor_worker_callback_t) canopen_worker_on_input;
     } else if (thread == canopen->actor->app->high_priority) {
-        return canopen_worker_high_priority;
+        return (actor_worker_callback_t) canopen_worker_high_priority;
     }
     return NULL;
 }
@@ -251,7 +251,7 @@ actor_class_t system_canopen_class = {
 
     .on_phase = (actor_on_phase_t)canopen_phase,
     .property_write = canopen_property_write,
-    .on_worker_assignment = (on_worker_assignment_t) canopen_on_worker_assignment,
+    .on_worker_assignment = (actor_on_worker_assignment_t) canopen_on_worker_assignment,
 };
 
 static void system_canopen_initialize_class(system_canopen_t *canopen) {
