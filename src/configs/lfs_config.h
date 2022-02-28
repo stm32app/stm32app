@@ -12,7 +12,7 @@ extern "C"
 {
 #endif
 
-#include <app_env.h>
+#include <actor_env.h>
 #include <string.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -23,7 +23,7 @@ extern "C"
 #define LFS_ERROR debug_printf
 #define LFS_WARN debug_printf
 #define LFS_ERROR debug_printf
-#define LFS_ASSERT APP_ASSERT
+#define LFS_ASSERT actor_assert
 
 
 // Builtin functions, these may be replaced by more efficient
@@ -141,10 +141,10 @@ static inline uint32_t lfs_tobe32(uint32_t a) {
 
 // Allocate memory, only used if buffers are not provided to littlefs
 // Note, memory must be 64-bit aligned
-#define lfs_malloc app_malloc_dma
+#define lfs_malloc actor_malloc_dma
 
 // Deallocate memory, only used if buffers are not provided to littlefs
-#define lfs_free app_free
+#define lfs_free actor_free
 
 
 #ifdef __cplusplus

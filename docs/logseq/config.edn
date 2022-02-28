@@ -9,11 +9,11 @@
  ;; or ":todo" for TODO/DOING style.
  :preferred-workflow :now
 
- ;; The app will ignore those directories or files.
+ ;; The node will ignore those directories or files.
  ;; E.g. "/archived" "/test.md"
  :hidden []
 
- ;; When creating the new journal page, the app will use your template if there is one.
+ ;; When creating the new journal page, the node will use your template if there is one.
  ;; You only need to input your template name here.
  :default-templates
  {:journals ""}
@@ -102,7 +102,7 @@
  ;; Whether to show empty bullets for non-document mode (the default mode)
  :ui/show-empty-bullets? false
 
- ;; The app will show those queries in today's journal page,
+ ;; The node will show those queries in today's journal page,
  ;; the "NOW" query asks the tasks which need to be finished "now",
  ;; the "NEXT" query asks the future tasks.
  :default-queries

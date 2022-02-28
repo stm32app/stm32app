@@ -25,133 +25,133 @@ default: return "Unknown";
 }
 };
 
-char* get_app_properties_properties_name (uint32_t v) {
+char* get_actor_properties_properties_name (uint32_t v) {
 switch (v) {
-case 1: return "CORE_APP_TIMER_INDEX";
-case 2: return "CORE_APP_STORAGE_INDEX";
-case 3: return "CORE_APP_MCU_INDEX";
-case 4: return "CORE_APP_CANOPEN_INDEX";
-case 5: return "CORE_APP_PHASE";
+case 1: return "CORE_ACTOR_TIMER_INDEX";
+case 2: return "CORE_ACTOR_STORAGE_INDEX";
+case 3: return "CORE_ACTOR_MCU_INDEX";
+case 4: return "CORE_ACTOR_CANOPEN_INDEX";
+case 5: return "CORE_ACTOR_PHASE";
 default: return "Unknown";
 }
 };
 
-char* get_app_buffer_flag_name (uint32_t v) {
+char* get_actor_buffer_flag_name (uint32_t v) {
 switch (v) {
-case 1: return "APP_BUFFER_UNMANAGED";
-case 2: return "APP_BUFFER_ALIGNED";
-case 4: return "APP_BUFFER_DMA";
-case 8: return "APP_BUFFER_EXT";
-case 16: return "APP_BUFFER_CHUNKED";
+case 1: return "ACTOR_BUFFER_UNMANAGED";
+case 2: return "ACTOR_BUFFER_ALIGNED";
+case 4: return "ACTOR_BUFFER_DMA";
+case 8: return "ACTOR_BUFFER_EXT";
+case 16: return "ACTOR_BUFFER_CHUNKED";
 default: return "Unknown";
 }
 };
 
-char* get_app_event_type_name (uint32_t v) {
+char* get_actor_event_type_name (uint32_t v) {
 switch (v) {
-case 32: return "APP_EVENT_THREAD_START";
-case 33: return "APP_EVENT_THREAD_STOP";
-case 34: return "APP_EVENT_THREAD_ALARM";
-case 0: return "APP_EVENT_IDLE";
-case 1: return "APP_EVENT_READ";
-case 2: return "APP_EVENT_READ_TO_BUFFER";
-case 3: return "APP_EVENT_WRITE";
-case 4: return "APP_EVENT_TRANSFER";
-case 5: return "APP_EVENT_ERASE";
-case 6: return "APP_EVENT_MOUNT";
-case 7: return "APP_EVENT_UNMOUNT";
-case 8: return "APP_EVENT_RESPONSE";
-case 9: return "APP_EVENT_LOCK";
-case 10: return "APP_EVENT_UNLOCK";
-case 11: return "APP_EVENT_INTROSPECTION";
-case 12: return "APP_EVENT_DIAGNOSE";
-case 13: return "APP_EVENT_OPEN";
-case 14: return "APP_EVENT_QUERY";
-case 15: return "APP_EVENT_DELETE";
-case 16: return "APP_EVENT_CLOSE";
-case 17: return "APP_EVENT_SYNC";
-case 18: return "APP_EVENT_STATS";
-case 19: return "APP_EVENT_START";
-case 20: return "APP_EVENT_ENABLE";
-case 21: return "APP_EVENT_DISABLE";
+case 32: return "ACTOR_EVENT_THREAD_START";
+case 33: return "ACTOR_EVENT_THREAD_STOP";
+case 34: return "ACTOR_EVENT_THREAD_ALARM";
+case 0: return "ACTOR_EVENT_IDLE";
+case 1: return "ACTOR_EVENT_READ";
+case 2: return "ACTOR_EVENT_READ_TO_BUFFER";
+case 3: return "ACTOR_EVENT_WRITE";
+case 4: return "ACTOR_EVENT_TRANSFER";
+case 5: return "ACTOR_EVENT_ERASE";
+case 6: return "ACTOR_EVENT_MOUNT";
+case 7: return "ACTOR_EVENT_UNMOUNT";
+case 8: return "ACTOR_EVENT_RESPONSE";
+case 9: return "ACTOR_EVENT_LOCK";
+case 10: return "ACTOR_EVENT_UNLOCK";
+case 11: return "ACTOR_EVENT_INTROSPECTION";
+case 12: return "ACTOR_EVENT_DIAGNOSE";
+case 13: return "ACTOR_EVENT_OPEN";
+case 14: return "ACTOR_EVENT_QUERY";
+case 15: return "ACTOR_EVENT_DELETE";
+case 16: return "ACTOR_EVENT_CLOSE";
+case 17: return "ACTOR_EVENT_SYNC";
+case 18: return "ACTOR_EVENT_STATS";
+case 19: return "ACTOR_EVENT_START";
+case 20: return "ACTOR_EVENT_ENABLE";
+case 21: return "ACTOR_EVENT_DISABLE";
 default: return "Unknown";
 }
 };
 
-char* get_app_event_status_name (uint32_t v) {
+char* get_actor_event_status_name (uint32_t v) {
 switch (v) {
-case 0: return "APP_EVENT_WAITING";
-case 1: return "APP_EVENT_RECEIVED";
-case 2: return "APP_EVENT_ADDRESSED";
-case 3: return "APP_EVENT_HANDLED";
-case 4: return "APP_EVENT_DEFERRED";
-case 5: return "APP_EVENT_FINALIZED";
+case 0: return "ACTOR_EVENT_WAITING";
+case 1: return "ACTOR_EVENT_RECEIVED";
+case 2: return "ACTOR_EVENT_ADDRESSED";
+case 3: return "ACTOR_EVENT_HANDLED";
+case 4: return "ACTOR_EVENT_DEFERRED";
+case 5: return "ACTOR_EVENT_FINALIZED";
 default: return "Unknown";
 }
 };
 
-char* get_app_signal_name (uint32_t v) {
+char* get_actor_signal_name (uint32_t v) {
 switch (v) {
-case 0: return "APP_SIGNAL_OK";
-case 1: return "APP_SIGNAL_PENDING";
-case 2: return "APP_SIGNAL_TIMER";
-case 3: return "APP_SIGNAL_DMA_TRANSFERRING";
-case 4: return "APP_SIGNAL_DMA_IDLE";
-case 5: return "APP_SIGNAL_RX_COMPLETE";
-case 6: return "APP_SIGNAL_TX_COMPLETE";
-case 7: return "APP_SIGNAL_CATCHUP";
-case 8: return "APP_SIGNAL_RESCHEDULE";
-case 9: return "APP_SIGNAL_INCOMING";
-case -1: return "APP_SIGNAL_FAILURE";
-case -2: return "APP_SIGNAL_TIMEOUT";
-case -3: return "APP_SIGNAL_DMA_ERROR";
-case -4: return "APP_SIGNAL_BUSY";
-case -5: return "APP_SIGNAL_NOT_FOUND";
-case -6: return "APP_SIGNAL_UNCONFIGURED";
-case -7: return "APP_SIGNAL_INCOMPLETE";
-case -8: return "APP_SIGNAL_CORRUPTED";
-case -9: return "APP_SIGNAL_NO_RESPONSE";
-case -10: return "APP_SIGNAL_OUT_OF_MEMORY";
-case -11: return "APP_SIGNAL_INVALID_ARGUMENT";
+case 0: return "ACTOR_SIGNAL_OK";
+case 1: return "ACTOR_SIGNAL_PENDING";
+case 2: return "ACTOR_SIGNAL_TIMER";
+case 3: return "ACTOR_SIGNAL_DMA_TRANSFERRING";
+case 4: return "ACTOR_SIGNAL_DMA_IDLE";
+case 5: return "ACTOR_SIGNAL_RX_COMPLETE";
+case 6: return "ACTOR_SIGNAL_TX_COMPLETE";
+case 7: return "ACTOR_SIGNAL_CATCHUP";
+case 8: return "ACTOR_SIGNAL_RESCHEDULE";
+case 9: return "ACTOR_SIGNAL_INCOMING";
+case -1: return "ACTOR_SIGNAL_FAILURE";
+case -2: return "ACTOR_SIGNAL_TIMEOUT";
+case -3: return "ACTOR_SIGNAL_DMA_ERROR";
+case -4: return "ACTOR_SIGNAL_BUSY";
+case -5: return "ACTOR_SIGNAL_NOT_FOUND";
+case -6: return "ACTOR_SIGNAL_UNCONFIGURED";
+case -7: return "ACTOR_SIGNAL_INCOMPLETE";
+case -8: return "ACTOR_SIGNAL_CORRUPTED";
+case -9: return "ACTOR_SIGNAL_NO_RESPONSE";
+case -10: return "ACTOR_SIGNAL_OUT_OF_MEMORY";
+case -11: return "ACTOR_SIGNAL_INVALID_ARGUMENT";
 default: return "Unknown";
 }
 };
 
-char* get_app_file_mode_name (uint32_t v) {
+char* get_actor_file_mode_name (uint32_t v) {
 switch (v) {
-case 1: return "APP_FILE_READ";
-case 2: return "APP_FILE_WRITE";
-case 3: return "APP_FILE_READ_WRITE";
-case 256: return "APP_FILE_CREATE";
-case 512: return "APP_FILE_EXCLUSIVE";
-case 1024: return "APP_FILE_TRUNCATE";
-case 2048: return "APP_FILE_APPEND";
-case 524288: return "APP_FILE_ERROR";
+case 1: return "ACTOR_FILE_READ";
+case 2: return "ACTOR_FILE_WRITE";
+case 3: return "ACTOR_FILE_READ_WRITE";
+case 256: return "ACTOR_FILE_CREATE";
+case 512: return "ACTOR_FILE_EXCLUSIVE";
+case 1024: return "ACTOR_FILE_TRUNCATE";
+case 2048: return "ACTOR_FILE_APPEND";
+case 524288: return "ACTOR_FILE_ERROR";
 default: return "Unknown";
 }
 };
 
-char* get_app_job_signal_name (uint32_t v) {
+char* get_actor_job_signal_name (uint32_t v) {
 switch (v) {
-case 0: return "APP_JOB_HALT";
-case 1: return "APP_JOB_TASK_CONTINUE";
-case 2: return "APP_JOB_TASK_RETRY";
-case 3: return "APP_JOB_TASK_WAIT";
-case 4: return "APP_JOB_TASK_QUIT_ISR";
-case 5: return "APP_JOB_TASK_LOOP";
-case 6: return "APP_JOB_RETRY";
-case 252: return "APP_JOB_TASK_SUCCESS";
-case 253: return "APP_JOB_TASK_FAILURE";
-case 254: return "APP_JOB_SUCCESS";
-case 255: return "APP_JOB_FAILURE";
+case 0: return "ACTOR_JOB_HALT";
+case 1: return "ACTOR_JOB_TASK_CONTINUE";
+case 2: return "ACTOR_JOB_TASK_RETRY";
+case 3: return "ACTOR_JOB_TASK_WAIT";
+case 4: return "ACTOR_JOB_TASK_QUIT_ISR";
+case 5: return "ACTOR_JOB_TASK_LOOP";
+case 6: return "ACTOR_JOB_RETRY";
+case 252: return "ACTOR_JOB_TASK_SUCCESS";
+case 253: return "ACTOR_JOB_TASK_FAILURE";
+case 254: return "ACTOR_JOB_SUCCESS";
+case 255: return "ACTOR_JOB_FAILURE";
 default: return "Unknown";
 }
 };
 
-char* get_app_thread_flags_name (uint32_t v) {
+char* get_actor_thread_flags_name (uint32_t v) {
 switch (v) {
-case 1: return "APP_THREAD_SHARED";
-case 2: return "APP_THREAD_BLOCKABLE";
+case 1: return "ACTOR_THREAD_SHARED";
+case 2: return "ACTOR_THREAD_BLOCKABLE";
 default: return "Unknown";
 }
 };

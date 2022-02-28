@@ -111,18 +111,5 @@ multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 5
 #define MALLOC_INTREGION 0, 1, -1  // multi_malloc_fast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
 #define MALLOC_EXTREGION 2, -1, -1 // multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 2
 
-#define app_malloc(size) (trace_printf("    ! Malloc %db\t\t%s \n", size, __func__), multi_malloc(size))
-#define app_malloc_dma(size) (trace_printf("    ! Malloc DMA %db\t\t%s \n", size, __func__), multi_malloc_dma(size))
-#define app_malloc_ext(size) (trace_printf("    ! Malloc EXT %db\t\t%s \n", size, __func__), multi_malloc_ext(size))
-#define app_malloc_fast(size) (trace_printf("    ! Malloc INT %db\t\t%s \n", size, __func__), multi_malloc_fast(size))
-#define app_calloc(number, size) (trace_printf("    ! Calloc %db\t\t%s \n", size, __func__), multi_calloc(number, size))
-#define app_calloc_dma(number, size) (trace_printf("    ! Calloc DMA %db\t\t%s \n", size, __func__), multi_calloc_dma(number, size))
-#define app_calloc_ext(number, size) (trace_printf("    ! Calloc EXT %db\t\t%s \n", size, __func__), multi_calloc_ext(number, size))
-#define app_calloc_fast(number, size) (trace_printf("    ! Calloc INT %db\t\t%s \n", size, __func__), multi_calloc_fast(number, size))
-#define app_realloc(ptr, size) (trace_printf("    ! Realloc %lub\t\t%s \n", size, __func__), multi_realloc(ptr, size))
-#define app_realloc_dma(ptr, size) (trace_printf("    ! Realloc DMA %lub\t\t%s \n", size, __func__), multi_realloc_dma(ptr, size))
-#define app_realloc_ext(ptr, size) (trace_printf("    ! Realloc EXT %lub\t\t%s \n", size, __func__), multi_realloc_ext(ptr, size))
-#define app_realloc_fast(ptr, size) (trace_printf("    ! Realloc INT %lub\t\t%s \n", size, __func__), multi_realloc_fast(ptr, size))
-#define app_free(ptr) (trace_printf("    ! Free %s\t\t\n", __func__), multi_free(ptr))
 
 #endif
