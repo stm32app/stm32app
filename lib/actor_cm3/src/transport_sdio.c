@@ -1,5 +1,5 @@
 #include "sdio.h"
-#include "core/buffer.h"
+#include "actor_buffer.h"
 #include "lib/bytes.h"
 #include "lib/dma.h"
 #include "storage/sdcard.h"
@@ -15,14 +15,14 @@ static ODR_t sdio_property_write(OD_stream_t *stream, const void *buf, OD_size_t
     return result;
 }
 
-static app_signal_t sdio_validate(transport_sdio_properties_t *properties) {
+static actor_signal_t sdio_validate(transport_sdio_properties_t *properties) {
     return 0;
 }
 
 uint8_t buff[512] = {1};
 
-static app_signal_t sdio_construct(transport_sdio_t *sdio) {
-    actor_event_subscribe(sdio->actor, APP_EVENT_DIAGNOSE);
+static actor_signal_t sdio_construct(transport_sdio_t *sdio) {
+    actor_event_subscribe(sdio->actor, ACTOR_EVENT_DIAGNOSE);
     sdio->address = SDIO_BASE;
 
 #if defined(RCC_APB1ENR_SDIOEN)
@@ -47,7 +47,7 @@ static void sdio_notify(uint8_t index) {
     debug_printf("> SDIO Interrupt\n");
     transport_sdio_t *sdio = sdio_units[index];
     if (sdio != NULL && sdio->job != NULL) {
-        app_job_execute(&sdio->job);
+        actor_job_execute(&sdio->job);
     } else {
         SDIO_ICR = 0xfffffff;
     }
@@ -70,7 +70,7 @@ static void sdio_enable(void) {
     SDIO_MASK = 0xffffffff & ~(SDIO_MASK_RXDAVLIE) & (~SDIO_MASK_RXACTIE);
 }
 
-static app_signal_t sdio_start(transport_sdio_t *sdio) {
+static actor_signal_t sdio_start(transport_sdio_t *sdio) {
     sdio_units[sdio->actor->seq] = sdio;
     rcc_peripheral_enable_clock(sdio->source_clock, sdio->peripheral_clock);
     gpio_configure_af_pullup(sdio->properties->d0_port, sdio->properties->d0_pin, 50, sdio->properties->af);
@@ -85,24 +85,24 @@ static app_signal_t sdio_start(transport_sdio_t *sdio) {
     return 0;
 }
 
-static app_signal_t sdio_stop(transport_sdio_t *sdio) {
+static actor_signal_t sdio_stop(transport_sdio_t *sdio) {
     return 0;
 }
 
-static app_signal_t sdio_link(transport_sdio_t *sdio) {
+static actor_signal_t sdio_link(transport_sdio_t *sdio) {
     return 0;
 }
 
-static app_signal_t sdio_on_phase(transport_sdio_t *sdio, actor_phase_t phase) {
+static actor_signal_t sdio_on_phase(transport_sdio_t *sdio, actor_phase_t phase) {
     return 0;
 }
 
-static app_signal_t sdio_on_signal(transport_sdio_t *sdio, actor_t *actor, app_signal_t signal, void *source) {
+static actor_signal_t sdio_on_signal(transport_sdio_t *sdio, actor_t *actor, actor_signal_t signal, void *source) {
     switch (signal) {
     // DMA interrupts on buffer filling up half-way or all the way up
-    case APP_SIGNAL_DMA_TRANSFERRING:
-        sdio->incoming_signal = APP_SIGNAL_DMA_TRANSFERRING;
-        app_job_execute(&sdio->job);
+    case ACTOR_SIGNAL_DMA_TRANSFERRING:
+        sdio->incoming_signal = ACTOR_SIGNAL_DMA_TRANSFERRING;
+        actor_job_execute(&sdio->job);
         break;
     default:
         break;
@@ -110,68 +110,68 @@ static app_signal_t sdio_on_signal(transport_sdio_t *sdio, actor_t *actor, app_s
     return 0;
 }
 
-static app_job_signal_t sdio_send_command(uint32_t cmd, uint32_t arg, uint32_t wait) {
+static actor_job_signal_t sdio_send_command(uint32_t cmd, uint32_t arg, uint32_t wait) {
     SDIO_ICR = SDIO_ICR_CMD;
     SDIO_ARG = arg;
     SDIO_CMD = cmd | SDIO_CMD_CPSMEN | wait;
-    return APP_JOB_TASK_CONTINUE;
+    return ACTOR_JOB_TASK_CONTINUE;
 }
 
-static app_signal_t sdio_get_status(uint8_t cmd) {
+static actor_signal_t sdio_get_status(uint8_t cmd) {
     uint32_t value = SDIO_STA;
     if (value & SDIO_STA_CCRCFAIL) {
         SDIO_ICR = SDIO_ICR_CCRCFAILC;
         if (cmd == 41) { // 41 is always corrupted, that's expected
-            return APP_SIGNAL_OK;
+            return ACTOR_SIGNAL_OK;
         }
-        return APP_SIGNAL_CORRUPTED;
+        return ACTOR_SIGNAL_CORRUPTED;
     } else if (value & SDIO_STA_CTIMEOUT) {
         SDIO_ICR = SDIO_ICR_CTIMEOUTC;
-        return APP_SIGNAL_TIMEOUT;
+        return ACTOR_SIGNAL_TIMEOUT;
     }
 
     if (cmd == 0) {
         if (!(value & SDIO_STA_CMDSENT)) {
-            return APP_SIGNAL_BUSY;
+            return ACTOR_SIGNAL_BUSY;
         }
     } else {
         if ((value & SDIO_STA_CMDACT) || !(value & SDIO_STA_CMDREND)) {
-            return APP_SIGNAL_BUSY;
+            return ACTOR_SIGNAL_BUSY;
             // only short-wait commands have RESPCMD
         } else if (cmd != 0 && cmd != 2 && cmd != 9 && SDIO_RESPCMD != cmd) {
-            return APP_SIGNAL_FAILURE;
+            return ACTOR_SIGNAL_FAILURE;
         }
     }
 
     SDIO_ICR = SDIO_ICR_STATIC;
 
-    return APP_SIGNAL_OK;
+    return ACTOR_SIGNAL_OK;
 }
 
-static app_job_signal_t sdio_get_signal(uint8_t cmd) {
-    app_signal_t signal = sdio_get_status(cmd);
+static actor_job_signal_t sdio_get_signal(uint8_t cmd) {
+    actor_signal_t signal = sdio_get_status(cmd);
     switch (signal) {
-    case APP_SIGNAL_BUSY:
-        return APP_JOB_TASK_LOOP;
-    case APP_SIGNAL_OK:
+    case ACTOR_SIGNAL_BUSY:
+        return ACTOR_JOB_TASK_LOOP;
+    case ACTOR_SIGNAL_OK:
         return 0;
     default:
-        return APP_JOB_TASK_FAILURE;
+        return ACTOR_JOB_TASK_FAILURE;
     }
 }
-static app_job_signal_t sdio_wait(uint8_t cmd) {
-    app_signal_t signal;
+static actor_job_signal_t sdio_wait(uint8_t cmd) {
+    actor_signal_t signal;
     if ((signal = sdio_get_signal(cmd))) {
         return signal;
     } else {
-        return APP_JOB_TASK_CONTINUE;
+        return ACTOR_JOB_TASK_CONTINUE;
     }
 }
 
-static app_job_signal_t sdio_send_command_and_wait(uint32_t cmd, uint32_t arg, uint32_t wait) {
+static actor_job_signal_t sdio_send_command_and_wait(uint32_t cmd, uint32_t arg, uint32_t wait) {
     if (SDIO_STA == 0) {
         sdio_send_command(cmd, arg, wait);
-        return APP_JOB_TASK_LOOP;
+        return ACTOR_JOB_TASK_LOOP;
     } else {
         return sdio_wait(cmd);
     }
@@ -216,7 +216,7 @@ static void sdio_set_bus_clock(uint8_t divider) {
     SDIO_CLKCR = (SDIO_CLKCR & (~SDIO_CLKCR_CLKDIV_MASK)) | (divider & SDIO_CLKCR_CLKDIV_MASK);
 }
 
-static void sdio_blocking_rx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t size, bool_t force) {
+static void sdio_blocking_rx_start(transport_sdio_t *sdio, uint8_t *data, uint32_t size, bool force) {
     uint32_t position = 0;
     do {
         if ((SDIO_STA & SDIO_STA_RXDAVL) || force) {
@@ -291,13 +291,13 @@ static void sdio_dma_tx_stop(transport_sdio_t *sdio) {
 
     debug_printf("TX flush %lub\n", (sdio->source_buffer->size - position * 4));
     sdio_blocking_tx_start(sdio, &sdio->source_buffer->data[position * 4], (sdio->source_buffer->size - position * 4));
-    app_buffer_release(sdio->source_buffer, sdio->actor);
+    actor_buffer_release(sdio->source_buffer, sdio->actor);
 
     sdio->incoming_signal = 0;
     actor_unregister_dma(sdio->properties->dma_unit, sdio->properties->dma_stream);
 }
 
-static app_job_signal_t sdio_task_erase_block(app_job_t *job, uint32_t block_id, uint32_t block_count) {
+static actor_job_signal_t sdio_task_erase_block(actor_job_t *job, uint32_t block_id, uint32_t block_count) {
     // transport_sdio_t *sdio = job->actor->object;
     storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     uint32_t start_address = storage_sdcard_get_high_capacity(sdcard) ? block_id : block_id * 512;
@@ -311,10 +311,10 @@ static app_job_signal_t sdio_task_erase_block(app_job_t *job, uint32_t block_id,
     case 2:
         return sdio_send_command_and_wait(38, 0, SDIO_CMD_WAITRESP_SHORT); // SDIO_CMD_ERASE
     }
-    return APP_JOB_TASK_SUCCESS;
+    return ACTOR_JOB_TASK_SUCCESS;
 }
 
-static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
+static actor_job_signal_t sdio_task_write_block(actor_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
     transport_sdio_t *sdio = job->actor->object;
     storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     uint32_t block_address = storage_sdcard_get_high_capacity(sdcard) ? block_id : block_id * 512;
@@ -322,18 +322,18 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id,
 
     switch (job->task_phase) {
     case 0:
-        if (app_thread_is_interrupted(job->thread)) {
-            return APP_JOB_TASK_QUIT_ISR;
+        if (actor_thread_is_interrupted(job->thread)) {
+            return ACTOR_JOB_TASK_QUIT_ISR;
         } else {
             // if target buffer is not provided, sdio has ability to allocate buffer aligned to 16b to use dma burst
-            sdio->source_buffer = data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
+            sdio->source_buffer = data == NULL ? actor_buffer_aligned(job->actor, size, 16) : actor_buffer_target(job->actor, data, size);
             sdio->source_buffer->size = size;
 
             if (sdio->source_buffer == NULL) {
-                return APP_JOB_FAILURE;
+                return ACTOR_JOB_FAILURE;
             } else {
                 sdio_dma_tx_start(sdio, sdio->source_buffer->data, size);
-                return APP_JOB_TASK_CONTINUE;
+                return ACTOR_JOB_TASK_CONTINUE;
             }
         }
     case 1:
@@ -353,50 +353,50 @@ static app_job_signal_t sdio_task_write_block(app_job_t *job, uint32_t block_id,
         SDIO_DTIMER = SD_DATA_READ_TIMEOUT;
         SDIO_DLEN = size;
         SDIO_DCTRL = SDIO_DCTRL_DMAEN | (9 << 4) | SDIO_DCTRL_DTEN; //| SDIO_DCTRL_DTDIR;
-        return APP_JOB_TASK_CONTINUE;
+        return ACTOR_JOB_TASK_CONTINUE;
         break;
     // check errors
     case 3:
         if ((SDIO_STA & SDIO_STA_TXDAVL) && (SDIO_STA & SDIO_STA_TXACT)) {
             sdio_dma_tx_stop(sdio);
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         } else if (SDIO_STA & SDIO_XFER_ERROR_FLAGS) {
-            return APP_JOB_TASK_FAILURE;
+            return ACTOR_JOB_TASK_FAILURE;
             //} else if (SDIO_STA & (SDIO_STA_DBCKEND |SDIO_STA_DATAEND)) {
-            //    return APP_JOB_TASK_SUCCESS;
-        } else if (sdio->incoming_signal == APP_SIGNAL_DMA_TRANSFERRING) {
+            //    return ACTOR_JOB_TASK_SUCCESS;
+        } else if (sdio->incoming_signal == ACTOR_SIGNAL_DMA_TRANSFERRING) {
             sdio_dma_tx_stop(sdio);
             SDIO_ICR = SDIO_ICR_STATIC;
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         } else {
             SDIO_ICR = SDIO_ICR_STATIC;
-            return APP_JOB_TASK_LOOP;
+            return ACTOR_JOB_TASK_LOOP;
         }
     case 4:
-        return APP_JOB_TASK_CONTINUE;
+        return ACTOR_JOB_TASK_CONTINUE;
     // wait while tx is active
     case 5:
         if (SDIO_STA & SDIO_STA_RXACT) {
-            return APP_JOB_TASK_LOOP;
+            return ACTOR_JOB_TASK_LOOP;
         } else {
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         }
     // stop multi-block transfer
     case 6:
         if (block_count > 1) {
             return sdio_send_command_and_wait(12, 0, SDIO_CMD_WAITRESP_SHORT); // STOP_TRANSMISSION
         } else {
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         }
     default:
-        if (job->task_phase == APP_JOB_FAILURE) {
+        if (job->task_phase == ACTOR_JOB_FAILURE) {
             error_printf("Fail\n");
         }
     }
-    return APP_JOB_TASK_SUCCESS;
+    return ACTOR_JOB_TASK_SUCCESS;
 }
 
-static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
+static actor_job_signal_t sdio_task_read_block(actor_job_t *job, uint32_t block_id, uint8_t *data, uint32_t block_count) {
     transport_sdio_t *sdio = job->actor->object;
     storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     uint32_t block_address = storage_sdcard_get_high_capacity(sdcard) ? block_id : block_id * 512;
@@ -404,17 +404,17 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, 
 
     switch (job->task_phase) {
     case 0:
-        if (app_thread_is_interrupted(job->thread)) {
-            return APP_JOB_TASK_QUIT_ISR;
+        if (actor_thread_is_interrupted(job->thread)) {
+            return ACTOR_JOB_TASK_QUIT_ISR;
         } else {
             // if target buffer is not provided, sdio has ability to allocate buffer aligned to 16b to use dma burst
-            sdio->target_buffer = data == NULL ? app_buffer_aligned(job->actor, size, 16) : app_buffer_target(job->actor, data, size);
+            sdio->target_buffer = data == NULL ? actor_buffer_aligned(job->actor, size, 16) : actor_buffer_target(job->actor, data, size);
             sdio->target_buffer->size = size;
             if (sdio->target_buffer == NULL) {
-                return APP_JOB_FAILURE;
+                return ACTOR_JOB_FAILURE;
             } else {
                 sdio_dma_rx_start(sdio, sdio->target_buffer->data, size);
-                return APP_JOB_TASK_CONTINUE;
+                return ACTOR_JOB_TASK_CONTINUE;
             }
         }
     case 1:
@@ -437,41 +437,41 @@ static app_job_signal_t sdio_task_read_block(app_job_t *job, uint32_t block_id, 
         SDIO_DLEN = size;
         SDIO_DCTRL = SDIO_DCTRL_DMAEN | 9 << 4 | SDIO_DCTRL_DTEN | SDIO_DCTRL_DTDIR;
 
-        return APP_JOB_TASK_WAIT;
+        return ACTOR_JOB_TASK_WAIT;
     // check errors
     case 3:
         if (SDIO_STA & SDIO_XFER_ERROR_FLAGS) {
-            return APP_JOB_TASK_FAILURE;
-        } else if (sdio->incoming_signal == APP_SIGNAL_DMA_TRANSFERRING || (SDIO_STA & SDIO_STA_DBCKEND)) {
+            return ACTOR_JOB_TASK_FAILURE;
+        } else if (sdio->incoming_signal == ACTOR_SIGNAL_DMA_TRANSFERRING || (SDIO_STA & SDIO_STA_DBCKEND)) {
             sdio_dma_rx_stop(sdio);
             SDIO_ICR = SDIO_ICR_STATIC;
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         } else {
-            return APP_JOB_TASK_LOOP;
+            return ACTOR_JOB_TASK_LOOP;
         }
     // wait while tx is active
     case 4:
         if (SDIO_STA & SDIO_STA_RXACT) {
-            return APP_JOB_TASK_LOOP;
+            return ACTOR_JOB_TASK_LOOP;
         } else {
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         }
     // stop multi-block transfer
     case 5:
         if (block_count > 1) {
             return sdio_send_command_and_wait(12, 0, SDIO_CMD_WAITRESP_SHORT); // STOP_TRANSMISSION
         } else {
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         }
     default:
-        if (job->task_phase == APP_JOB_FAILURE) {
+        if (job->task_phase == ACTOR_JOB_FAILURE) {
             error_printf("Fail\n");
         }
     }
-    return APP_JOB_TASK_SUCCESS;
+    return ACTOR_JOB_TASK_SUCCESS;
 }
 
-static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
+static actor_job_signal_t sdio_task_detect_card(actor_job_t *job) {
     transport_sdio_t *sdio = job->actor->object;
     storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     // Power up the card
@@ -479,7 +479,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
     case 0:
         nvic_enable_irq(sdio->irq);
         sdio_enable();
-        return APP_JOB_TASK_CONTINUE;
+        return ACTOR_JOB_TASK_CONTINUE;
     case 1:
         return sdio_send_command_and_wait(0, 0, SDIO_CMD_WAITRESP_NO_0); // GO_IDLE_STATE
 
@@ -488,30 +488,30 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         return sdio_send_command(8, 0x1F1, SDIO_CMD_WAITRESP_SHORT); // SEND_IF_COND
     case 3:
         switch (sdio_get_status(8)) {
-        case APP_SIGNAL_BUSY:
-            return APP_JOB_TASK_LOOP;
-        case APP_SIGNAL_TIMEOUT:
+        case ACTOR_SIGNAL_BUSY:
+            return ACTOR_JOB_TASK_LOOP;
+        case ACTOR_SIGNAL_TIMEOUT:
             storage_sdcard_set_version(sdcard, 1);
-            return APP_JOB_TASK_CONTINUE;
-        case APP_SIGNAL_OK:
+            return ACTOR_JOB_TASK_CONTINUE;
+        case ACTOR_SIGNAL_OK:
             // sdcard echoed back correctly
             if (SDIO_RESP1 == 0x1F1) {
                 storage_sdcard_set_version(sdcard, 2);
                 job->task_phase += 1; // skip next step
-                return APP_JOB_TASK_CONTINUE;
+                return ACTOR_JOB_TASK_CONTINUE;
             }
             break;
         default:
-            return APP_JOB_TASK_FAILURE;
+            return ACTOR_JOB_TASK_FAILURE;
         }
 
     // V1 cards only: Send 55 reset Illegal Command bit
     case 4:
-        return sdio_send_command_and_wait(55, 0, SDIO_CMD_WAITRESP_SHORT); // CMD_APP_CMD
+        return sdio_send_command_and_wait(55, 0, SDIO_CMD_WAITRESP_SHORT); // CMD_ACTOR_CMD
 
     // Initialize card and wait for ready status (55 + 41)
     case 5:
-        return sdio_send_command_and_wait(55, 0, SDIO_CMD_WAITRESP_SHORT); // CMD_APP_CMD
+        return sdio_send_command_and_wait(55, 0, SDIO_CMD_WAITRESP_SHORT); // CMD_ACTOR_CMD
     case 6:
         // MMC not supported: Need to send CMD1 instead of ACMD41
         return sdio_send_command_and_wait(
@@ -520,12 +520,12 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
     case 7:
         if (!(SDIO_RESP1 & (1 << 31))) {
             job->task_phase = 5 - 1;
-            return APP_JOB_TASK_CONTINUE; // TODO: retries
+            return ACTOR_JOB_TASK_CONTINUE; // TODO: retries
         } else {
             if (SDIO_RESP1 & SDIO_HIGH_CAPACITY) {
                 storage_sdcard_set_high_capacity(sdcard, 1);
             }
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         }
 
     // Now the CMD2 and CMD3 commands should be issued in cycle until timeout to enumerate all cards on the bus
@@ -538,7 +538,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         if (storage_sdcard_get_product_name(sdcard)[0] == '\0') {
             error_printf("Bad card\n");
         }
-        return APP_JOB_TASK_CONTINUE;
+        return ACTOR_JOB_TASK_CONTINUE;
 
     // Get relative card address
     // MMC not supported:  host should set a RCA value to the card by SET_REL_ADD
@@ -547,10 +547,10 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
     case 11:
         // r6 errors
         if (SDIO_RESP1 & (0x00002000U | 0x00004000U | 0x00008000U)) {
-            return APP_JOB_TASK_FAILURE;
+            return ACTOR_JOB_TASK_FAILURE;
         }
         storage_sdcard_set_relative_card_address(sdcard, SDIO_RESP1 >> 16);
-        return APP_JOB_TASK_CONTINUE;
+        return ACTOR_JOB_TASK_CONTINUE;
 
     // Retrieve CSD register:
     case 12:
@@ -559,7 +559,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         sdio_parse_csd(sdcard);
         error_printf("│ │ ├ Card capacity %luMB (%ld x %ldb blocks)\n", storage_sdcard_get_capacity(sdcard) >> 10,
                storage_sdcard_get_block_count(sdcard), storage_sdcard_get_block_size(sdcard));
-        return APP_JOB_TASK_CONTINUE;
+        return ACTOR_JOB_TASK_CONTINUE;
 
     // Increase bus speed to 48mhz, set card into transfer mode
     case 14:
@@ -577,7 +577,7 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
         if (storage_sdcard_get_block_size(sdcard) != 512) {
             return sdio_send_command_and_wait(16, 512, SDIO_CMD_WAITRESP_SHORT); // SET_BLOCKLEN
         } else {
-            return APP_JOB_TASK_CONTINUE;
+            return ACTOR_JOB_TASK_CONTINUE;
         }
     // Set bus width to 4
     case 18:
@@ -587,114 +587,114 @@ static app_job_signal_t sdio_task_detect_card(app_job_t *job) {
     // increase bus speed
     case 20:
         SDIO_CLKCR = ((SDIO_CLKCR & ~SDIO_CLKCR_WIDBUS_1) | (SDIO_CLKCR_WIDBUS_4));
-        return APP_JOB_TASK_SUCCESS;
-    case APP_JOB_TASK_FAILURE:
-    case APP_JOB_TASK_SUCCESS:
+        return ACTOR_JOB_TASK_SUCCESS;
+    case ACTOR_JOB_TASK_FAILURE:
+    case ACTOR_JOB_TASK_SUCCESS:
         break;
     }
     // transport_sdio_t *sdio = job->actor->object;
     return 0;
 }
 
-static app_job_signal_t sdio_task_publish_response(app_job_t *job) {
+static actor_job_signal_t sdio_task_publish_response(actor_job_t *job) {
     transport_sdio_t *sdio = job->actor->object;
     switch (job->task_phase) {
     case 0:
-        // if event was APP_EVENT_READ_TO_BUFFER, it is assumed that producer expects report instead of event
-        if (job->inciting_event.type == APP_EVENT_READ) {
-            app_publish(job->actor->app, &((app_event_t){.type = APP_EVENT_RESPONSE,
+        // if event was ACTOR_EVENT_READ_TO_BUFFER, it is assumed that producer expects report instead of event
+        if (job->inciting_event.type == ACTOR_EVENT_READ) {
+            actor_publish(job->actor->node, &((actor_event_t){.type = ACTOR_EVENT_RESPONSE,
                                                          .producer = sdio->actor,
                                                          .consumer = job->inciting_event.producer,
                                                          .data = (uint8_t *)sdio->target_buffer,
-                                                         .size = APP_BUFFER_DYNAMIC_SIZE}));
+                                                         .size = ACTOR_BUFFER_DYNAMIC_SIZE}));
         } else {
-            app_buffer_release(sdio->target_buffer, job->actor);
+            actor_buffer_release(sdio->target_buffer, job->actor);
         }
-        return APP_JOB_TASK_SUCCESS;
+        return ACTOR_JOB_TASK_SUCCESS;
     }
     return 0;
 }
 
-static app_job_signal_t sdio_job_mount(app_job_t *job) {
+static actor_job_signal_t sdio_job_mount(actor_job_t *job) {
     switch (job->job_phase) {
     case 0:
         return sdio_task_detect_card(job);
     default:
-        return APP_JOB_SUCCESS;
+        return ACTOR_JOB_SUCCESS;
     }
 }
 
-static app_job_signal_t sdio_job_unmount(app_job_t *job) {
+static actor_job_signal_t sdio_job_unmount(actor_job_t *job) {
     switch (job->job_phase) {
         //   case 0:
         //        return sdio_task_detect_card(job);
     default:
-        return APP_JOB_SUCCESS;
+        return ACTOR_JOB_SUCCESS;
     }
 }
 
-static app_job_signal_t sdio_job_read(app_job_t *job) {
+static actor_job_signal_t sdio_job_read(actor_job_t *job) {
     switch (job->job_phase) {
     case 0:
         return sdio_task_read_block(job, (uint32_t)job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
     case 1:
         return sdio_task_publish_response(job);
     case 2:
-        return APP_JOB_SUCCESS;
-    case APP_JOB_FAILURE:
+        return ACTOR_JOB_SUCCESS;
+    case ACTOR_JOB_FAILURE:
         error_printf("Fail!\n");
     }
     return 0;
 }
 
-static app_job_signal_t sdio_job_erase(app_job_t *job) {
+static actor_job_signal_t sdio_job_erase(actor_job_t *job) {
     switch (job->job_phase) {
     case 0:
         return sdio_task_erase_block(job, (uint32_t)job->inciting_event.argument, job->inciting_event.size);
     case 1:
-        return APP_JOB_SUCCESS;
-    case APP_JOB_FAILURE:
+        return ACTOR_JOB_SUCCESS;
+    case ACTOR_JOB_FAILURE:
         error_printf("Fail!\n");
     }
     return 0;
 }
 
-static app_job_signal_t sdio_job_write(app_job_t *job) {
+static actor_job_signal_t sdio_job_write(actor_job_t *job) {
     storage_sdcard_t *sdcard = job->inciting_event.producer->object;
     switch (job->job_phase) {
     case 0:
         if (storage_sdcard_get_capacity(sdcard) == 0) {
             return sdio_task_detect_card(job);
         } else {
-            return APP_JOB_TASK_SUCCESS;
+            return ACTOR_JOB_TASK_SUCCESS;
         }
     case 1:
         return sdio_task_write_block(job, (uint32_t)job->inciting_event.argument, job->inciting_event.data, job->inciting_event.size);
     case 2:
-        return APP_JOB_SUCCESS;
-    case APP_JOB_FAILURE:
+        return ACTOR_JOB_SUCCESS;
+    case ACTOR_JOB_FAILURE:
         error_printf("Fail!\n");
     }
     return 0;
 }
 
-static app_signal_t sdio_on_high_priority(transport_sdio_t *sdio, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
-    return app_job_execute_if_running_in_thread(&sdio->job, thread);
+static actor_signal_t sdio_on_high_priority(transport_sdio_t *sdio, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
+    return actor_job_execute_if_running_in_thread(&sdio->job, thread);
 }
 
-static app_signal_t sdio_on_input(transport_sdio_t *sdio, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static actor_signal_t sdio_on_input(transport_sdio_t *sdio, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
     switch (event->type) {
-    case APP_EVENT_READ:
-    case APP_EVENT_READ_TO_BUFFER:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_read);
-    case APP_EVENT_WRITE:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_write);
-    case APP_EVENT_ERASE:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_erase);
-    case APP_EVENT_MOUNT:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_mount);
-    case APP_EVENT_UNMOUNT:
-        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->app->high_priority, sdio_job_unmount);
+    case ACTOR_EVENT_READ:
+    case ACTOR_EVENT_READ_TO_BUFFER:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->node->high_priority, sdio_job_read);
+    case ACTOR_EVENT_WRITE:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->node->high_priority, sdio_job_write);
+    case ACTOR_EVENT_ERASE:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->node->high_priority, sdio_job_erase);
+    case ACTOR_EVENT_MOUNT:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->node->high_priority, sdio_job_mount);
+    case ACTOR_EVENT_UNMOUNT:
+        return actor_event_handle_and_start_job(sdio->actor, event, &sdio->job, sdio->actor->node->high_priority, sdio_job_unmount);
     default:
         break;
     }
@@ -705,10 +705,10 @@ void sdio_isr(void) {
     sdio_notify(0);
 }
 
-static actor_worker_callback_t sdio_on_worker_assignment(transport_sdio_t *sdio, app_thread_t *thread) {
-    if (thread == sdio->actor->app->input) {
+static actor_worker_callback_t sdio_on_worker_assignment(transport_sdio_t *sdio, actor_thread_t *thread) {
+    if (thread == sdio->actor->node->input) {
         return (actor_worker_callback_t)sdio_on_input;
-    } else if (thread == sdio->actor->app->high_priority) {
+    } else if (thread == sdio->actor->node->high_priority) {
         return (actor_worker_callback_t)sdio_on_high_priority;
     }
     return NULL;
@@ -718,11 +718,11 @@ actor_class_t transport_sdio_class = {
     .type = TRANSPORT_SDIO,
     .size = sizeof(transport_sdio_t),
     .phase_subindex = TRANSPORT_SDIO_PHASE,
-    .validate = (app_method_t)sdio_validate,
-    .construct = (app_method_t)sdio_construct,
-    .link = (app_method_t)sdio_link,
-    .start = (app_method_t)sdio_start,
-    .stop = (app_method_t)sdio_stop,
+    .validate = (actor_method_t)sdio_validate,
+    .construct = (actor_method_t)sdio_construct,
+    .link = (actor_method_t)sdio_link,
+    .start = (actor_method_t)sdio_start,
+    .stop = (actor_method_t)sdio_stop,
     .on_phase = (actor_on_phase_t)sdio_on_phase,
     .on_signal = (actor_on_signal_t)sdio_on_signal,
     .on_worker_assignment = (actor_on_worker_assignment_t)sdio_on_worker_assignment,

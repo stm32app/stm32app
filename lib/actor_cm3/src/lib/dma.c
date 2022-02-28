@@ -1,5 +1,5 @@
-#include "dma.h"
-#include "core/buffer.h"
+#include "lib/dma.h"
+#include "actor_buffer.h"
 #include "lib/bytes.h"
 
 uint32_t dma_get_address(uint8_t index) {
@@ -129,11 +129,11 @@ void actors_dma_notify(uint8_t unit, uint8_t index) {
                      dma_get_interrupt_flag(dma_get_address(unit), index, DMA_DMEIF) ? " DMEIF" : "",
                      dma_get_interrupt_flag(dma_get_address(unit), index, DMA_FEIF) ? " FEIF" : "");
 
-        if (actor->class->on_signal(actor->object, NULL, APP_SIGNAL_DMA_ERROR, actor_dma_pack_source(unit, index))) {
+        if (actor->class->on_signal(actor->object, NULL, ACTOR_SIGNAL_DMA_ERROR, actor_dma_pack_source(unit, index))) {
             dma_clear_interrupt_flags(dma_get_address(unit), index, DMA_TEIF | DMA_DMEIF  | DMA_FEIF);
         }
     } else if (dma_get_interrupt_flag(dma_get_address(unit), index, DMA_HTIF | DMA_TCIF)) {
-        if (actor->class->on_signal(actor->object, NULL, APP_SIGNAL_DMA_TRANSFERRING, actor_dma_pack_source(unit, index)) == 0) {
+        if (actor->class->on_signal(actor->object, NULL, ACTOR_SIGNAL_DMA_TRANSFERRING, actor_dma_pack_source(unit, index)) == 0) {
             dma_clear_interrupt_flags(dma_get_address(unit), index, DMA_HTIF | DMA_TCIF);
         }
     }
@@ -144,7 +144,7 @@ void *actor_dma_pack_source(uint8_t unit, uint8_t index) {
     return (void *)(uint32_t)((unit << 0) + (index << 8));
 }
 
-bool_t actor_dma_match_source(void *source, uint8_t unit, uint8_t index) {
+bool actor_dma_match_source(void *source, uint8_t unit, uint8_t index) {
     return unit == (((uint32_t)source) & 0xff) && index == (((uint32_t)source) >> 8 & 0xff);
 }
 
@@ -152,7 +152,7 @@ uint32_t actor_dma_get_buffer_position(uint8_t unit, uint8_t index, uint32_t buf
     return buffer_size - dma_get_number_of_data(dma_get_address(unit), index);
 }
 // memory location of a buffer has to be aligned to burst_size * byte_width to ensure single AHB copy does cross 1kb boundary
-// buffers allocated with `app_buffer_aligned` are guaranteed to be aligned, while others may be aligned by accident
+// buffers allocated with `actor_buffer_aligned` are guaranteed to be aligned, while others may be aligned by accident
 uint32_t actor_dma_get_safe_burst_size(uint8_t *data, size_t size, uint8_t width, uint8_t fifo_threshold) {
     uint32_t address = (uint32_t)data;
     uint32_t start_page_address = address / 1024;
@@ -217,7 +217,7 @@ uint32_t actor_dma_get_safe_burst_size(uint8_t *data, size_t size, uint8_t width
 }
 
 void actor_dma_rx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,
-                        bool_t circular_mode, uint8_t width, uint8_t fifo_threshold, bool_t prefer_burst) {
+                        bool circular_mode, uint8_t width, uint8_t fifo_threshold, bool prefer_burst) {
     uint32_t dma_address = dma_get_address(unit);
 
     rcc_periph_clock_enable(dma_get_clock_address(unit));
@@ -303,7 +303,7 @@ void actor_dma_rx_stop(uint8_t unit, uint8_t stream, uint8_t channel) {
 }
 
 void actor_dma_tx_start(uint32_t periphery_address, uint8_t unit, uint8_t stream, uint8_t channel, uint8_t *data, size_t size,
-                        bool_t circular_mode, uint8_t width, uint8_t fifo_threshold, bool_t prefer_burst) {
+                        bool circular_mode, uint8_t width, uint8_t fifo_threshold, bool prefer_burst) {
     uint32_t dma_address = dma_get_address(unit);
 
     rcc_periph_clock_enable(dma_get_clock_address(unit));

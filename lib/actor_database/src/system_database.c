@@ -1,6 +1,6 @@
 #include "database.h"
-#include "core/buffer.h"
-#include "core/file.h"
+#include "actor_buffer.h"
+#include "actor_file.h"
 
 static int registerFunctions(sqlite3 *db, const char **pzErrMsg, const struct sqlite3_api_routines *pThunk) {
     return SQLITE_OK;
@@ -24,8 +24,8 @@ int sqlite3_os_end(void) {
 typedef struct vfs_File vfs_File;
 struct vfs_File {
     sqlite3_file base; /* Base class. Must be first. */
-    app_file_t file;
-    app_buffer_t *cache;
+    actor_file_t file;
+    actor_buffer_t *cache;
     sqlite3_int64 cache_offset; /* Offset in file of datafer[0] */
 };
 
@@ -38,8 +38,8 @@ static int vfs_DirectWrite(vfs_File *p,          /* File handle */
                            int size,             /* Size of data to write in bytes */
                            sqlite_int64 position /* File offset to write to */
 ) {
-    app_file_seek_to(&p->file, (uint32_t)position);
-    app_file_write(&p->file, data, size);
+    actor_file_seek_to(&p->file, (uint32_t)position);
+    actor_file_write(&p->file, data, size);
     trace_printf("fn:DirectWrite:Success\n");
     return SQLITE_OK;
 }
@@ -68,7 +68,7 @@ static int vfs_Close(sqlite3_file *pFile) {
     vfs_File *p = (vfs_File *)pFile;
     trace_printf("fn: Close\n");
     rc = vfs_FlushBuffer(p);
-    app_file_close(&p->file);
+    actor_file_close(&p->file);
     trace_printf("fn:Close:Success\n");
     return rc;
 }
@@ -79,8 +79,8 @@ static int vfs_Close(sqlite3_file *pFile) {
 static int vfs_Read(sqlite3_file *pFile, void *data, int size, sqlite_int64 offset) {
     trace_printf("fn: Read\n");
     vfs_File *p = (vfs_File *)pFile;
-    app_file_seek_to(&p->file, (uint32_t)offset);
-    app_file_read(&p->file, data, size);
+    actor_file_seek_to(&p->file, (uint32_t)offset);
+    actor_file_read(&p->file, data, size);
 
     // Todo: Short read
     // if (nRead == size) {
@@ -144,7 +144,7 @@ static int vfs_Write(sqlite3_file *pFile, const void *data, int size, sqlite_int
 static int vfs_Truncate(sqlite3_file *pFile, sqlite_int64 size) {
     vfs_File *p = (vfs_File *)pFile;
     trace_printf("fn: Truncate\n");
-    app_file_truncate(&p->file);
+    actor_file_truncate(&p->file);
     trace_printf("fn:Truncate:Success\n");
     return SQLITE_OK;
 }
@@ -159,7 +159,7 @@ static int vfs_Sync(sqlite3_file *pFile, int flags) {
     if (rc != SQLITE_OK) {
         return rc;
     }
-    app_file_sync(&p->file);
+    actor_file_sync(&p->file);
     return SQLITE_OK;
 }
 
@@ -174,7 +174,7 @@ static int vfs_FileSize(sqlite3_file *pFile, sqlite_int64 *pSize) {
     if (rc != SQLITE_OK) {
         return rc;
     }
-    app_file_stat(&p->file);
+    actor_file_stat(&p->file);
     *pSize = p->file.size;
 
     return SQLITE_OK;
@@ -222,9 +222,9 @@ static int vfs_DeviceCharacteristics(sqlite3_file *pFile) {
 */
 static int vfs_Access(sqlite3_vfs *pVfs, const char *zPath, int flags, int *pResOut) {
     trace_printf("fn: Access %s\n", zPath);
-    app_file_t file = {};
-    app_file_open(&file, zPath, APP_FILE_EXCLUSIVE);
-    *pResOut = ((file.flags & APP_FILE_ERROR) ? 0 : 1);
+    actor_file_t file = {};
+    actor_file_open(&file, zPath, ACTOR_FILE_EXCLUSIVE);
+    *pResOut = ((file.flags & ACTOR_FILE_ERROR) ? 0 : 1);
     trace_printf("fn:Access:Success\n");
     return SQLITE_OK;
 }
@@ -255,16 +255,16 @@ static int vfs_Open(sqlite3_vfs *pVfs,   /* VFS */
     }
 
     if (flags & SQLITE_OPEN_READONLY || flags & SQLITE_OPEN_READWRITE) {
-        p->file.flags |= APP_FILE_READ;
+        p->file.flags |= ACTOR_FILE_READ;
     }
     if (flags & SQLITE_OPEN_CREATE || flags & SQLITE_OPEN_READWRITE) {
-        p->file.flags |= APP_FILE_WRITE;
+        p->file.flags |= ACTOR_FILE_WRITE;
     }
     if (flags & SQLITE_OPEN_CREATE) {
-        p->file.flags |= APP_FILE_CREATE;
+        p->file.flags |= ACTOR_FILE_CREATE;
     }
 
-    app_file_open(&p->file, zName, p->file.flags);
+    actor_file_open(&p->file, zName, p->file.flags);
 
     if (pOutFlags) {
         *pOutFlags = (int)flags;
@@ -283,8 +283,8 @@ static int vfs_Open(sqlite3_vfs *pVfs,   /* VFS */
 static int vfs_Delete(sqlite3_vfs *pVfs, const char *zPath, int dirSync) {
     trace_printf("fn: Delete\n");
     system_database_t *database = pVfs->pAppData;
-    app_file_t file = {.owner = database->actor, .storage = database->storage->actor, .path = zPath};
-    app_file_delete(&file);
+    actor_file_t file = {.owner = database->actor, .storage = database->storage->actor, .path = zPath};
+    actor_file_delete(&file);
     trace_printf("fn:Delete:Success\n");
     return SQLITE_OK; // SQLITE_IOERR_DELETE
 }
@@ -386,17 +386,17 @@ static ODR_t database_property_write(OD_stream_t *stream, const void *buf, OD_si
     return result;
 }
 
-static app_signal_t database_validate(system_database_properties_t *properties) {
+static actor_signal_t database_validate(system_database_properties_t *properties) {
     return 0;
 }
 
-static app_signal_t database_construct(system_database_t *database) {
-    actor_event_subscribe(database->actor, APP_EVENT_START);
-    app_thread_create(&database->thread, database->actor, (app_procedure_t)app_thread_execute, "DB", 1024, 0, 4,
-                        APP_THREAD_BLOCKABLE);
-    database->journal_buffer = app_buffer_target(database->actor, NULL, database->properties->journal_buffer_size);
+static actor_signal_t database_construct(system_database_t *database) {
+    actor_event_subscribe(database->actor, ACTOR_EVENT_START);
+    actor_thread_create(&database->thread, database->actor, (actor_procedure_t)actor_thread_execute, "DB", 1024, 0, 4,
+                        ACTOR_THREAD_BLOCKABLE);
+    database->journal_buffer = actor_buffer_target(database->actor, NULL, database->properties->journal_buffer_size);
     if (database->journal_buffer == NULL) {
-        return APP_SIGNAL_OUT_OF_MEMORY;
+        return ACTOR_SIGNAL_OUT_OF_MEMORY;
     }
 
     database->vfs = (sqlite3_vfs){
@@ -451,48 +451,48 @@ static app_signal_t database_construct(system_database_t *database) {
     return 0;
 }
 
-static app_job_signal_t database_job_query(app_job_t *job) {
+static actor_job_signal_t database_job_query(actor_job_t *job) {
     return 0;
 }
 
-static app_job_signal_t database_job_connect(app_job_t *job) {
+static actor_job_signal_t database_job_connect(actor_job_t *job) {
     system_database_t *database = job->actor->object;
     sqlite3_open(database->properties->path, &database->connection);
-    return APP_JOB_HALT;
+    return ACTOR_JOB_HALT;
 }
 
-static app_signal_t database_start(system_database_t *database) {
+static actor_signal_t database_start(system_database_t *database) {
     sqlite3_initialize();
     return 0;
 }
 
-static app_signal_t database_stop(system_database_t *database) {
+static actor_signal_t database_stop(system_database_t *database) {
     sqlite3_shutdown();
     return 0;
 }
 
-static app_signal_t database_link(system_database_t *database) {
+static actor_signal_t database_link(system_database_t *database) {
     return 0;
 }
 
-static app_signal_t database_on_phase(system_database_t *database, actor_phase_t phase) {
+static actor_signal_t database_on_phase(system_database_t *database, actor_phase_t phase) {
     return 0;
 }
 
-static app_signal_t database_on_signal(system_database_t *database, actor_t *actor, app_signal_t signal, void *source) {
+static actor_signal_t database_on_signal(system_database_t *database, actor_t *actor, actor_signal_t signal, void *source) {
     return 0;
 }
 
-static app_signal_t database_worker_sql(system_database_t *database, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
-    return app_job_execute_if_running_in_thread(&database->job, thread);
+static actor_signal_t database_worker_sql(system_database_t *database, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
+    return actor_job_execute_if_running_in_thread(&database->job, thread);
 }
 
-static app_signal_t database_worker_on_input(system_database_t *database, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static actor_signal_t database_worker_on_input(system_database_t *database, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
     switch (event->type) {
-    case APP_EVENT_START:
+    case ACTOR_EVENT_START:
         debug_log_inhibited = false;
         return actor_event_handle_and_start_job(database->actor, event, &database->job, database->thread, database_job_connect);
-    case APP_EVENT_QUERY:
+    case ACTOR_EVENT_QUERY:
         return actor_event_handle_and_start_job(database->actor, event, &database->job, database->thread, database_job_query);
     default:
         break;
@@ -500,8 +500,8 @@ static app_signal_t database_worker_on_input(system_database_t *database, app_ev
     return 0;
 }
 
-static actor_worker_callback_t database_on_worker_assignment(system_database_t *database, app_thread_t *thread) {
-    if (thread == database->actor->app->input) {
+static actor_worker_callback_t database_on_worker_assignment(system_database_t *database, actor_thread_t *thread) {
+    if (thread == database->actor->node->input) {
         return (actor_worker_callback_t)database_worker_on_input;
     } else if (thread == database->thread) {
         return (actor_worker_callback_t)database_worker_sql;
@@ -513,11 +513,11 @@ actor_class_t system_database_class = {
     .type = SYSTEM_DATABASE,
     .size = sizeof(system_database_t),
     .phase_subindex = SYSTEM_DATABASE_PHASE,
-    .validate = (app_method_t)database_validate,
-    .construct = (app_method_t)database_construct,
-    .link = (app_method_t)database_link,
-    .start = (app_method_t)database_start,
-    .stop = (app_method_t)database_stop,
+    .validate = (actor_method_t)database_validate,
+    .construct = (actor_method_t)database_construct,
+    .link = (actor_method_t)database_link,
+    .start = (actor_method_t)database_start,
+    .stop = (actor_method_t)database_stop,
     .on_phase = (actor_on_phase_t)database_on_phase,
     .on_signal = (actor_on_signal_t)database_on_signal,
     .on_worker_assignment = (actor_on_worker_assignment_t)database_on_worker_assignment,

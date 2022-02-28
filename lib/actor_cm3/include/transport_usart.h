@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "core/actor.h"
+#include "actor.h"
 #include <libopencm3/stm32/usart.h>
 
 #define USART_RX_BUFFER_SIZE 64

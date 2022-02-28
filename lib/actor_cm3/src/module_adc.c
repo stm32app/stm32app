@@ -1,12 +1,12 @@
-#include "module/adc.h"
+#include "module_adc.h"
 #include "lib/dma.h"
 
 /* ADC must be within range */
-static app_signal_t adc_validate(module_adc_properties_t *properties) {
+static actor_signal_t adc_validate(module_adc_properties_t *properties) {
     return 0;
 }
 
-static app_signal_t adc_construct(module_adc_t *adc) {
+static actor_signal_t adc_construct(module_adc_t *adc) {
 
     adc->dma_address = dma_get_address(adc->properties->dma_unit);
     if (adc->dma_address == 0) {
@@ -45,12 +45,12 @@ static app_signal_t adc_construct(module_adc_t *adc) {
     return 0;
 }
 
-static app_signal_t adc_destruct(module_adc_t *adc) {
+static actor_signal_t adc_destruct(module_adc_t *adc) {
     (void)adc;
     return 0;
 }
 
-static app_signal_t adc_start(module_adc_t *adc) {
+static actor_signal_t adc_start(module_adc_t *adc) {
     if (adc->channel_count == 0) {
         return 1;
     }
@@ -94,7 +94,7 @@ static app_signal_t adc_start(module_adc_t *adc) {
     return 0;
 }
 
-static app_signal_t adc_calibrate(module_adc_t *adc) {
+static actor_signal_t adc_calibrate(module_adc_t *adc) {
 #ifdef ADC_CALIBRATION_ENABLED
     adc_reset_calibration(adc->address);
     adc_calibrate(adc->address);
@@ -110,26 +110,26 @@ static app_signal_t adc_calibrate(module_adc_t *adc) {
     return 0;
 }
 
-static app_signal_t adc_run(module_adc_t *adc) {
+static actor_signal_t adc_run(module_adc_t *adc) {
     adc_start_conversion_regular(adc->address);
     actor_set_phase(adc->actor, ACTOR_RUNNING);
     return 0;
 }
 
-static app_signal_t adc_accept(module_adc_t *adc, actor_t *actor, void *channel) {
+static actor_signal_t adc_accept(module_adc_t *adc, actor_t *actor, void *channel) {
     adc->channel_count++;
     adc->subscribers[(size_t)channel] = actor;
     return 0;
 }
 
-static app_signal_t adc_stop(module_adc_t *adc) {
+static actor_signal_t adc_stop(module_adc_t *adc) {
     adc_disable_dma(adc->address);
     adc_power_off(adc->address);
     adc_channels_free(adc);
     return 0;
 }
 
-static app_signal_t adc_phase(module_adc_t *adc) {
+static actor_signal_t adc_phase(module_adc_t *adc) {
     switch (actor_get_phase(adc->actor)) {
     case ACTOR_PREPARING: return adc_calibrate(adc);
 
@@ -139,7 +139,7 @@ static app_signal_t adc_phase(module_adc_t *adc) {
     return 0;
 }
 
-static app_signal_t adc_receive(module_adc_t *adc, actor_t *actor, void *value, void *channel) {
+static actor_signal_t adc_receive(module_adc_t *adc, actor_t *actor, void *value, void *channel) {
     (void)actor;
     (void)value;
     if (adc_integrate_samples(adc) == 0) {
@@ -153,7 +153,7 @@ static app_signal_t adc_receive(module_adc_t *adc, actor_t *actor, void *value, 
 }
 
 /*
-static app_signal_t adc_high_priority(module_adc_t *adc), uint32_t time_passed, uint32_t *next_tick) {
+static actor_signal_t adc_high_priority(module_adc_t *adc), uint32_t time_passed, uint32_t *next_tick) {
 
 }*/
 
@@ -161,15 +161,15 @@ actor_class_t module_adc_class = {
     .type = MODULE_ADC,
     .size = sizeof(module_adc_t),
     .phase_subindex = MODULE_ADC_PHASE,
-    .validate = (app_method_t)adc_validate,
-    .construct = (app_method_t)adc_construct,
-    .destruct = (app_method_t)adc_destruct,
+    .validate = (actor_method_t)adc_validate,
+    .construct = (actor_method_t)adc_construct,
+    .destruct = (actor_method_t)adc_destruct,
     .on_link = (actor_on_link_t)adc_accept,
     .on_value = (actor_on_value_t)adc_receive,
     //.high_priority = (int (*)(void *, uint32_t time_passed, uint32_t *next_tick))module_adc_high_priority,
     .on_phase = (actor_on_phase_t)adc_phase,
-    .start = (app_method_t)adc_start,
-    .stop = (app_method_t)adc_stop,
+    .start = (actor_method_t)adc_start,
+    .stop = (actor_method_t)adc_stop,
 };
 
 void adc_dma_setup(module_adc_t *adc) {
@@ -222,15 +222,15 @@ size_t adc_integrate_samples(module_adc_t *adc) {
 void adc_channels_alloc(module_adc_t *adc, size_t channel_count) {
     adc->sample_buffer_size = adc->properties->sample_count_per_channel * channel_count;
     adc->measurements_per_second = (1000000 / (adc->properties->interval));
-    adc->channels = app_malloc(channel_count * sizeof(size_t));
-    adc->values = app_malloc(channel_count * sizeof(uint32_t));
-    adc->accumulators = app_malloc(channel_count * sizeof(uint32_t));
-    adc->sample_buffer = app_malloc(adc->sample_buffer_size * sizeof(uint16_t));
+    adc->channels = actor_malloc(channel_count * sizeof(size_t));
+    adc->values = actor_malloc(channel_count * sizeof(uint32_t));
+    adc->accumulators = actor_malloc(channel_count * sizeof(uint32_t));
+    adc->sample_buffer = actor_malloc(adc->sample_buffer_size * sizeof(uint16_t));
 }
 
 void adc_channels_free(module_adc_t *adc) {
-    app_free(adc->sample_buffer);
-    app_free(adc->values);
-    app_free(adc->channels);
-    app_free(adc->accumulators);
+    actor_free(adc->sample_buffer);
+    actor_free(adc->values);
+    actor_free(adc->channels);
+    actor_free(adc->accumulators);
 }

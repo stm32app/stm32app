@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "core/actor.h"
+#include "actor.h"
 #include "sqlite_config.h"
 #include "sqlite3.h"
 
@@ -25,12 +25,12 @@ struct system_database {
     actor_t *actor;
     system_database_properties_t *properties;
 
-    app_thread_t *thread;
+    actor_thread_t *thread;
     actor_worker_t worker;
-    app_job_t *job;
+    actor_job_t *job;
 
-    app_generic_device_t *storage;
-    app_buffer_t *journal_buffer;
+    actor_generic_device_t *storage;
+    actor_buffer_t *journal_buffer;
     
     sqlite3 *connection;
     sqlite3_vfs vfs;

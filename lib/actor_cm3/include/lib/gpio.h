@@ -3,8 +3,8 @@
 
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
-#include <app_env.h>
-#include "core/types.h"
+#include <actor_env.h>
+#include "actor_types.h"
 
 #define GPIOX(n) (GPIO_PORT_A_BASE + (n - 1) * 0x0400)
 
@@ -53,6 +53,11 @@ uint8_t gpio_get_speed_setting(uint8_t speed);
     gpio_configure_output_generic(port, pin, speed, af_index, 1, 1)
 #define gpio_configure_af_opendrain_pulldown(port, pin, speed, af_index)                                                            \
     gpio_configure_output_generic(port, pin, speed, af_index, 1, 2)
+
+
+void actor_gpio_set(uint8_t port, uint8_t pin);
+void actor_gpio_clear(uint8_t port, uint8_t pin);
+uint32_t actor_gpio_get(uint8_t port, uint8_t pin);
 
 /* EOF */
 

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "core/actor.h"
+#include "actor.h"
 #include <libopencm3/stm32/sdio.h>
 #define SDIO_UNITS 1
 
@@ -66,11 +66,11 @@ struct transport_sdio {
     uint16_t reset;
     uint16_t peripheral_clock;
     uint8_t irq;
-    app_job_t *job;
-    app_signal_t incoming_signal;
+    actor_job_t *job;
+    actor_signal_t incoming_signal;
 
-    app_buffer_t *source_buffer;
-    app_buffer_t *target_buffer;
+    actor_buffer_t *source_buffer;
+    actor_buffer_t *target_buffer;
 };
 
 extern actor_class_t transport_sdio_class;

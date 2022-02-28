@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-#include "core/actor.h"
+#include "actor.h"
 #include <libopencm3/stm32/i2c.h>
 #include "lib/dma.h"
-#include "core/buffer.h"
+#include "actor_buffer.h"
 
 #define I2C_UNITS 3
 
@@ -49,13 +49,13 @@ struct transport_i2c{
     uint32_t ev_irq;
     uint32_t er_irq;
 
-    app_signal_t incoming_signal;
-    app_job_t *job;
+    actor_signal_t incoming_signal;
+    actor_job_t *job;
     uint16_t job_retries;
     
-    app_buffer_t *ring_buffer;
-    app_buffer_t *output_buffer;
-    app_buffer_t *source_buffer;
+    actor_buffer_t *ring_buffer;
+    actor_buffer_t *output_buffer;
+    actor_buffer_t *source_buffer;
 
     uint8_t ready;
 } ;

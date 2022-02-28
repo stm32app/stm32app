@@ -1,4 +1,4 @@
-#include "gpio.h"
+#include "lib/gpio.h"
 
 void gpio_enable_port(uint8_t port) {
     rcc_periph_clock_enable(RCC_GPIOX(port));
@@ -60,4 +60,14 @@ void gpio_set_state(uint8_t port, uint8_t pin, uint8_t state) {
     } else {
         gpio_set(GPIOX(port), 1 << pin);
     }
+}
+
+inline void actor_gpio_set(uint8_t port, uint8_t pin) {
+    return gpio_set(GPIOX(port), 1 << pin);
+}
+inline void actor_gpio_clear(uint8_t port, uint8_t pin) {
+    return gpio_clear(GPIOX(port), 1 << pin);
+}
+inline uint32_t actor_gpio_get(uint8_t port, uint8_t pin) {
+    return gpio_get(GPIOX(port), 1 << pin);
 }

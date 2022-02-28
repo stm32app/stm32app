@@ -4,16 +4,16 @@
 
 
 /* Epaper needs DC, CS, BUSY, RESET pins set, as well as screen size */
-static app_signal_t epaper_validate(screen_epaper_properties_t *properties) {
+static actor_signal_t epaper_validate(screen_epaper_properties_t *properties) {
     return properties->dc_pin == 0 || properties->dc_port == 0 || properties->cs_port == 0 || properties->cs_pin == 0 || properties->busy_pin == 0 ||
            properties->busy_port == 0 || properties->reset_port == 0 || properties->reset_pin == 0 || properties->width == 0 || properties->height == 0;
 }
 
-static app_signal_t epaper_construct(screen_epaper_t *epaper) {
+static actor_signal_t epaper_construct(screen_epaper_t *epaper) {
     return 0;
 }
 
-static app_signal_t epaper_link(screen_epaper_t *epaper) {
+static actor_signal_t epaper_link(screen_epaper_t *epaper) {
     return actor_link(epaper->actor, (void **)&epaper->spi, epaper->properties->spi_index, NULL);
 }
 
@@ -71,7 +71,7 @@ static void screen_epaper_send_data(screen_epaper_t *epaper, uint8_t data) {
 }
 
 /* Wait until the busy_pin goes LOW */
-static app_signal_t epaper_set_busy_phase(screen_epaper_t *epaper) {
+static actor_signal_t epaper_set_busy_phase(screen_epaper_t *epaper) {
     if (actor_gpio_get(epaper->properties->busy_port, epaper->properties->busy_pin) == 1) {
         actor_set_temporary_phase(epaper->actor, ACTOR_BUSY, 10000); // 50000
         return 1;
@@ -82,7 +82,7 @@ static app_signal_t epaper_set_busy_phase(screen_epaper_t *epaper) {
 }
 
 /* Reset the actor screen */
-static app_signal_t epaper_set_resetting_phase(screen_epaper_t *epaper) {
+static actor_signal_t epaper_set_resetting_phase(screen_epaper_t *epaper) {
     epaper->resetting_phase++;
 
     switch (epaper->resetting_phase) {
@@ -296,13 +296,13 @@ static void screen_epaper_sleep(screen_epaper_t *epaper) {
     //  vDelay(100);
 }
 
-static app_signal_t epaper_destruct(screen_epaper_t *epaper) {
+static actor_signal_t epaper_destruct(screen_epaper_t *epaper) {
     (void)epaper;
     return 0;
 }
 
 /* Reset the actor screen */
-static app_signal_t epaper_set_initializing_phase(screen_epaper_t *epaper) {
+static actor_signal_t epaper_set_initializing_phase(screen_epaper_t *epaper) {
     epaper->initializing_phase++;
 
     switch (epaper->initializing_phase) {
@@ -372,7 +372,7 @@ static app_signal_t epaper_set_initializing_phase(screen_epaper_t *epaper) {
     return 0;
 }
 
-static app_signal_t epaper_start(screen_epaper_t *epaper) {
+static actor_signal_t epaper_start(screen_epaper_t *epaper) {
     actor_gpio_configure_input("Busy", epaper->properties->busy_port, epaper->properties->busy_pin);
     actor_gpio_configure_output_with_value("Reset", epaper->properties->reset_port, epaper->properties->busy_pin, 0, 1);
     actor_gpio_configure_output_with_value("DC", epaper->properties->dc_port, epaper->properties->dc_pin, 0, 0);
@@ -383,7 +383,7 @@ static app_signal_t epaper_start(screen_epaper_t *epaper) {
     return 0;
 }
 
-static app_signal_t epaper_stop(screen_epaper_t *epaper) {
+static actor_signal_t epaper_stop(screen_epaper_t *epaper) {
     actor_gpio_clear(epaper->properties->dc_port, epaper->properties->dc_pin);
     actor_gpio_clear(epaper->properties->cs_port, epaper->properties->cs_pin);
     actor_gpio_clear(epaper->properties->reset_port, epaper->properties->reset_pin);
@@ -397,7 +397,7 @@ static ODR_t epaper_properties_property_write(OD_stream_t *stream, const void *b
     return result;
 }
 
-static app_signal_t epaper_phase(screen_epaper_t *epaper) {
+static actor_signal_t epaper_phase(screen_epaper_t *epaper) {
     switch (actor_get_phase(epaper->actor)) {
     // poll busy pin until and switch to RUNNING when it's clear
     case ACTOR_BUSY: return screen_epaper_set_busy_phase(epaper);
@@ -423,12 +423,12 @@ actor_class_t screen_epaper_class = {
     .type = SCREEN_EPAPER,
     .size = sizeof(screen_epaper_t),
     .phase_subindex = SCREEN_EPAPER_PHASE,
-    .validate = (app_method_t) epaper_validate,
-    .construct = (app_method_t)epaper_construct,
-    .destruct = (app_method_t) epaper_destruct,
-    .start = (app_method_t) epaper_start,
-    .stop = (app_method_t) epaper_stop,
-    .link = (app_method_t) epaper_link,
+    .validate = (actor_method_t) epaper_validate,
+    .construct = (actor_method_t)epaper_construct,
+    .destruct = (actor_method_t) epaper_destruct,
+    .start = (actor_method_t) epaper_start,
+    .stop = (actor_method_t) epaper_stop,
+    .link = (actor_method_t) epaper_link,
     .on_phase = (actor_on_phase_t)epaper_phase,
     .property_write = epaper_properties_property_write,
 };

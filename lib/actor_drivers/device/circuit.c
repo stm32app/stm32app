@@ -21,22 +21,22 @@ static ODR_t circuit_property_write(OD_stream_t *stream, const void *buf, OD_siz
 }
 
 /* Circuit needs its relay GPIO configured */
-static app_signal_t circuit_validate(device_circuit_properties_t *properties) {
+static actor_signal_t circuit_validate(device_circuit_properties_t *properties) {
     return properties->port == 0 || properties->pin == 0;
 }
 
-static app_signal_t circuit_construct(device_circuit_t *circuit) {
+static actor_signal_t circuit_construct(device_circuit_t *circuit) {
     (void)circuit;
     return 0;
 }
 
-static app_signal_t circuit_link(device_circuit_t *circuit) {
+static actor_signal_t circuit_link(device_circuit_t *circuit) {
     return actor_link(circuit->actor, (void **)&circuit->current_sensor, circuit->properties->sensor_index, NULL) +
            actor_link(circuit->actor, (void **)&circuit->psu, circuit->properties->psu_index, NULL);
 }
 
 // receive value from current sensor
-static app_signal_t circuit_on_value(device_circuit_t *circuit, actor_t *actor, void *value, void *argument) {
+static actor_signal_t circuit_on_value(device_circuit_t *circuit, actor_t *actor, void *value, void *argument) {
     (void)argument;
     if (circuit->current_sensor->actor == actor) {
         device_circuit_set_current(circuit, (uint16_t)((uint32_t)value));
@@ -44,19 +44,19 @@ static app_signal_t circuit_on_value(device_circuit_t *circuit, actor_t *actor, 
     return 1;
 }
 
-static app_signal_t circuit_start(device_circuit_t *circuit) {
+static actor_signal_t circuit_start(device_circuit_t *circuit) {
     gpio_configure_input_analog(circuit->properties->port, circuit->properties->pin);
     // actor_gpio_set_state(device_circuit_get_state(circuit));
 
     return 0;
 }
 
-static app_signal_t circuit_stop(device_circuit_t *circuit) {
+static actor_signal_t circuit_stop(device_circuit_t *circuit) {
     (void)circuit;
     return 0;
 }
 
-bool_t device_circuit_get_state(device_circuit_t *circuit) {
+bool device_circuit_get_state(device_circuit_t *circuit) {
     return circuit->properties->duty_cycle > 0 || circuit->properties->consumers > 0;
 }
 
@@ -71,11 +71,11 @@ actor_class_t device_circuit_class = {
     .type = DEVICE_CIRCUIT,
     .size = sizeof(device_circuit_t),
     .phase_subindex = DEVICE_CIRCUIT_PHASE,
-    .validate = (app_method_t)circuit_validate,
-    .construct = (app_method_t)circuit_construct,
-    .start = (app_method_t)circuit_start,
-    .stop = (app_method_t)circuit_stop,
-    .link = (app_method_t)circuit_link,
+    .validate = (actor_method_t)circuit_validate,
+    .construct = (actor_method_t)circuit_construct,
+    .start = (actor_method_t)circuit_start,
+    .stop = (actor_method_t)circuit_stop,
+    .link = (actor_method_t)circuit_link,
     .on_value = (actor_on_value_t)circuit_on_value,
     .property_write = circuit_property_write,
 };

@@ -155,7 +155,7 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configUSE_IDLE_HOOK 1
 
 #include "lib/debug.h"
-#define configASSERT APP_ASSERT
+#define configASSERT actor_assert
 
 #define traceTASK_SWITCHED_OUT() log_job_out()
 #define traceTASK_SWITCHED_IN() log_job_in()

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "core/actor.h"
+#include "actor.h"
 #include "lib/dma.h"
 #include <libopencm3/stm32/spi.h>
 
@@ -48,14 +48,14 @@ struct transport_spi {
     transport_spi_properties_t *properties;
     uint32_t clock;
     uint32_t address;
-    app_event_t processed_event;      // current reading job
+    actor_event_t processed_event;      // current reading job
     uint8_t *dma_rx_circular_buffer;        // circular buffer for DMA
     uint16_t dma_rx_circular_buffer_cursor; // current ingested position in rx buffer
     uint32_t rx_bytes_target;
     uint32_t tx_bytes_target;
     uint32_t tx_bytes_sent;
-    app_buffer_t *ring_buffer;      
-    app_buffer_t *output_buffer;      // pool that allocates growing memory chunk for recieved messages
+    actor_buffer_t *ring_buffer;      
+    actor_buffer_t *output_buffer;      // pool that allocates growing memory chunk for recieved messages
 };
 
 extern actor_class_t transport_spi_class;

@@ -11,35 +11,35 @@ static ODR_t modbus_property_write(OD_stream_t *stream, const void *buf, OD_size
     return result;
 }
 
-static app_signal_t modbus_validate(transport_modbus_properties_t *properties) {
+static actor_signal_t modbus_validate(transport_modbus_properties_t *properties) {
     return 0;
 }
 
-static app_signal_t modbus_construct(transport_modbus_t *modbus) {
+static actor_signal_t modbus_construct(transport_modbus_t *modbus) {
     return 0;
 }
 
-static app_signal_t modbus_destruct(transport_modbus_t *modbus) {
+static actor_signal_t modbus_destruct(transport_modbus_t *modbus) {
     return 0;
 }
 
-static app_signal_t modbus_start(transport_modbus_t *modbus) {
+static actor_signal_t modbus_start(transport_modbus_t *modbus) {
     (void)modbus;
     actor_gpio_clear(modbus->properties->rts_port, modbus->properties->rts_pin);
     return 0;
 }
 
-static app_signal_t modbus_stop(transport_modbus_t *modbus) {
+static actor_signal_t modbus_stop(transport_modbus_t *modbus) {
     (void)modbus;
     actor_gpio_clear(modbus->properties->rts_port, modbus->properties->rts_pin);
     return 0;
 }
 
-static app_signal_t modbus_link(transport_modbus_t *modbus) {
+static actor_signal_t modbus_link(transport_modbus_t *modbus) {
     return actor_link(modbus->actor, (void **)&modbus->usart, modbus->properties->usart_index, NULL);
 }
 
-static app_signal_t modbus_phase(transport_modbus_t *modbus, actor_phase_t phase) {
+static actor_signal_t modbus_phase(transport_modbus_t *modbus, actor_phase_t phase) {
     // if this callback is called, it means the request timed out
     switch (phase) {
     case ACTOR_REQUESTING:
@@ -54,7 +54,7 @@ static app_signal_t modbus_phase(transport_modbus_t *modbus, actor_phase_t phase
 
 // int transport_modbus_send(transport_modbus_t *modbus, uint8_t *data, uint8_t length) { return 0; }
 
-static app_signal_t modbus_validate_message(transport_modbus_t *modbus, uint8_t *data) {
+static actor_signal_t modbus_validate_message(transport_modbus_t *modbus, uint8_t *data) {
     // check message crc
     if (modbus->ab(*(uint16_t *)(&data[5])) != transport_modbus_crc16(data, data[2] + 3)) {
         return 1;
@@ -63,14 +63,14 @@ static app_signal_t modbus_validate_message(transport_modbus_t *modbus, uint8_t 
     return 0;
 }
 
-static app_signal_t modbus_signal(transport_modbus_t *modbus, actor_t *actor, app_signal_t signal, char *source) {
+static actor_signal_t modbus_signal(transport_modbus_t *modbus, actor_t *actor, actor_signal_t signal, char *source) {
     switch (signal) {
         /* usart is idle, need to wait 3.5 characters to start reading */
-        case APP_SIGNAL_RX_COMPLETE:
-            module_timer_set(modbus->timer, modbus->actor, modbus->idle_timeout, APP_SIGNAL_RX_COMPLETE);
+        case ACTOR_SIGNAL_RX_COMPLETE:
+            module_timer_set(modbus->timer, modbus->actor, modbus->idle_timeout, ACTOR_SIGNAL_RX_COMPLETE);
             break;
         /* 3.5 characters delay time is over, ready to process messages in buffer */
-        case APP_SIGNAL_TIMEOUT:
+        case ACTOR_SIGNAL_TIMEOUT:
             //transport_modbus_ingest_buffer(modbus);
             break;
         default:
@@ -317,12 +317,12 @@ actor_class_t transport_modbus_class = {
     .type = TRANSPORT_MODBUS,
     .size = sizeof(transport_modbus_t),
     .phase_subindex = TRANSPORT_MODBUS_PHASE,
-    .validate = (app_method_t) modbus_validate,
-    .construct = (app_method_t)modbus_construct,
-    .link = (app_method_t) modbus_link,
-    .destruct = (app_method_t) modbus_destruct,
-    .start = (app_method_t) modbus_start,
-    .stop = (app_method_t) modbus_stop,
+    .validate = (actor_method_t) modbus_validate,
+    .construct = (actor_method_t)modbus_construct,
+    .link = (actor_method_t) modbus_link,
+    .destruct = (actor_method_t) modbus_destruct,
+    .start = (actor_method_t) modbus_start,
+    .stop = (actor_method_t) modbus_stop,
     .on_signal = (actor_on_signal_t) modbus_signal,
     .on_phase = (actor_on_phase_t)modbus_phase,
     .property_write = modbus_property_write,};

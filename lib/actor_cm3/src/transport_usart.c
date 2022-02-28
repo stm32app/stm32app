@@ -2,16 +2,16 @@
 #include "lib/dma.h"
 
 /* USART must be within range */
-static app_signal_t usart_validate(transport_usart_properties_t *properties) {
+static actor_signal_t usart_validate(transport_usart_properties_t *properties) {
     return 0;
 }
 
-static app_signal_t usart_construct(transport_usart_t *usart) {
+static actor_signal_t usart_construct(transport_usart_t *usart) {
 
     usart->dma_rx_address = dma_get_address(usart->properties->dma_rx_unit);
     usart->dma_tx_address = dma_get_address(usart->properties->dma_tx_unit);
 
-    usart->dma_rx_circular_buffer = app_malloc(usart->properties->dma_rx_circular_buffer_size);
+    usart->dma_rx_circular_buffer = actor_malloc(usart->properties->dma_rx_circular_buffer_size);
 
     if (usart->dma_rx_address == 0 || usart->dma_tx_address == 0) {
         return 0;
@@ -67,14 +67,14 @@ static uint16_t transport_usart_get_buffer_size_written(transport_usart_t *usart
     return transport_usart_get_buffer_size(usart) - transport_usart_get_buffer_size_left(usart);
 }
 
-static app_signal_t usart_accept(transport_usart_t *usart, actor_t *target, void *argument) {
+static actor_signal_t usart_accept(transport_usart_t *usart, actor_t *target, void *argument) {
     usart->target_actor = target;
     usart->target_argument = argument;
     return 0;
 }
 
-static app_signal_t usart_destruct(transport_usart_t *usart) {
-    app_free(usart->dma_rx_circular_buffer);
+static actor_signal_t usart_destruct(transport_usart_t *usart) {
+    actor_free(usart->dma_rx_circular_buffer);
     return 0;
 }
 
@@ -106,7 +106,7 @@ static void transport_usart_rx_dma_start(transport_usart_t *usart, uint8_t *data
     usart_enable_rx_dma(usart->address);
 }
 
-static app_signal_t usart_start(transport_usart_t *usart) {
+static actor_signal_t usart_start(transport_usart_t *usart) {
     usart_set_baudrate(usart->address, usart->properties->baudrate);
     usart_set_databits(usart->address, usart->properties->databits);
     usart_set_stopbits(usart->address, USART_STOPBITS_1);
@@ -124,20 +124,20 @@ static app_signal_t usart_start(transport_usart_t *usart) {
     return 0;
 }
 
-static app_signal_t usart_stop(transport_usart_t *usart) {
+static actor_signal_t usart_stop(transport_usart_t *usart) {
     (void)usart;
     return 0;
 }
-static app_signal_t usart_signal(transport_usart_t *usart, actor_t *actor, app_signal_t signal, void *source) {
+static actor_signal_t usart_signal(transport_usart_t *usart, actor_t *actor, actor_signal_t signal, void *source) {
     (void)actor;
     (void)source;
     switch (signal) {
-    case APP_SIGNAL_TX_COMPLETE: // DMA_TCIF, transfer complete
-        actor_signal(usart->target_actor, usart->actor, APP_SIGNAL_TX_COMPLETE, usart->target_argument);
+    case ACTOR_SIGNAL_TX_COMPLETE: // DMA_TCIF, transfer complete
+        actor_signal(usart->target_actor, usart->actor, ACTOR_SIGNAL_TX_COMPLETE, usart->target_argument);
         transport_usart_tx_dma_stop(usart);
         break;
-    case APP_SIGNAL_RX_COMPLETE: // USART IDLE, probably complete transfer
-        actor_signal(usart->target_actor, usart->actor, APP_SIGNAL_RX_COMPLETE, usart->target_argument);
+    case ACTOR_SIGNAL_RX_COMPLETE: // USART IDLE, probably complete transfer
+        actor_signal(usart->target_actor, usart->actor, ACTOR_SIGNAL_RX_COMPLETE, usart->target_argument);
         break;
     default:
         break;
@@ -151,11 +151,11 @@ actor_class_t transport_usart_class = {
     .size = sizeof(transport_usart_t),
     .phase_subindex = TRANSPORT_USART_PHASE,
 
-    .validate = (app_method_t)usart_validate,
-    .construct = (app_method_t)usart_construct,
-    .destruct = (app_method_t)usart_destruct,
-    .start = (app_method_t)usart_start,
-    .stop = (app_method_t)usart_stop,
+    .validate = (actor_method_t)usart_validate,
+    .construct = (actor_method_t)usart_construct,
+    .destruct = (actor_method_t)usart_destruct,
+    .start = (actor_method_t)usart_start,
+    .stop = (actor_method_t)usart_stop,
     .on_signal = (actor_on_signal_t)usart_signal,
     .on_link = (actor_on_link_t)usart_accept,
 };

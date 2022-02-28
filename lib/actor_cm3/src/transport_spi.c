@@ -1,15 +1,15 @@
 #include "spi.h"
 #include "module/timer.h"
-#include "core/buffer.h"
+#include "actor_buffer.h"
 
 uint8_t dummy_byte = 0;
 
 /* SPI must be within range */
-static app_signal_t spi_validate(transport_spi_properties_t *properties) {
+static actor_signal_t spi_validate(transport_spi_properties_t *properties) {
     return 0;
 }
 
-static app_signal_t spi_construct(transport_spi_t *spi) {
+static actor_signal_t spi_construct(transport_spi_t *spi) {
     switch (spi->actor->seq) {
     case 0:
         spi->clock = RCC_SPI1;
@@ -61,12 +61,12 @@ static app_signal_t spi_construct(transport_spi_t *spi) {
     return 0;
 }
 
-static app_signal_t spi_destruct(transport_spi_t *spi) {
+static actor_signal_t spi_destruct(transport_spi_t *spi) {
     (void)spi;
     return 0;
 }
 
-static app_signal_t spi_start(transport_spi_t *spi) {
+static actor_signal_t spi_start(transport_spi_t *spi) {
     (void)spi;
     rcc_periph_clock_enable(spi->clock);
     rcc_peripheral_enable_clock(&RCC_APB2ENR, RCC_APB2ENR_SPI1EN);
@@ -123,21 +123,21 @@ static app_signal_t spi_start(transport_spi_t *spi) {
     return 0;
 }
 
-static app_signal_t spi_stop(transport_spi_t *spi) {
+static actor_signal_t spi_stop(transport_spi_t *spi) {
     spi_reset(spi->clock);
     spi_disable(spi->clock);
     return 0;
 }
 
-static app_signal_t spi_allocate_rx_circular_buffer(transport_spi_t *spi) {
-    spi->dma_rx_circular_buffer = app_malloc(spi->properties->dma_rx_circular_buffer_size);
+static actor_signal_t spi_allocate_rx_circular_buffer(transport_spi_t *spi) {
+    spi->dma_rx_circular_buffer = actor_malloc(spi->properties->dma_rx_circular_buffer_size);
     spi->dma_rx_circular_buffer_cursor = 0;
     return spi->dma_rx_circular_buffer == NULL;
 }
 
 /* Set timer to signal actor in specified amount of time */
-static app_signal_t spi_schedule_rx_timeout(transport_spi_t *spi) {
-    return module_timer_timeout(spi->actor->app->timer, spi->actor, (void *)ACTOR_REQUESTING, 1000 + spi->properties->dma_rx_idle_timeout);
+static actor_signal_t spi_schedule_rx_timeout(transport_spi_t *spi) {
+    return module_timer_timeout(spi->actor->node->timer, spi->actor, (void *)ACTOR_REQUESTING, 1000 + spi->properties->dma_rx_idle_timeout);
 }
 
 static uint32_t spi_dma_get_required_rx_bytes(transport_spi_t *spi) {
@@ -155,13 +155,13 @@ static uint16_t spi_dma_get_effectve_rx_circular_buffer_size(transport_spi_t *sp
 }
 
 /* Check if DMAs circular buffer position is still the same */
-static app_signal_t spi_dma_read_is_idle(transport_spi_t *spi) {
+static actor_signal_t spi_dma_read_is_idle(transport_spi_t *spi) {
     return actor_dma_get_buffer_position(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream,
                                          spi_dma_get_effectve_rx_circular_buffer_size(spi)) == spi->dma_rx_circular_buffer_cursor;
 }
 
 // Initiate dma write. If size is 0 for the sent message, it will send zeroes indefinitely
-static app_signal_t spi_dma_write(transport_spi_t *spi, uint8_t *data) {
+static actor_signal_t spi_dma_write(transport_spi_t *spi, uint8_t *data) {
     actor_register_dma(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream, spi->actor);
     uint32_t tx_bytes_required = spi_dma_get_required_tx_bytes(spi);
 
@@ -175,7 +175,7 @@ static app_signal_t spi_dma_write(transport_spi_t *spi, uint8_t *data) {
     return 0;
 }
 
-static app_signal_t spi_dma_read(transport_spi_t *spi) {
+static actor_signal_t spi_dma_read(transport_spi_t *spi) {
     if (spi->dma_rx_circular_buffer == NULL) {
         int error = spi_allocate_rx_circular_buffer(spi);
         if (error != 0) {
@@ -198,7 +198,7 @@ static app_signal_t spi_dma_read(transport_spi_t *spi) {
     return 0;
 }
 
-static app_signal_t spi_dma_transceive(transport_spi_t *spi, uint8_t *data, size_t size, size_t response_size) {
+static actor_signal_t spi_dma_transceive(transport_spi_t *spi, uint8_t *data, size_t size, size_t response_size) {
     /*
     spi_enable(spi->address);
 
@@ -247,12 +247,12 @@ static app_signal_t spi_dma_transceive(transport_spi_t *spi, uint8_t *data, size
 }
 
 /* Send the resulting read contents back via a queue */
-static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
+static actor_signal_t spi_dma_read_complete(transport_spi_t *spi) {
     debug_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_tx_stop(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream, spi->properties->dma_tx_channel);
     debug_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_rx_stop(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->properties->dma_rx_channel);
-    module_timer_clear(spi->actor->app->timer, spi->actor, (void *)ACTOR_REQUESTING);
+    module_timer_clear(spi->actor->node->timer, spi->actor, (void *)ACTOR_REQUESTING);
 
     spi_disable(spi->address);
 
@@ -262,27 +262,27 @@ static app_signal_t spi_dma_read_complete(transport_spi_t *spi) {
         temp_data = SPI_DR(spi->address);
     }
 
-    app_buffer_t *buffer = app_double_buffer_detach(spi->ring_buffer, &spi->output_buffer, spi->actor);
-    app_buffer_trim_left(buffer, spi->tx_bytes_target);
+    actor_buffer_t *buffer = actor_double_buffer_detach(spi->ring_buffer, &spi->output_buffer, spi->actor);
+    actor_buffer_trim_left(buffer, spi->tx_bytes_target);
 
     actor_event_finalize(spi->actor, &spi->processed_event);
-    app_publish(spi->actor->app, &((app_event_t){
-        .type = APP_EVENT_RESPONSE, 
+    actor_publish(spi->actor->node, &((actor_event_t){
+        .type = ACTOR_EVENT_RESPONSE, 
         .producer = spi->actor, 
         .consumer = spi->processed_event.producer,
         .data = (uint8_t *) buffer,
-        .size = APP_BUFFER_DYNAMIC_SIZE
+        .size = ACTOR_BUFFER_DYNAMIC_SIZE
     }));
     actor_worker_catchup(spi->actor, NULL);
 
     return 0;
 }
 
-static app_signal_t spi_dma_read_possibly_complete(transport_spi_t *spi, bool_t is_idle) {
+static actor_signal_t spi_dma_read_possibly_complete(transport_spi_t *spi, bool is_idle) {
     // copy receieved dma chunk from circular buffer into a growable pool
-    uint16_t buffer_size = app_double_buffer_get_input_size(spi->ring_buffer, spi->output_buffer);
+    uint16_t buffer_size = actor_double_buffer_get_input_size(spi->ring_buffer, spi->output_buffer);
     uint16_t bytes_left = dma_get_number_of_data(dma_get_address(spi->properties->dma_rx_unit), spi->properties->dma_rx_stream);
-    app_double_buffer_ingest_external_write(spi->ring_buffer, spi->output_buffer, buffer_size - bytes_left);
+    actor_double_buffer_ingest_external_write(spi->ring_buffer, spi->output_buffer, buffer_size - bytes_left);
 
     uint32_t rx_bytes_required = spi_dma_get_required_rx_bytes(spi);
 
@@ -303,7 +303,7 @@ static app_signal_t spi_dma_read_possibly_complete(transport_spi_t *spi, bool_t 
     return 1;
 }
 
-static app_signal_t spi_dma_write_possibly_complete(transport_spi_t *spi) {
+static actor_signal_t spi_dma_write_possibly_complete(transport_spi_t *spi) {
     if (spi->tx_bytes_target == 0) {
 
     } else {
@@ -316,22 +316,22 @@ static app_signal_t spi_dma_write_possibly_complete(transport_spi_t *spi) {
     //return spi_dma_write_complete(spi);
 }
 
-static app_signal_t spi_on_write(transport_spi_t *spi, app_event_t *event) {
+static actor_signal_t spi_on_write(transport_spi_t *spi, actor_event_t *event) {
     return spi_dma_transceive(spi, event->data, event->size, (uint32_t)event->argument);
 }
 
-static app_signal_t spi_on_read(transport_spi_t *spi, app_event_t *event) {
+static actor_signal_t spi_on_read(transport_spi_t *spi, actor_event_t *event) {
     return spi_dma_transceive(spi, &dummy_byte, 0, event->size);
 }
 
-static app_signal_t spi_on_transfer(transport_spi_t *spi, app_event_t *event) {
+static actor_signal_t spi_on_transfer(transport_spi_t *spi, actor_event_t *event) {
     return spi_dma_transceive(spi, event->data, event->size, (uint32_t)event->argument);
 }
 
-static app_signal_t spi_on_signal(transport_spi_t *spi, actor_t *actor, app_signal_t signal, void *source) {
+static actor_signal_t spi_on_signal(transport_spi_t *spi, actor_t *actor, actor_signal_t signal, void *source) {
     switch (signal) {
     // DMA interrupts on buffer filling up half-way or all the way up
-    case APP_SIGNAL_DMA_TRANSFERRING:
+    case ACTOR_SIGNAL_DMA_TRANSFERRING:
         if (actor_dma_match_source(source, spi->properties->dma_rx_unit, spi->properties->dma_rx_stream)) {
             spi_dma_read_possibly_complete(spi, false);
         } else {
@@ -339,7 +339,7 @@ static app_signal_t spi_on_signal(transport_spi_t *spi, actor_t *actor, app_sign
         }
         break;
     // Timer module helps SPI to poll for idle line when RX size is unknown
-    case APP_SIGNAL_TIMEOUT:
+    case ACTOR_SIGNAL_TIMEOUT:
         if ((uint32_t)source == ACTOR_REQUESTING) {
             spi_dma_read_possibly_complete(spi, spi_dma_read_is_idle(spi));
         }
@@ -350,27 +350,27 @@ static app_signal_t spi_on_signal(transport_spi_t *spi, actor_t *actor, app_sign
 
     return 0;
 }
-static app_signal_t spi_worker_input(transport_spi_t *spi, app_event_t *event, actor_worker_t *tick, app_thread_t *thread) {
+static actor_signal_t spi_worker_input(transport_spi_t *spi, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
     switch (event->type) {
-    case APP_EVENT_READ:
+    case ACTOR_EVENT_READ:
         return actor_event_handle_and_process(spi->actor, event, &spi->processed_event, spi_on_read);
-    case APP_EVENT_WRITE:
+    case ACTOR_EVENT_WRITE:
         return actor_event_handle_and_process(spi->actor, event, &spi->processed_event, spi_on_write);
-    case APP_EVENT_TRANSFER:
+    case ACTOR_EVENT_TRANSFER:
         return actor_event_handle_and_process(spi->actor, event, &spi->processed_event, spi_on_transfer);
     default:
         return 0;
     }
 }
 
-static app_signal_t spi_on_event_report(transport_spi_t *spi, app_event_t *event) {
-    if (event->type == APP_EVENT_RESPONSE) {
+static actor_signal_t spi_on_event_report(transport_spi_t *spi, actor_event_t *event) {
+    if (event->type == ACTOR_EVENT_RESPONSE) {
     }
     return 0;
 }
 
-static actor_worker_callback_t spi_on_worker_assignment(transport_spi_t *spi, app_thread_t *thread) {
-    if (spi->actor->app->input == thread) {
+static actor_worker_callback_t spi_on_worker_assignment(transport_spi_t *spi, actor_thread_t *thread) {
+    if (spi->actor->node->input == thread) {
         return (actor_worker_callback_t) spi_worker_input;
     }
     return NULL;
@@ -380,12 +380,12 @@ actor_class_t transport_spi_class = {
     .type = TRANSPORT_SPI,
     .size = sizeof(transport_spi_t),
     .phase_subindex = TRANSPORT_SPI_PHASE,
-    .validate = (app_method_t)spi_validate,
-    .construct = (app_method_t)spi_construct,
-    .destruct = (app_method_t)spi_destruct,
-    .start = (app_method_t)spi_start,
+    .validate = (actor_method_t)spi_validate,
+    .construct = (actor_method_t)spi_construct,
+    .destruct = (actor_method_t)spi_destruct,
+    .start = (actor_method_t)spi_start,
     .on_event_report = (actor_on_event_report_t)spi_on_event_report,
     .on_signal = (actor_on_signal_t)spi_on_signal,
     .on_worker_assignment = (actor_on_worker_assignment_t) spi_on_worker_assignment,
-    .stop = (app_method_t)spi_stop,
+    .stop = (actor_method_t)spi_stop,
 };

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "core/actor.h"
+#include "actor.h"
 
 #include "OD.h"
 #include <CANopen.h>

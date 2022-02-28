@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "core/actor.h"
+#include "actor.h"
 #include "lib/bytes.h"
 #include "transport/usart.h"
 #include "module/timer.h"

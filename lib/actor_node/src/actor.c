@@ -1,18 +1,18 @@
 #include "actor.h"
 #include "301/CO_ODinterface.h"
-#include "core/buffer.h"
-#include "system/canopen.h"
+#include "actor_buffer.h"
+// #include "system/canopen.h"
 
 int actor_send(actor_t *actor, actor_t *origin, void *value, void *argument) {
-    configASSERT(actor && origin);
+    actor_assert(actor && origin);
     if (actor->class->on_value == NULL) {
         return 1;
     }
     return actor->class->on_value(actor->object, origin, value, argument);
 }
 
-int actor_signal(actor_t *actor, actor_t *origin, app_signal_t signal, void *argument) {
-    configASSERT(actor && origin);
+int actor_signal(actor_t *actor, actor_t *origin, actor_signal_t signal, void *argument) {
+    actor_assert(actor && origin);
     if (actor->class->on_signal == NULL) {
         return 1;
     }
@@ -23,8 +23,8 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
     if (index == 0) {
         return 0;
     }
-    configASSERT(actor);
-    actor_t *target = app_actor_find(actor->app, index);
+    actor_assert(actor);
+    actor_t *target = actor_node_find(actor->node, index);
     if (target != NULL) {
         *destination = target->object;
         if (target->class->on_link != NULL) {
@@ -37,18 +37,18 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
         debug_printf("    ! Device 0x%x (%s) could not find actor 0x%x\n", actor_index(actor), get_actor_type_name(actor->class->type),
                      index);
         actor_set_phase(actor, ACTOR_DISABLED);
-        actor_error_report(actor, CO_EM_INCONSISTENT_OBJECT_DICT, CO_EMC_ADDITIONAL_MODUL);
+        actor_error_report(actor, 0x2DU/*CO_EM_INCONSISTENT_OBJECT_DICT*/, 0x7000U/*CO_EMC_ADDITIONAL_MODUL*/);
         return 1;
     }
 }
 
-int actor_allocate(actor_t *actor) {
-    actor->object = app_malloc(actor->class->size);
+int actor_object_allocate(actor_t *actor) {
+    actor->object = actor_malloc(actor->class->size);
     if (actor->object == NULL) {
-        return APP_SIGNAL_OUT_OF_MEMORY;
+        return ACTOR_SIGNAL_OUT_OF_MEMORY;
     }
-    // cast to app object which is following actor conventions
-    app_t *obj = actor->object;
+    // cast to node object which is following actor conventions
+    actor_node_t *obj = actor->object;
     // by convention each object struct has pointer to actor as its first member
     obj->actor = actor;
     // second member is `properties` poiting to memory struct in OD
@@ -59,8 +59,8 @@ int actor_allocate(actor_t *actor) {
     return 0;
 }
 
-int actor_free(actor_t *actor) {
-    app_free(actor->object);
+int actor_object_free(actor_t *actor) {
+    actor_free(actor->object);
     return 0;
 }
 
@@ -150,34 +150,25 @@ void actor_on_phase_change(actor_t *actor, actor_phase_t phase) {
     }
 }
 
-bool_t actor_event_is_subscribed(actor_t *actor, app_event_t *event) {
+bool actor_event_is_subscribed(actor_t *actor, actor_event_t *event) {
     return actor->event_subscriptions & event->type;
 }
 
-void actor_event_subscribe(actor_t *actor, app_event_type_t type) {
+void actor_event_subscribe(actor_t *actor, actor_event_type_t type) {
     actor->event_subscriptions |= type;
 }
 
-app_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *worker) {
+actor_signal_t actor_worker_catchup(actor_t *actor, actor_worker_t *worker) {
     if (worker == NULL)
-        worker = app_thread_worker_for(actor->app->input, actor);
+        worker = actor_thread_worker_for(actor->node->input, actor);
     if (worker != NULL) {
-        app_thread_t *thread = worker->catchup;
+        actor_thread_t *thread = worker->catchup;
         if (thread) {
             worker->catchup = NULL;
-            return app_thread_catchup(thread);
+            return actor_thread_catchup(thread);
         }
     }
-    return APP_SIGNAL_OK;
-}
-inline void actor_gpio_set(uint8_t port, uint8_t pin) {
-    return gpio_set(GPIOX(port), 1 << pin);
-}
-inline void actor_gpio_clear(uint8_t port, uint8_t pin) {
-    return gpio_clear(GPIOX(port), 1 << pin);
-}
-inline uint32_t actor_gpio_get(uint8_t port, uint8_t pin) {
-    return gpio_get(GPIOX(port), 1 << pin);
+    return ACTOR_SIGNAL_OK;
 }
 
 typedef struct {
@@ -228,14 +219,14 @@ ODR_t actor_set_property_numeric(actor_t *actor, uint8_t index, uint32_t value, 
 ODR_t actor_set_property_string(actor_t *actor, uint8_t index, char *data, size_t size) {
     OD_obj_record_t *odo = &((OD_obj_record_t *)actor->entry->odObject)[index];
     if (size < odo->dataLength) {
-        (&odo->dataOrig)[size + 1] = '\0';
+        (&odo->dataOrig)[size + 1] = 0;
     }
     return actor_set_property(actor, index, data, size);
 }
 
 ODR_t actor_compute_property_stream(actor_t *actor, uint8_t index, uint8_t *data, OD_size_t size, OD_stream_t *stream,
                                     OD_size_t *count_read) {
-    configASSERT(stream);
+    actor_assert(stream);
     if (stream->dataOrig == NULL) {
         OD_obj_record_t *odo = &((OD_obj_record_t *)actor->entry->odObject)[index];
         *stream = (OD_stream_t){

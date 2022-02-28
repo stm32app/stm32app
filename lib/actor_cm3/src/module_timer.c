@@ -14,12 +14,12 @@ static ODR_t timer_property_write(OD_stream_t *stream, const void *buf, OD_size_
     return result;
 }
 
-static app_signal_t timer_validate(module_timer_properties_t *properties) {
+static actor_signal_t timer_validate(module_timer_properties_t *properties) {
     return 0;
 }
 
-static app_signal_t timer_construct(module_timer_t *timer) {
-    timer->subscriptions = app_malloc(sizeof(module_timer_subscription_t) * timer->properties->initial_subscriptions_count);
+static actor_signal_t timer_construct(module_timer_t *timer) {
+    timer->subscriptions = actor_malloc(sizeof(module_timer_subscription_t) * timer->properties->initial_subscriptions_count);
     timer->next_time = -1;
     timer->next_tick = timer->properties->period;
 
@@ -247,7 +247,7 @@ static module_timer_subscription_t *timer_get_next_subscription(module_timer_t *
     return result;
 }
 
-static app_signal_t timer_schedule(module_timer_t *timer, uint32_t next_time) {
+static actor_signal_t timer_schedule(module_timer_t *timer, uint32_t next_time) {
     if (timer->next_time > next_time) {
         timer->next_time = next_time;
     }
@@ -263,7 +263,7 @@ static app_signal_t timer_schedule(module_timer_t *timer, uint32_t next_time) {
     return 0;
 }
 
-static app_signal_t timer_notify(module_timer_t *timer) {
+static actor_signal_t timer_notify(module_timer_t *timer) {
     for (size_t i = 0; i < timer->properties->initial_subscriptions_count; i++) {
         module_timer_subscription_t *subscription = &timer->subscriptions[i];
         if (subscription->actor == NULL) {
@@ -275,13 +275,13 @@ static app_signal_t timer_notify(module_timer_t *timer) {
             void *argument = subscription->argument;
             debug_printf("~ Timeout for 0x%x %s (argument: %lu)\n", actor_index(actor), get_actor_type_name(actor->class->type), (uint32_t)argument);
             *subscription = (module_timer_subscription_t){};
-            actor_signal(actor, timer->actor, APP_SIGNAL_TIMEOUT, argument);
+            actor_signal(actor, timer->actor, ACTOR_SIGNAL_TIMEOUT, argument);
         }
     }
     return 0;
 }
 
-static app_signal_t timer_advance(module_timer_t *timer, uint32_t time) {
+static actor_signal_t timer_advance(module_timer_t *timer, uint32_t time) {
     // start the timer if it was not ticking
     if (actor_get_phase(timer->actor) != ACTOR_RUNNING) {
         actor_set_phase(timer->actor, ACTOR_RUNNING);
@@ -343,20 +343,20 @@ static module_timer_subscription_t *timer_get_subscription(module_timer_t *timer
     return &timer->subscriptions[i];
 }
 
-app_signal_t module_timer_timeout(module_timer_t *timer, actor_t *actor, void *argument, uint32_t timeout) {
+actor_signal_t module_timer_timeout(module_timer_t *timer, actor_t *actor, void *argument, uint32_t timeout) {
     // ensure that current_time of a timer is up to date, adjust timers accordingly
     timer_advance(timer, timer_get_counter(timer->address) - (timer->properties->period - timer->next_tick));
 
     // update subscription
     module_timer_subscription_t *subscription = timer_get_subscription(timer, actor, argument);
     if (subscription == NULL) {
-        return APP_SIGNAL_OUT_OF_MEMORY;
+        return ACTOR_SIGNAL_OUT_OF_MEMORY;
     }
     subscription->actor = actor;
     subscription->argument = argument;
 
-    bool_t was_next = timer->next_time == (uint32_t)-1 || timer->next_time == subscription->time;
-    bool_t was_closer = subscription->time != 0 && subscription->time <= timer->current_time + timeout;
+    bool was_next = timer->next_time == (uint32_t)-1 || timer->next_time == subscription->time;
+    bool was_closer = subscription->time != 0 && subscription->time <= timer->current_time + timeout;
 
     subscription->time = timer->current_time + timeout;
 
@@ -369,11 +369,11 @@ app_signal_t module_timer_timeout(module_timer_t *timer, actor_t *actor, void *a
     return 0;
 }
 
-app_signal_t module_timer_clear(module_timer_t *timer, actor_t *actor, void *argument) {
+actor_signal_t module_timer_clear(module_timer_t *timer, actor_t *actor, void *argument) {
     module_timer_subscription_t *subscription = timer_get_subscription(timer, actor, argument);
     if (subscription == NULL)
         return 0;
-    bool_t was_next = timer->next_time == subscription->time;
+    bool was_next = timer->next_time == subscription->time;
 
     *subscription = (module_timer_subscription_t){};
 
@@ -386,32 +386,32 @@ app_signal_t module_timer_clear(module_timer_t *timer, actor_t *actor, void *arg
     return 0;
 }
 
-static app_signal_t timer_stop_counting(module_timer_t *timer) {
+static actor_signal_t timer_stop_counting(module_timer_t *timer) {
     timer->next_time = -1;
     timer->next_tick = timer->properties->period;
     timer_disable_counter(timer->address);
     return 0;
 }
 
-static app_signal_t timer_start_counting(module_timer_t *timer) {
+static actor_signal_t timer_start_counting(module_timer_t *timer) {
     timer_enable_counter(timer->address);
     return 0;
 }
 
-static app_signal_t timer_stop(module_timer_t *timer) {
+static actor_signal_t timer_stop(module_timer_t *timer) {
     if (actor_get_phase(timer->actor) == ACTOR_RUNNING)
         return timer_stop_counting(timer);
     return 0;
 }
 
-static app_signal_t timer_start(module_timer_t *timer) {
+static actor_signal_t timer_start(module_timer_t *timer) {
     uint32_t source_frequency;
 
     rcc_periph_clock_enable(timer->clock);
     rcc_periph_reset_pulse(timer->reset);
 
     if (timer->source == 0) {
-        source_frequency = timer->actor->app->mcu->clock->apb1_frequency;
+        source_frequency = timer->actor->node->mcu->clock->apb1_frequency;
         rcc_peripheral_enable_clock(&RCC_APB1ENR, timer->peripheral_clock);
 #ifdef DEBUG
         rcc_peripheral_enable_clock(&RCC_APB2ENR, 1 << 22);
@@ -419,7 +419,7 @@ static app_signal_t timer_start(module_timer_t *timer) {
 #endif
 
     } else {
-        source_frequency = timer->actor->app->mcu->clock->apb2_frequency;
+        source_frequency = timer->actor->node->mcu->clock->apb2_frequency;
         rcc_peripheral_enable_clock(&RCC_APB2ENR, timer->peripheral_clock);
 #ifdef DEBUG
         rcc_peripheral_enable_clock(&RCC_APB2ENR, 1 << 22);
@@ -449,12 +449,12 @@ static app_signal_t timer_start(module_timer_t *timer) {
     return 0;
 }
 
-static app_signal_t timer_link(module_timer_t *timer) {
+static actor_signal_t timer_link(module_timer_t *timer) {
     (void)timer;
     return 0;
 }
 
-static app_signal_t timer_on_phase(module_timer_t *timer, actor_phase_t phase) {
+static actor_signal_t timer_on_phase(module_timer_t *timer, actor_phase_t phase) {
     switch (phase) {
     case ACTOR_RUNNING: return timer_start_counting(timer); break;
 
@@ -469,11 +469,11 @@ actor_class_t module_timer_class = {
     .type = MODULE_TIMER,
     .size = sizeof(module_timer_t),
     .phase_subindex = MODULE_TIMER_PHASE,
-    .validate = (app_method_t)timer_validate,
-    .construct = (app_method_t)timer_construct,
-    .link = (app_method_t)timer_link,
-    .start = (app_method_t)timer_start,
-    .stop = (app_method_t)timer_stop,
+    .validate = (actor_method_t)timer_validate,
+    .construct = (actor_method_t)timer_construct,
+    .link = (actor_method_t)timer_link,
+    .start = (actor_method_t)timer_start,
+    .stop = (actor_method_t)timer_stop,
     .on_phase = (actor_on_phase_t)timer_on_phase,
     .property_write = timer_property_write,
 };

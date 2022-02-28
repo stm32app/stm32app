@@ -23,28 +23,28 @@ static ODR_t led_property_write(OD_stream_t *stream, const void *buf, OD_size_t 
     return result;
 }
 
-static app_signal_t led_validate(indicator_led_properties_t *properties) {
+static actor_signal_t led_validate(indicator_led_properties_t *properties) {
     return properties->port == 0 || properties->pin == 0;
 }
 
-static app_signal_t led_construct(indicator_led_t *led) {
+static actor_signal_t led_construct(indicator_led_t *led) {
     (void)led;
     return 0;
 }
 
-static app_signal_t led_start(indicator_led_t *led) {
+static actor_signal_t led_start(indicator_led_t *led) {
     debug_printf("    > LED%i", led->actor->seq + 1);
     gpio_configure_output_pulldown(led->properties->port, led->properties->pin, GPIO_MEDIUM);
     (void)led;
     return 0;
 }
 
-static app_signal_t led_stop(indicator_led_t *led) {
+static actor_signal_t led_stop(indicator_led_t *led) {
     (void)led;
     return 0;
 }
 
-static app_signal_t led_on_phase(indicator_led_t *led, actor_phase_t phase) {
+static actor_signal_t led_on_phase(indicator_led_t *led, actor_phase_t phase) {
     switch (phase) {
     case ACTOR_STARTING: actor_set_phase(led->actor, ACTOR_IDLE); break;
     default: break;
@@ -55,10 +55,10 @@ static app_signal_t led_on_phase(indicator_led_t *led, actor_phase_t phase) {
 actor_class_t indicator_led_class = {.type = INDICATOR_LED,
                                       .size = sizeof(indicator_led_t),
                                       .phase_subindex = INDICATOR_LED_PHASE,
-                                      .validate = (app_method_t)led_validate,
-                                      .construct = (app_method_t)led_construct,
-                                      .start = (app_method_t)led_start,
-                                      .stop = (app_method_t)led_stop,
+                                      .validate = (actor_method_t)led_validate,
+                                      .construct = (actor_method_t)led_construct,
+                                      .start = (actor_method_t)led_start,
+                                      .stop = (actor_method_t)led_stop,
                                       .on_phase = (actor_on_phase_t)led_on_phase,
                                       .property_write = led_property_write,
                                       .property_write_handlers = (1 << (INDICATOR_LED_DUTY_CYCLE - INDICATOR_LED_PHASE + 1))};
