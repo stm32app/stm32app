@@ -1,8 +1,0 @@
-{
-  "name": "multi_heap",
-  "version": "10.2.1",
-  "keywords": "rtos, timing, thread, task, mutex, semaphore",
-  "description": "Real Time Operating System",
-  "frameworks": "stm32cube",
-  "platforms": "ststm32"
-}

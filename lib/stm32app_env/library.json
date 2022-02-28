@@ -1,0 +1,8 @@
+{
+  "name": "stm32app_env",
+  "version": "1.0",
+  "keywords": "rtos, timing, thread, task, mutex, semaphore",
+  "description": "Real Time Operating System",
+  "build": {
+  }
+}

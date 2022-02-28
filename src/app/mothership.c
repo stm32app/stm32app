@@ -38,28 +38,28 @@ static app_signal_t mothership_validate(app_mothership_properties_t *properties)
 static app_signal_t mothership_construct(app_mothership_t *mothership) {
     mothership->buffers = app_buffer_malloc(mothership->actor);
     mothership->jobs = app_buffer_malloc(mothership->actor);
-    app_thread_allocate(&mothership->input, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Input", 300, 20, 5,
+    app_thread_create(&mothership->input, mothership->actor, (app_procedure_t)app_thread_execute, "Input", 300, 20, 5,
                         APP_THREAD_SHARED);
-    app_thread_allocate(&mothership->catchup, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Catchup", 200, 100, 5,
+    app_thread_create(&mothership->catchup, mothership->actor, (app_procedure_t)app_thread_execute, "Catchup", 200, 100, 5,
                         APP_THREAD_SHARED);
-    app_thread_allocate(&mothership->high_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "High P", 200, 1, 4,
+    app_thread_create(&mothership->high_priority, mothership->actor, (app_procedure_t)app_thread_execute, "High P", 200, 1, 4,
                         APP_THREAD_SHARED);
-    app_thread_allocate(&mothership->medium_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Medium P", 200, 1, 3,
+    app_thread_create(&mothership->medium_priority, mothership->actor, (app_procedure_t)app_thread_execute, "Medium P", 200, 1, 3,
                         APP_THREAD_SHARED);
-    app_thread_allocate(&mothership->low_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Low P", 200, 1, 2,
+    app_thread_create(&mothership->low_priority, mothership->actor, (app_procedure_t)app_thread_execute, "Low P", 200, 1, 2,
                         APP_THREAD_SHARED);
-    app_thread_allocate(&mothership->bg_priority, mothership->actor, (void (*)(void *ptr))app_thread_execute, "Bg P", 200, 0, 1,
+    app_thread_create(&mothership->bg_priority, mothership->actor, (app_procedure_t)app_thread_execute, "Bg P", 200, 0, 1,
                         APP_THREAD_SHARED);
     return mothership->buffers == NULL || mothership->input == NULL || mothership->catchup == NULL || mothership->high_priority == NULL ||
            mothership->medium_priority == NULL || mothership->low_priority == NULL || mothership->bg_priority == NULL;
 }
 
 static app_signal_t mothership_destruct(app_mothership_t *mothership) {
-    app_thread_free(mothership->input);
-    app_thread_free(mothership->medium_priority);
-    app_thread_free(mothership->high_priority);
-    app_thread_free(mothership->low_priority);
-    app_thread_free(mothership->bg_priority);
+    app_thread_destroy(mothership->input);
+    app_thread_destroy(mothership->medium_priority);
+    app_thread_destroy(mothership->high_priority);
+    app_thread_destroy(mothership->low_priority);
+    app_thread_destroy(mothership->bg_priority);
     app_buffer_release(mothership->buffers, mothership->actor);
     return 0;
 }

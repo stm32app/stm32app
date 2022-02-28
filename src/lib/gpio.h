@@ -3,7 +3,7 @@
 
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
-#include "env.h"
+#include <app_env.h>
 #include "core/types.h"
 
 #define GPIOX(n) (GPIO_PORT_A_BASE + (n - 1) * 0x0400)

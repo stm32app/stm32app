@@ -4,7 +4,7 @@
 /* Generalize dma api for STMF1 that dont support DMA streams with STMF2+ that do.
 The former need to configure stream to be the same as channel*/
 
-#include "env.h"
+#include <app_env.h>
 #include <core/actor.h>
 #include <core/types.h>
 #include <libopencm3/cm3/nvic.h>

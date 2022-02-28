@@ -14,7 +14,7 @@
 
 #define DEBUG_NOOP(...) ((void)0)
 
-#define debug_assert(x)                                                                                                                    \
+#define APP_ASSERT(x)                                                                                                                    \
     if (!(x)) {                                                                                                                            \
         debug_printf("Assert failed\n");                                                                                                   \
         while (1) {                                                                                                                        \

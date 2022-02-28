@@ -1,0 +1,80 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/Users/imac/Sites/stm32app/lib/stm32app_rtos/include",
+                "/Users/imac/Sites/stm32app/lib/stm32app_rtos/src",
+                "/Users/imac/Sites/stm32app/lib/FreeRTOS-Heap/include",
+                "/Users/imac/Sites/stm32app/lib/FreeRTOS-Heap/src",
+                "/Users/imac/Sites/stm32app/lib/FreeRTOS/include",
+                "/Users/imac/Sites/stm32app/lib/FreeRTOS/src",
+                "/Users/imac/Sites/stm32app/lib/FreeRTOS/ports/POSIX",
+                "/Users/imac/Sites/stm32app/lib/stm32app_env/include",
+                "/Users/imac/Sites/stm32app/lib/stm32app_env/src",
+                "/Users/imac/Sites/stm32app/lib/stm32app_rtos/src/configs",
+                "/Users/imac/Sites/stm32app/lib/stm32app_rtos/test",
+                "/Users/imac/Sites/stm32app/lib/FreeRTOS/ports/Posix",
+                "/Users/imac/Sites/stm32app/lib/CANopenCM3",
+                "/Users/imac/Sites/stm32app/lib/CANopenNode",
+                "/Users/imac/Sites/stm32app/lib/coru",
+                "/Users/imac/Sites/stm32app/lib/littlefs",
+                "/Users/imac/Sites/stm32app/lib/sqlite3",
+                "/Users/imac/Sites/stm32app/lib/stm32app_drivers",
+                "/Users/imac/Sites/stm32app/lib/stm32app_registry/include",
+                "/Users/imac/Sites/stm32app/lib/stm32app_registry/src",
+                "/Users/imac/Sites/stm32app/lib/stm32app_system",
+                "/Users/imac/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/Users/imac/Sites/stm32app/lib/stm32app_rtos/include",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_rtos/src",
+                    "/Users/imac/Sites/stm32app/lib/FreeRTOS-Heap/include",
+                    "/Users/imac/Sites/stm32app/lib/FreeRTOS-Heap/src",
+                    "/Users/imac/Sites/stm32app/lib/FreeRTOS/include",
+                    "/Users/imac/Sites/stm32app/lib/FreeRTOS/src",
+                    "/Users/imac/Sites/stm32app/lib/FreeRTOS/ports/POSIX",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_env/include",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_env/src",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_rtos/src/configs",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_rtos/test",
+                    "/Users/imac/Sites/stm32app/lib/FreeRTOS/ports/Posix",
+                    "/Users/imac/Sites/stm32app/lib/CANopenCM3",
+                    "/Users/imac/Sites/stm32app/lib/CANopenNode",
+                    "/Users/imac/Sites/stm32app/lib/coru",
+                    "/Users/imac/Sites/stm32app/lib/littlefs",
+                    "/Users/imac/Sites/stm32app/lib/sqlite3",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_drivers",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_registry/include",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_registry/src",
+                    "/Users/imac/Sites/stm32app/lib/stm32app_system",
+                    "/Users/imac/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50205",
+                "LFS_CONFIG=lfs_config.h",
+                "CORU_CONFIG=coru_config.h",
+                "CO_DRIVER_CUSTOM",
+                "_HAVE_SQLITE_CONFIG_H",
+                "FREERTOS_PORT_POSIX",
+                ""
+            ],
+            "cStandard": "c99",
+            "compilerPath": "/usr/bin/gcc",
+            "compilerArgs": [
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

@@ -12,7 +12,7 @@ extern "C"
 {
 #endif
 
-#include "env.h"
+#include <app_env.h>
 #include <string.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -23,7 +23,7 @@ extern "C"
 #define LFS_ERROR debug_printf
 #define LFS_WARN debug_printf
 #define LFS_ERROR debug_printf
-#define LFS_ASSERT debug_assert
+#define LFS_ASSERT APP_ASSERT
 
 
 // Builtin functions, these may be replaced by more efficient

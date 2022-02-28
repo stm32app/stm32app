@@ -1,7 +1,7 @@
 #ifndef CO_CUSTOM_CONFIG
 #define CO_CUSTOM_CONFIG
 
-#include "env.h"
+#include <app_env.h>
 #include "core/types.h"
 
 #define NMT_CONTROL                                                                                                                        \

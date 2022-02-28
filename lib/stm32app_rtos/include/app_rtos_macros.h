@@ -1,0 +1,9 @@
+#ifndef RTOS_MACROS
+#define RTOS_MACROS
+
+
+#ifndef APP_BUFFER_CUSTOMIZED__ALLOCATION
+#define APP_BUFFER_CUSTOMIZED_ALLOCATION(buffer, size)
+#endif
+
+#endif

@@ -2,9 +2,6 @@
   "name": "FreeRTOS",
   "version": "1.0.0",
   "build": {
-    "srcFilter": [
-      "+<*.c>",
-      "-<heap_*.c>"
-    ]
+      "extraScript": "extra_script.py"
   }
 }
