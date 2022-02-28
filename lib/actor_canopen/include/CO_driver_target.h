@@ -29,12 +29,6 @@
  * It is included from CO_driver.h, which contains documentation
  * for common definitions below. */
 
-#include <libopencm3/cm3/nvic.h>
-#include <libopencm3/cm3/scb.h>
-#include <libopencm3/cm3/systick.h>
-#include <libopencm3/stm32/can.h>
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/rcc.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

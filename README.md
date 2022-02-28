@@ -1,4 +1,4 @@
-# stm32app
+# actor
 
 An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables writing modular networking applications for STM32 microcontrollers. 
 
@@ -20,7 +20,7 @@ An operating system based on CANopenNode, libopencm3 and FreeRTOS that enables w
 
 
 # Primitives
-Proper abstractions is the key for the framework to be useful. Many applications have a lot in common, but generalizing the problems is a lot of work. The following is an overview of the main building blocks that stm32app uses.
+Proper abstractions is the key for the framework to be useful. Many applications have a lot in common, but generalizing the problems is a lot of work. The following is an overview of the main building blocks that actor uses.
 
 ## CANopen node
 CANopen is a higher-level layer built on top of CAN bus which itself is decentralized. Each node in the network is defined by its Object Dictionary, which is an observable registry that configures behavior of a node. 
@@ -36,7 +36,7 @@ CANopen is a higher-level layer built on top of CAN bus which itself is decentra
 **Actors** are individual actors representing a single standalone feature (devices, subsystems, peripherals, etc). Each actor corresponds to entry in CANopen Object Dictionary. They define callbacks and event handlers, and receieve messages from message bus. Some actors may compose together and link to others (e.g. EEPROM to SPI transport) to be able to send signals to each other directly, but generally they communicate by publishing events to the message bus. 
 
 * **Observable properties**: All configuration options of an actor, together with its changable runtime properties are listed in an Object Dictionary. Devices on the CAN bus are able manipulate each other's state, and the actors will react to those state changes. Observability and reporting of state changes to other nodes is fully configurable and is built in to the CANopen system.
-* **Loose coupling**: Since stm32app is written in C, there is no subclassing of the actors. A generic container struct with unified API interface is used when actors need to communicate to each other. They send each other signals and events, instead of calling methods reducing logical coupling. Actors may subscribe to events broadcasted over the bus, or recieve events directed point-to-point. An actor that consumed and handled event, can later report to producer actor when the work is complete.
+* **Loose coupling**: Since actor is written in C, there is no subclassing of the actors. A generic container struct with unified API interface is used when actors need to communicate to each other. They send each other signals and events, instead of calling methods reducing logical coupling. Actors may subscribe to events broadcasted over the bus, or recieve events directed point-to-point. An actor that consumed and handled event, can later report to producer actor when the work is complete.
 * **Prioritized execution**: Actors can have parts of their logic run and schedule with different priorities with no extra overhead of spawning tasks and queues.
 
 
@@ -63,9 +63,9 @@ Many of actors define **tasks**, that can run in response to events. A tasks is 
 * **Event integration**: buffers assigned to events will automatically be freed once the event is processed by all receievers. This allows firing events with data into the queue without concerns for memory leaks.
 
 # Cooperation
-stm32app implements cheap asynchrony, prioritization of work, event-driven communication with queues and cooperation through easy to use primitives.
+actor implements cheap asynchrony, prioritization of work, event-driven communication with queues and cooperation through easy to use primitives.
 
-There is a small set of built-in threads with different priorities that actors in the framework share. This is unlike typical usage of FreeRTOS in which there are many tasks with overlapping priorities. Let's overview different approaches to cooperation, to see why stm32app does what it does:
+There is a small set of built-in threads with different priorities that actors in the framework share. This is unlike typical usage of FreeRTOS in which there are many tasks with overlapping priorities. Let's overview different approaches to cooperation, to see why actor does what it does:
 
 ## Other projects: Multiple FreeRTOS tasks per actor
 The most flexible way is to define more than one task per each actor, each having different priorities. One task to accept input, one task to produce output, maybe even some more tasks for for background jobs. 
@@ -98,7 +98,7 @@ Very often developers choose to sacrifice ability of a single actor to do work w
 
 
 ## Our project: System-wide shared threads
-stm32app provides a primitive called thread - a combination of task, a queue and a timer manager. stm32app defines a small set of threads with different priorities. Actors in the system can declare their work to run in any of the builtin threads without overhead. This however prevents time-slicing to be effective, so the code has to be written in a way to avoid blocking as much as possible. 
+actor provides a primitive called thread - a combination of task, a queue and a timer manager. actor defines a small set of threads with different priorities. Actors in the system can declare their work to run in any of the builtin threads without overhead. This however prevents time-slicing to be effective, so the code has to be written in a way to avoid blocking as much as possible. 
 
 ### Pros
 * 🟢 **Flexible**: Actors can do work with however many different priorities they need to
@@ -112,7 +112,7 @@ stm32app provides a primitive called thread - a combination of task, a queue and
   * 🟢 **Thoughtful built-ins**: All standard actors and drivers leverage non-blocking features like DMA to avoid blocking
   * 🟢 **Customizable**: Some actors may choose to define their own threads in addition to ones provided by the system. In that case they will reuse all the features that threads provide (event bus, timers, etc), retaining all of the control over time slicing, execution flow and blocking that typical FreeRTOS tasks provide. However just like with barebone FreeRTOS, the developer has to manually decide how much memory should be allocated for thread's stack and its optional queue.
 * 🟡 **Harder to follow**: Spreading work across tasks with multiple priorities can make the execution flow opaque and complicated. 
-  * 🟢 **Task primitive**: stm32app offers a very lightweight approach to writing asynchronous code that contains all of its steps close to each other in a state machine. All the minutiae is done behind the scenes, and handling of input and switching priorities mid-way is separated from the logical flow of a task. This often makes the code even easier to read than even with more advanced languages async/await or couroutines.
+  * 🟢 **Task primitive**: actor offers a very lightweight approach to writing asynchronous code that contains all of its steps close to each other in a state machine. All the minutiae is done behind the scenes, and handling of input and switching priorities mid-way is separated from the logical flow of a task. This often makes the code even easier to read than even with more advanced languages async/await or couroutines.
 
 
 # Sharing resources

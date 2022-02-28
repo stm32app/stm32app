@@ -1,8 +1,4 @@
-#ifndef CO_CUSTOM_CONFIG
-#define CO_CUSTOM_CONFIG
-
-#include <app_env.h>
-#include "core/types.h"
+#ifndef INC_CANOPEN_CONFIG
 
 #define NMT_CONTROL                                                                                                                        \
     CO_NMT_STARTUP_TO_OPERATIONAL                                                                                                          \
