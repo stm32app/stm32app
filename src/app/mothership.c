@@ -1,5 +1,5 @@
 #include "mothership.h"
-//#include "actor/circuit.h"
+//#include <actor/circuit.h>
 //#include "actors/modbus.h"
 #include "input/sensor.h"
 #include "lib/sdram.h"

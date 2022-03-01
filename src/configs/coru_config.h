@@ -14,7 +14,7 @@
 #ifndef CORU_CONFIG_H
 #define CORU_CONFIG_H
 
-#include <actor_env.h>
+#include <actor/env.h>
 #include "lib/debug.h"
 
 #ifdef __cplusplus

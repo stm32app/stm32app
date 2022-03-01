@@ -1,6 +1,6 @@
 #include "database.h"
-#include "actor_buffer.h"
-#include "actor_file.h"
+#include <actor/buffer.h>
+#include <actor/file.h>
 
 static int registerFunctions(sqlite3 *db, const char **pzErrMsg, const struct sqlite3_api_routines *pThunk) {
     return SQLITE_OK;

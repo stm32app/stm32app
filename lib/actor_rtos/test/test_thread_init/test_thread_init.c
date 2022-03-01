@@ -1,7 +1,7 @@
 
 #define ACTOR_ACTOR_GET_INPUT_THREAD(actor) actor_input
 
-#include <actor_thread.h>
+#include <actor/thread.h>
 #include <stdio.h>
 #include <unity.h>
 

@@ -1,5 +1,5 @@
-#include <actor_job.h>
-#include <actor_thread.h>
+#include <actor/job.h>
+#include <actor/thread.h>
 #include <unity.h>
 #include <stdio.h>
 

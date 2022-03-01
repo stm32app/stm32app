@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "actor.h"
+#include <actor/actor.h>
 #include "sqlite_config.h"
 #include "sqlite3.h"
 
