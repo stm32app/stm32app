@@ -1,4 +1,4 @@
-#include "lib/gpio.h"
+#include <actor/lib/gpio.h>
 
 void gpio_enable_port(uint8_t port) {
     rcc_periph_clock_enable(RCC_GPIOX(port));

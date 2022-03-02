@@ -1,6 +1,6 @@
 #include "w25.h"
-#include "transport/spi.h"
-#include "lib/dma.h"
+#include <actor/transport/spi.h>
+#include <actor/lib/dma.h>
 
 static actor_job_signal_t w25_spi_transfer(actor_job_t *job, uint8_t *write_data, size_t write_size, size_t read_size) {
     actor_publish(job->actor->node, &((actor_event_t){

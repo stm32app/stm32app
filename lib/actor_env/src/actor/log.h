@@ -1,27 +1,30 @@
-#ifndef INC_DEBUG
-#define INC_DEBUG
-#include "configs/actor_config.h"
-#include <libopencm3/cm3/dwt.h>
-#include <libopencm3/cm3/scb.h>
-#include <libopencm3/stm32/dbgmcu.h>
-#if DEBUG_LOG_LEVEL > 0
-#include <stdio.h>
-#endif
+#ifndef INC_DEBUG_LOG
+#define INC_DEBUG_LOG
 
-#define IS_DEBUGGER_ATTACHED (DBGMCU_CR & 0x07)
-#define DEBUG_BUFFER_SIZE 0
-#define DEBUG_BUFFER_FLUSH_SIZE DEBUG_BUFFER_SIZE * 0.9
 
-#define DEBUG_NOOP(...) ((void)0)
-
-#define actor_assert(x)                                                                                                                    \
+#ifndef actor_assert
+#define actor_assert(x)                                                                                                                      \
     if (!(x)) {                                                                                                                            \
         debug_printf("Assert failed\n");                                                                                                   \
         while (1) {                                                                                                                        \
         }                                                                                                                                  \
     }
+#endif
 
-extern volatile uint8_t debug_log_inhibited;
+#if DEBUG_LOG_LEVEL > 0
+#include <stdio.h>
+#endif
+
+
+
+//#define IS_DEBUGGER_ATTACHED (DBGMCU_CR & 0x07)
+#define DEBUG_BUFFER_SIZE 0
+#define DEBUG_BUFFER_FLUSH_SIZE DEBUG_BUFFER_SIZE * 0.9
+
+#define DEBUG_NOOP(...) ((void)0)
+
+
+extern volatile int debug_log_inhibited;
 
 #if DEBUG_LOG_LEVEL > 0
 #if DEBUG_BUFFER_SIZE > 0
@@ -90,12 +93,7 @@ void log_ccycnt_after(void);
 void log_job_out(void);
 void log_job_in(void);
 
-__attribute__((naked)) void my_hard_fault_handler(void);
-__attribute__((used)) void hard_fault_handler_inside(struct scb_exception_stack_frame *frame);
 
 #endif
-
-void vApplicationMallocFailedHook(void);
-void vApplicationIdleHook(void);
 
 #endif

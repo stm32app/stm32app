@@ -1,5 +1,5 @@
 #include "circuit.h"
-#include "lib/gpio.h"
+#include <actor/lib/gpio.h>
 
 static ODR_t circuit_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     device_circuit_t *circuit = stream->object;

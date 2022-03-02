@@ -1,4 +1,5 @@
 #include "led.h"
+#include <actor/lib/gpio.h>
 
 static ODR_t led_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     indicator_led_t *led = stream->object;

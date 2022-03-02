@@ -1,0 +1,6 @@
+{
+  "name": "coru",
+  "dependencies": {
+    "actor_env": "*"
+  }
+}

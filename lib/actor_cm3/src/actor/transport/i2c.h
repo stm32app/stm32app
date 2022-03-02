@@ -7,7 +7,7 @@ extern "C" {
 
 #include <actor/actor.h>
 #include <libopencm3/stm32/i2c.h>
-#include "lib/dma.h"
+#include <actor/lib/dma.h>
 #include <actor/buffer.h>
 
 #define I2C_UNITS 3

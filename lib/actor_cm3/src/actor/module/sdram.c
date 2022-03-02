@@ -1,7 +1,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/fsmc.h>
-#include "module_sdram.h"
+#include <actor/module/sdram.h>
 
 /*
  * This is just syntactic sugar but it helps, all of these

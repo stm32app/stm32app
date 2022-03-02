@@ -1,6 +1,6 @@
 
 #include "epaper.h"
-#include "transport/spi.h"
+#include <actor/transport/spi.h>
 
 
 /* Epaper needs DC, CS, BUSY, RESET pins set, as well as screen size */

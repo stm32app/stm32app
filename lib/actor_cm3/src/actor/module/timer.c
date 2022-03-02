@@ -1,9 +1,10 @@
 #include "timer.h"
-#include "system/mcu.h"
+#include <actor/module/mcu.h>
 #include <libopencm3/cm3/common.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/dma.h>
+#include <libopencm3/cm3/nvic.h>
 
 volatile module_timer_t *module_timers[TIMER_UNITS];
 
@@ -409,9 +410,11 @@ static actor_signal_t timer_start(module_timer_t *timer) {
 
     rcc_periph_clock_enable(timer->clock);
     rcc_periph_reset_pulse(timer->reset);
+    
+    module_mcu_t *mcu = (module_mcu_t *) timer->actor->node->mcu;
 
     if (timer->source == 0) {
-        source_frequency = timer->actor->node->mcu->clock->apb1_frequency;
+        source_frequency = mcu->clock->apb1_frequency;
         rcc_peripheral_enable_clock(&RCC_APB1ENR, timer->peripheral_clock);
 #ifdef DEBUG
         rcc_peripheral_enable_clock(&RCC_APB2ENR, 1 << 22);
@@ -419,7 +422,7 @@ static actor_signal_t timer_start(module_timer_t *timer) {
 #endif
 
     } else {
-        source_frequency = timer->actor->node->mcu->clock->apb2_frequency;
+        source_frequency = mcu->clock->apb2_frequency;
         rcc_peripheral_enable_clock(&RCC_APB2ENR, timer->peripheral_clock);
 #ifdef DEBUG
         rcc_peripheral_enable_clock(&RCC_APB2ENR, 1 << 22);

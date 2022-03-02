@@ -16,7 +16,7 @@ extern "C"
 #include <string.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include "lib/bytes.h"
+#include <actor/lib/bytes.h>
 
 #define LFS_TRACE trace_printf
 #define LFS_DEBUG debug_printf

@@ -15,7 +15,6 @@
 #define CORU_CONFIG_H
 
 #include <actor/env.h>
-#include "lib/debug.h"
 
 #ifdef __cplusplus
 extern "C" {

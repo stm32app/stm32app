@@ -1,7 +1,5 @@
 #include <actor/actor.h>
-#include "301/CO_ODinterface.h"
 #include <actor/buffer.h>
-// #include "system/canopen.h"
 
 int actor_send(actor_t *actor, actor_t *origin, void *value, void *argument) {
     actor_assert(actor && origin);

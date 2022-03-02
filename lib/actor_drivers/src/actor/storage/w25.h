@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include <actor/actor.h>
-#include "lib/bytes.h"
+#include <actor/lib/bytes.h>
 
 #define W25_SR1_BUSY 0x01
 

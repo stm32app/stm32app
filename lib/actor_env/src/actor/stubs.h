@@ -18,19 +18,22 @@ void actor_node_error_reset(actor_node_t* node, const uint8_t errorBit, uint16_t
 
 char *actor_node_stringify(actor_t *actor);
 void *actor_unbox(actor_t *actor);
+actor_t *actor_box(void *object);
 
-#ifndef debug_printf
-#define debug_printf(...)
-#endif
 
-#ifndef actor_assert
-#define actor_assert(x)                                                                                                                      \
-    if (!(x)) {                                                                                                                            \
-        debug_printf("Assert failed\n");                                                                                                   \
-        while (1) {                                                                                                                        \
-        }                                                                                                                                  \
-    }
-#endif
+#define actor_malloc(size) (trace_printf("    ! Malloc %db\t\t%s \n", size, __func__), multi_malloc(size))
+#define actor_malloc_dma(size) (trace_printf("    ! Malloc DMA %db\t\t%s \n", size, __func__), multi_malloc_dma(size))
+#define actor_malloc_ext(size) (trace_printf("    ! Malloc EXT %db\t\t%s \n", size, __func__), multi_malloc_ext(size))
+#define actor_malloc_fast(size) (trace_printf("    ! Malloc INT %db\t\t%s \n", size, __func__), multi_malloc_fast(size))
+#define actor_calloc(number, size) (trace_printf("    ! Calloc %db\t\t%s \n", size, __func__), multi_calloc(number, size))
+#define actor_calloc_dma(number, size) (trace_printf("    ! Calloc DMA %db\t\t%s \n", size, __func__), multi_calloc_dma(number, size))
+#define actor_calloc_ext(number, size) (trace_printf("    ! Calloc EXT %db\t\t%s \n", size, __func__), multi_calloc_ext(number, size))
+#define actor_calloc_fast(number, size) (trace_printf("    ! Calloc INT %db\t\t%s \n", size, __func__), multi_calloc_fast(number, size))
+#define actor_realloc(ptr, size) (trace_printf("    ! Realloc %lub\t\t%s \n", size, __func__), multi_realloc(ptr, size))
+#define actor_realloc_dma(ptr, size) (trace_printf("    ! Realloc DMA %lub\t\t%s \n", size, __func__), multi_realloc_dma(ptr, size))
+#define actor_realloc_ext(ptr, size) (trace_printf("    ! Realloc EXT %lub\t\t%s \n", size, __func__), multi_realloc_ext(ptr, size))
+#define actor_realloc_fast(ptr, size) (trace_printf("    ! Realloc INT %lub\t\t%s \n", size, __func__), multi_realloc_fast(ptr, size))
+#define actor_free(ptr) (trace_printf("    ! Free %s\t\t\n", __func__), multi_free(ptr))
 
 
 

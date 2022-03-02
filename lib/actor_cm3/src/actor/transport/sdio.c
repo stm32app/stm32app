@@ -1,9 +1,9 @@
-#include "sdio.h"
-#include <actor/buffer.h>
-#include "lib/bytes.h"
-#include "lib/dma.h"
-#include "storage/sdcard.h"
 #include <libopencm3/stm32/sdio.h>
+#include <actor/transport/sdio.h>
+#include <actor/buffer.h>
+#include <actor/lib/bytes.h>
+#include <actor/lib/dma.h>
+#include <actor/lib/gpio.h>
 
 // heavily inspired by code at
 // https://github.com/LonelyWolf/stm32/blob/master/stm32l4-sdio/src/sdcard.c
@@ -535,7 +535,7 @@ static actor_job_signal_t sdio_task_detect_card(actor_job_t *job) {
     case 9:
         sdio_parse_cid(sdcard);
         error_printf("│ │ ├ Card name %.*s\n", 3, storage_sdcard_get_product_name(sdcard));
-        if (storage_sdcard_get_product_name(sdcard)[0] == '\0') {
+        if (storage_sdcard_get_product_name(sdcard)[0] == 0) {
             error_printf("Bad card\n");
         }
         return ACTOR_JOB_TASK_CONTINUE;

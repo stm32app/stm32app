@@ -1,6 +1,6 @@
 #include "canopen.h"
-#include "indicator/led.h"
-#include "transport/can.h"
+#include <actor/indicator/led.h>
+#include <actor/transport/can.h>
 
 static void actor_thread_canopen_notify(actor_thread_t *thread);
 static void system_canopen_initialize_class(system_canopen_t *canopen);
@@ -302,8 +302,8 @@ static void system_canopen_initialize_class(system_canopen_t *canopen) {
     }
 #endif
 #if (CO_CONFIG_PDO) & CO_CONFIG_RPDO_ENABLE
-    for (int i = 0; i < CO_NO_RPDO; i++) {
-        CO_RPDO_initCallbackPre(c & anopen->instance->RPDO[i], (void *)&node->high_priority, actor_thread_canopen_notify);
+    for (int i = 0; i < CO_GET_CNT(RPDO); i++) {
+        CO_RPDO_initCallbackPre(&canopen->instance->RPDO[i], (void *)&node->high_priority, actor_thread_canopen_notify);
     }
 #endif
 }

@@ -1,8 +1,9 @@
-#include "module_adc.h"
-#include "lib/dma.h"
+#include <actor/module/adc.h>
+#include <actor/lib/dma.h>
 
 /* ADC must be within range */
 static actor_signal_t adc_validate(module_adc_properties_t *properties) {
+    (void) properties;
     return 0;
 }
 

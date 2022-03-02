@@ -1,6 +1,5 @@
 #include <actor/node.h>
 #include <actor/buffer.h>
-// #include "system/canopen.h"
 
 // Count or initialize all actors in OD of given type
 size_t actor_node_type_enumerate(actor_node_t *node, OD_t *od, actor_class_t *class, actor_t *destination, size_t offset) {
@@ -117,7 +116,7 @@ int actor_node_allocate(actor_node_t **node, OD_t *od, size_t (*enumerator)(acto
     return 0;
 }
 
-int actor_deallocate(actor_node_t **node) {
+int actor_node_deallocate(actor_node_t **node) {
     for (size_t i = 0; i < (*node)->actor_count; i++) {
         int ret = actor_object_free(&(*node)->actor[i]);
         if (ret != 0)
@@ -213,7 +212,12 @@ char *actor_node_stringify(actor_t *actor) {
 };
 #endif
 
-void *actor_unbox(actor_t *actor) {
-  return actor;
+actor_t *actor_unbox(actor_t *actor) {
+  return actor->object;
+}
+
+
+actor_t *actor_box(void *object) {
+  return (actor_t *) ((void *) (*object));
 }
 

@@ -1,0 +1,8 @@
+{
+  "name": "actor_node",
+  "dependencies": {
+    "CANopenOD": "*",
+    "actor_env": "*",
+    "actor_rtos": "*"
+  }
+}

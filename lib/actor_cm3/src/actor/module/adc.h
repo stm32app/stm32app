@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include <actor.h>
+#include <actor/actor.h>
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/dma.h>
 

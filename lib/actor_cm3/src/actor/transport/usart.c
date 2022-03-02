@@ -1,5 +1,5 @@
 #include "usart.h"
-#include "lib/dma.h"
+#include <actor/lib/dma.h>
 
 /* USART must be within range */
 static actor_signal_t usart_validate(transport_usart_properties_t *properties) {

@@ -16,6 +16,7 @@
 #include <actor/stubs.h>
 #include <actor/types.h>
 #include <actor/errors.h>
+#include <actor/log.h>
 #include <multi_heap.h>
 
 #endif

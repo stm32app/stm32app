@@ -4,11 +4,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "301/CO_ODinterface.h"
 #include <actor/node.h>
 #include <actor/env.h>
 #include <actor/thread.h>
+#include "301/CO_ODinterface.h"
 
 enum actor_phase {
     ACTOR_ENABLED,
@@ -137,7 +136,6 @@ int actor_object_allocate(actor_t *actor);
 int actor_object_free(actor_t *actor);
 
 /* Check if event will invoke input tick on this actor */
-bool actor_event_is_subscribed(actor_t *actor, actor_event_t *event);
 void actor_event_subscribe(actor_t *actor, actor_event_type_t type);
 
 #ifdef __cplusplus

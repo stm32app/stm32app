@@ -5,7 +5,7 @@
 The former need to configure stream to be the same as channel*/
 
 #include <actor/env.h>
-#include <actor.h>
+#include <actor/actor.h>
 #include <actor/types.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>

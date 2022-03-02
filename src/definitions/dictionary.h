@@ -1,7 +1,7 @@
 
 typedef struct transport_sdio transport_sdio_t /* Secure input/output protocol*/;
 typedef struct device_circuit device_circuit_t /* A relay that turns circuit on and off (pwm optional */;
-typedef struct system_mcu system_mcu_t /* */;
+typedef struct module_mcu module_mcu_t /* */;
 typedef struct system_canopen system_canopen_t /* CANOpen framework*/;
 typedef struct system_database system_database_t /* SQLite instance*/;
 typedef struct module_timer module_timer_t /* Basic 16-bit timer with low power consumption.*/;

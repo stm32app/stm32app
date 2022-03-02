@@ -1,6 +1,6 @@
-#include "lib/dma.h"
+#include <actor/lib/dma.h>
 #include <actor/buffer.h>
-#include "lib/bytes.h"
+#include <actor/lib/bytes.h>
 
 uint32_t dma_get_address(uint8_t index) {
     switch (index) {

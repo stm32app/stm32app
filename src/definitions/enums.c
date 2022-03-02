@@ -369,7 +369,7 @@ default: return "Unknown";
 }
 };
 
-char* get_system_mcu_properties_indecies_name (uint32_t v) {
+char* get_module_mcu_properties_indecies_name (uint32_t v) {
 switch (v) {
 case 1: return "SYSTEM_MCU_FAMILY";
 case 2: return "SYSTEM_MCU_BOARD_TYPE";

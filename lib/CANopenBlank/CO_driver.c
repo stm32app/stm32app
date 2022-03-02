@@ -31,7 +31,7 @@
 #include "CO_driver_target.h"
 #define CO_ReturnError_t int
 
-#define CO_DRIVER_CAN_ERRTX_WARNING  0x0001  /**< 0x0001, CAN transmitter warning */
+#define CO_DRIVER_CO_CAN_ERRTX_WARNING  0x0001  /**< 0x0001, CAN transmitter warning */
 #define CO_DRIVER_CO_CAN_ERRTX_PASSIVE  0x0002  /**< 0x0002, CAN transmitter passive */
 #define CO_DRIVER_CO_CAN_ERRTX_BUS_OFF  0x0004  /**< 0x0004, CAN transmitter bus off */
 #define CO_DRIVER_CO_CAN_ERRTX_OVERFLOW  0x0008 /**< 0x0008, CAN transmitter overflow */
@@ -42,7 +42,9 @@
 #define CO_DRIVER_CO_CAN_ERRRX_PASSIVE  0x0200  /**< 0x0200, CAN receiver passive */
 #define CO_DRIVER_CO_CAN_ERRRX_OVERFLOW  0x0800 /**< 0x0800, CAN receiver overflow */
 
-#define CO_DRIVER_CO_CAN_ERR_WARN_PASSIVE = 0x0303/**< 0x0303, combination */
+#define CO_DRIVER_CO_CAN_ERR_WARN_PASSIVE 0x0303/**< 0x0303, combination */
+
+
 /******************************************************************************/
 void CO_CANsetConfigurationMode(void *CANptr){
     /* Put CAN module in configuration mode */
@@ -211,9 +213,9 @@ CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer){
     if(buffer->bufferFull){
         if(!CANmodule->firstCANtxMessage){
             /* don't set error, if bootup message is still on buffers */
-            CANmodule->CANerrorStatus |= CO_CAN_ERRTX_OVERFLOW;
+            CANmodule->CANerrorStatus |= CO_DRIVER_CO_CAN_ERRTX_OVERFLOW;
         }
-        err = CO_ERROR_TX_OVERFLOW;
+        err = -9;
     }
 
     CO_LOCK_CAN_SEND(CANmodule);
@@ -264,7 +266,7 @@ void CO_CANclearPendingSyncPDOs(CO_CANmodule_t *CANmodule){
 
 
     if(tpdoDeleted != 0U){
-        CANmodule->CANerrorStatus |= CO_CAN_ERRTX_PDO_LATE;
+        CANmodule->CANerrorStatus |= CO_DRIVER_CO_CAN_ERRTX_PDO_LATE;
     }
 }
 
@@ -286,37 +288,37 @@ void CO_CANmodule_process(CO_CANmodule_t *CANmodule) {
 
         if (txErrors >= 256U) {
             /* bus off */
-            status |= CO_CAN_ERRTX_BUS_OFF;
+            status |= CO_DRIVER_CO_CAN_ERRTX_BUS_OFF;
         }
         else {
             /* recalculate CANerrorStatus, first clear some flags */
-            status &= 0xFFFF ^ (CO_CAN_ERRTX_BUS_OFF |
-                                CO_CAN_ERRRX_WARNING | CO_CAN_ERRRX_PASSIVE |
-                                CO_CAN_ERRTX_WARNING | CO_CAN_ERRTX_PASSIVE);
+            status &= 0xFFFF ^ (CO_DRIVER_CO_CAN_ERRTX_BUS_OFF |
+                                CO_DRIVER_CO_CAN_ERRRX_WARNING | CO_DRIVER_CO_CAN_ERRRX_PASSIVE |
+                                CO_DRIVER_CO_CAN_ERRTX_WARNING | CO_DRIVER_CO_CAN_ERRTX_PASSIVE);
 
             /* rx bus warning or passive */
             if (rxErrors >= 128) {
-                status |= CO_CAN_ERRRX_WARNING | CO_CAN_ERRRX_PASSIVE;
+                status |= CO_DRIVER_CO_CAN_ERRRX_WARNING | CO_DRIVER_CO_CAN_ERRRX_PASSIVE;
             } else if (rxErrors >= 96) {
-                status |= CO_CAN_ERRRX_WARNING;
+                status |= CO_DRIVER_CO_CAN_ERRRX_WARNING;
             }
 
             /* tx bus warning or passive */
             if (txErrors >= 128) {
-                status |= CO_CAN_ERRTX_WARNING | CO_CAN_ERRTX_PASSIVE;
+                status |= CO_DRIVER_CO_CAN_ERRTX_WARNING | CO_DRIVER_CO_CAN_ERRTX_PASSIVE;
             } else if (rxErrors >= 96) {
-                status |= CO_CAN_ERRTX_WARNING;
+                status |= CO_DRIVER_CO_CAN_ERRTX_WARNING;
             }
 
             /* if not tx passive clear also overflow */
-            if ((status & CO_CAN_ERRTX_PASSIVE) == 0) {
-                status &= 0xFFFF ^ CO_CAN_ERRTX_OVERFLOW;
+            if ((status & CO_DRIVER_CO_CAN_ERRTX_PASSIVE) == 0) {
+                status &= 0xFFFF ^ CO_DRIVER_CO_CAN_ERRTX_OVERFLOW;
             }
         }
 
         if (overflow != 0) {
             /* CAN RX bus overflow */
-            status |= CO_CAN_ERRRX_OVERFLOW;
+            status |= CO_DRIVER_CO_CAN_ERRRX_OVERFLOW;
         }
 
         CANmodule->CANerrorStatus = status;

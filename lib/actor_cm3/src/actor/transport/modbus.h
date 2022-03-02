@@ -6,9 +6,9 @@ extern "C" {
 #endif
 
 #include <actor/actor.h>
-#include "lib/bytes.h"
-#include "transport/usart.h"
-#include "module/timer.h"
+#include <actor/lib/bytes.h>
+#include <actor/transport/usart.h>
+#include <actor/module/timer.h>
 
 #define MODBUS_RX_BUFFER_SIZE
 

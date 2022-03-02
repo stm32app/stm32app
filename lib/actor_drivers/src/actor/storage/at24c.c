@@ -1,6 +1,6 @@
-#include "storage/at24c.h"
-#include "lib/bytes.h"
-#include "transport/i2c.h"
+#include <actor/storage/at24c.h>
+#include <actor/lib/bytes.h>
+#include <actor/transport/i2c.h>
 
 static ODR_t at24c_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     storage_at24c_t *at24c = stream->object;

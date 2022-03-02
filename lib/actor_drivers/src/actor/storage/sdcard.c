@@ -1,7 +1,7 @@
 #include "sdcard.h"
 #include <actor/buffer.h>
 #include <actor/file.h>
-#include "transport/sdio.h"
+#include <actor/transport/sdio.h>
 
 static ODR_t sdcard_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     storage_sdcard_t *sdcard = stream->object;

@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include <actor/actor.h>
-#include "lib/dma.h"
+#include <actor/lib/dma.h>
 #include <libopencm3/stm32/spi.h>
 
 

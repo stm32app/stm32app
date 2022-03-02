@@ -1,4 +1,5 @@
 #include "can.h"
+#include <actor/lib/gpio.h>
 
 static ODR_t can_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     transport_can_t *can = stream->object;

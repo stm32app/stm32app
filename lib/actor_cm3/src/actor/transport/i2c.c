@@ -1,6 +1,7 @@
 #include "i2c.h"
-#include "lib/dma.h"
-#include "system/mcu.h"
+#include <actor/lib/dma.h>
+#include <actor/lib/gpio.h>
+#include <actor/module/mcu.h>
 #include <libopencm3/stm32/i2c.h>
 
 #define I2C_EVENT_MASTER_MODE_SELECT(I2CX) ((I2C_SR1(I2CX) & (I2C_SR1_SB)) == (I2C_SR1_SB))
@@ -354,7 +355,7 @@ static actor_job_signal_t i2c_task_publish_response(actor_job_t *job) {
 
         // if event was ACTOR_EVENT_READ_TO_BUFFER, it is assumed that producer expect report instead of event
         if (job->inciting_event.type == ACTOR_EVENT_READ) {
-            actor_publish(job->actor->node, &((actor_event_t){.type = ACTOR_EVENT_RESPONSE,
+            actor_publish(job->actor->node->actor, &((actor_event_t){.type = ACTOR_EVENT_RESPONSE,
                                                           .producer = i2c->actor,
                                                           .consumer = job->inciting_event.producer,
                                                           .data = (uint8_t *)buffer,

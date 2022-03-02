@@ -1,6 +1,7 @@
 #include "spi.h"
-#include "module/timer.h"
+#include <actor/module/timer.h>
 #include <actor/buffer.h>
+#include <actor/lib/gpio.h>
 
 uint8_t dummy_byte = 0;
 

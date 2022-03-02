@@ -46,7 +46,7 @@ char* get_system_canopen_properties_indecies_name (uint32_t v);
 // defined in ./src/system/database.h
 char* get_system_database_properties_indecies_name (uint32_t v);
 // defined in ./src/system/mcu.h
-char* get_system_mcu_properties_indecies_name (uint32_t v);
+char* get_module_mcu_properties_indecies_name (uint32_t v);
 // defined in ./src/transport/can.h
 char* get_transport_can_properties_indecies_name (uint32_t v);
 // defined in ./src/transport/i2c.h

@@ -1,27 +1,23 @@
 #include "mothership.h"
 //#include <actor/circuit.h>
 //#include "actors/modbus.h"
-#include "input/sensor.h"
-#include "lib/sdram.h"
-#include "module/adc.h"
-#include "module/timer.h"
-#include "storage/at24c.h"
-#include "storage/sdcard.h"
-#include "storage/w25.h"
-#include "system/canopen.h"
-#ifdef ACTOR_USE_DATABASE
-#include "system/database.h"
-#endif
-#include "system/mcu.h"
+#include <actor/input/sensor.h>
+#include <actor/module/sdram.h>
+#include <actor/module/adc.h>
+#include <actor/module/timer.h>
+#include <actor/storage/at24c.h>
+//#include <actor/storage/sdcard.h>
+#include <actor/storage/w25.h>
+#include <actor/module/mcu.h>
 //#include "screen/epaper.h"
-//#include "transport/can.h"
-//#include "transport/i2c.h"
-#include "indicator/led.h"
-#include "transport/can.h"
-#include "transport/i2c.h"
-#include "transport/sdio.h"
-#include "transport/spi.h"
-//#include "transport/usart.h"
+//#include <actor/transport/can.h>
+//#include <actor/transport/i2c.h>
+#include <actor/indicator/led.h>
+#include <actor/transport/can.h>
+#include <actor/transport/i2c.h>
+//#include <actor/transport/sdio.h>
+#include <actor/transport/spi.h>
+//#include <actor/transport/usart.h>
 
 static ODR_t mothership_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     actor_mothership_t *mothership = stream->object;
@@ -76,7 +72,9 @@ static actor_signal_t mothership_stop(actor_mothership_t *mothership) {
 
 static actor_signal_t mothership_link(actor_mothership_t *mothership) {
     actor_link(mothership->actor, (void **)&mothership->mcu, mothership->properties->mcu_index, NULL);
+#ifdef ACTOR_NODE_USE_CANOPEN
     actor_link(mothership->actor, (void **)&mothership->canopen, mothership->properties->canopen_index, NULL);
+#endif
     actor_link(mothership->actor, (void **)&mothership->timer, mothership->properties->timer_index, NULL);
     return 0;
 }
@@ -103,9 +101,11 @@ static actor_signal_t mothership_phase(actor_mothership_t *mothership, actor_pha
 size_t actor_mothership_enumerate_actors(actor_node_t *node, OD_t *od, actor_t *destination) {
     size_t count = 0;
     count += actor_node_type_enumerate(node, od, &actor_mothership_class, destination, count);
-    count += actor_node_type_enumerate(node, od, &system_mcu_class, destination, count);
+    count += actor_node_type_enumerate(node, od, &module_mcu_class, destination, count);
+#ifdef ACTOR_NODE_USE_CANOPEN
     count += actor_node_type_enumerate(node, od, &system_canopen_class, destination, count);
-#if ACTOR_USE_DATABASE
+#endif
+#ifdef ACTOR_NODE_USE_DATABASE
     count += actor_node_type_enumerate(node, od, &system_database_class, destination, count);
 #endif
     count += actor_node_type_enumerate(node, od, &module_timer_class, destination, count);
@@ -113,10 +113,10 @@ size_t actor_mothership_enumerate_actors(actor_node_t *node, OD_t *od, actor_t *
     count += actor_node_type_enumerate(node, od, &transport_can_class, destination, count);
     count += actor_node_type_enumerate(node, od, &transport_spi_class, destination, count);
     // count += actor_node_type_enumerate(node, od, &transport_i2c_class, destination, count);
-    count += actor_node_type_enumerate(node, od, &transport_sdio_class, destination, count);
+    //count += actor_node_type_enumerate(node, od, &transport_sdio_class, destination, count);
     count += actor_node_type_enumerate(node, od, &storage_w25_class, destination, count);
     // count += actor_node_type_enumerate(node, od, &storage_at24c_class, destination, count);
-    count += actor_node_type_enumerate(node, od, &storage_sdcard_class, destination, count);
+    //count += actor_node_type_enumerate(node, od, &storage_sdcard_class, destination, count);
     count += actor_node_type_enumerate(node, od, &indicator_led_class, destination, count);
     // count += actor_node_type_enumerate(MODULE_USART, &transport_usart_class, sizeof(transport_usart_t), destination, count);
     // count += actor_node_type_enumerate(node, od, TRANSPORT_I2C, &transport_i2c_class, sizeof(transport_i2c_t), destination, count);
