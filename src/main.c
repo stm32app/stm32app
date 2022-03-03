@@ -6,14 +6,14 @@
 #include "301/CO_ODinterface.h"
 #include <OD.h>
 
-#ifdef ACTOR_MOTHERSHIP
+#ifdef ACTOR_NODE_MOTHERSHIP 
     #include "mothership.h"
 #endif
 
 static void actor_boot(void *pvParameters) {
     
     actor_node_t **node = (actor_node_t **) pvParameters;
-#if ACTOR_MOTHERSHIP
+#if ACTOR_NODE_MOTHERSHIP 
     debug_printf("App - Mothership ...\n");
     debug_printf("App - Enumerating actors ...\n");
     actor_node_allocate(node, OD, actor_mothership_enumerate_actors);

@@ -101,8 +101,6 @@ struct actor_generic_device_t {
 // Default state machine for basic phases
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase);
 
-int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_tick, uint32_t *next_tick);
-
 /* Find actor with given index and write it to the given pointer */
 int actor_link(actor_t *actor, void **destination, uint16_t index, void *arg);
 

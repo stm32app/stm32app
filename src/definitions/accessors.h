@@ -1099,32 +1099,32 @@ static inline void screen_epaper_set_phase(screen_epaper_t *epaper, uint8_t valu
 static inline uint8_t screen_epaper_get_phase(screen_epaper_t *epaper) {
     return *((uint8_t *) actor_get_property_pointer(actor_box(epaper), SCREEN_EPAPER_PHASE));
 }
-typedef enum actor_node_properties_indecies {
-  ACTOR_NODE_TIMER_INDEX = 0x01,
-  ACTOR_NODE_STORAGE_INDEX = 0x02,
-  ACTOR_NODE_MCU_INDEX = 0x03,
-  ACTOR_NODE_CANOPEN_INDEX = 0x04,
-  ACTOR_NODE_PHASE = 0x05
-} actor_node_properties_indecies_t;
+typedef enum actor_mothership_properties_indecies {
+  ACTOR_MOTHERSHIP_TIMER_INDEX = 0x01,
+  ACTOR_MOTHERSHIP_STORAGE_INDEX = 0x02,
+  ACTOR_MOTHERSHIP_MCU_INDEX = 0x03,
+  ACTOR_MOTHERSHIP_CANOPEN_INDEX = 0x04,
+  ACTOR_MOTHERSHIP_PHASE = 0x05
+} actor_mothership_properties_indecies_t;
 
-static inline uint32_t actor_node_get_timer_index(actor_node_t *node) {
-    return *((uint32_t *) actor_get_property_pointer(actor_box(node), ACTOR_NODE_TIMER_INDEX));
+static inline uint32_t actor_mothership_get_timer_index(actor_mothership_t *mothership) {
+    return *((uint32_t *) actor_get_property_pointer(actor_box(mothership), ACTOR_MOTHERSHIP_TIMER_INDEX));
 }
-static inline uint32_t actor_node_get_storage_index(actor_node_t *node) {
-    return *((uint32_t *) actor_get_property_pointer(actor_box(node), ACTOR_NODE_STORAGE_INDEX));
+static inline uint32_t actor_mothership_get_storage_index(actor_mothership_t *mothership) {
+    return *((uint32_t *) actor_get_property_pointer(actor_box(mothership), ACTOR_MOTHERSHIP_STORAGE_INDEX));
 }
-static inline uint32_t actor_node_get_mcu_index(actor_node_t *node) {
-    return *((uint32_t *) actor_get_property_pointer(actor_box(node), ACTOR_NODE_MCU_INDEX));
+static inline uint32_t actor_mothership_get_mcu_index(actor_mothership_t *mothership) {
+    return *((uint32_t *) actor_get_property_pointer(actor_box(mothership), ACTOR_MOTHERSHIP_MCU_INDEX));
 }
-static inline uint32_t actor_node_get_canopen_index(actor_node_t *node) {
-    return *((uint32_t *) actor_get_property_pointer(actor_box(node), ACTOR_NODE_CANOPEN_INDEX));
+static inline uint32_t actor_mothership_get_canopen_index(actor_mothership_t *mothership) {
+    return *((uint32_t *) actor_get_property_pointer(actor_box(mothership), ACTOR_MOTHERSHIP_CANOPEN_INDEX));
 }
 /* 0x30XX05: null */
-static inline void actor_node_set_phase(actor_node_t *node, uint8_t value) { 
-    actor_set_property_numeric(actor_box(node), ACTOR_NODE_PHASE, (uint32_t)(value), sizeof(uint8_t));
+static inline void actor_mothership_set_phase(actor_mothership_t *mothership, uint8_t value) { 
+    actor_set_property_numeric(actor_box(mothership), ACTOR_MOTHERSHIP_PHASE, (uint32_t)(value), sizeof(uint8_t));
 }
-static inline uint8_t actor_node_get_phase(actor_node_t *node) {
-    return *((uint8_t *) actor_get_property_pointer(actor_box(node), ACTOR_NODE_PHASE));
+static inline uint8_t actor_mothership_get_phase(actor_mothership_t *mothership) {
+    return *((uint8_t *) actor_get_property_pointer(actor_box(mothership), ACTOR_MOTHERSHIP_PHASE));
 }
 typedef enum indicator_led_properties_indecies {
   INDICATOR_LED_PORT = 0x01,

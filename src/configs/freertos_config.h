@@ -1,9 +1,10 @@
 #ifndef INC_FREERTOS_CONFIG
 #define INC_FREERTOS_CONFIG
 
-#include "actor/log.h"
 
 #ifdef DEBUG
+#include "actor/log.h"
+
 #define configCHECK_FOR_STACK_OVERFLOW 2
 #define configUSE_MALLOC_FAILED_HOOK 1
 #define configUSE_IDLE_HOOK 1
@@ -17,6 +18,7 @@
 #else
 #define configUSE_IDLE_HOOK 0
 #endif
+
 
 #if FREERTOS_PORT_CM3
 #define vPortSVCHandler sv_call_handler

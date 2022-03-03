@@ -34,7 +34,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define bool_t bool
+#ifndef BOOL_T_DEFINED
+#define BOOL_T_DEFINED
+typedef bool bool_t;
+#endif
+
 #include <libopencm3/stm32/can.h>
 
 #ifdef CO_DRIVER_CUSTOM

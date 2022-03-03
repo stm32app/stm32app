@@ -64,7 +64,7 @@ char* get_control_touchscreen_properties_indecies_name (uint32_t v);
 // defined in ./src/definitions/accessors.h
 char* get_screen_epaper_properties_indecies_name (uint32_t v);
 // defined in ./src/definitions/accessors.h
-char* get_actor_node_properties_indecies_name (uint32_t v);
+char* get_actor_mothership_properties_indecies_name (uint32_t v);
 // defined in ./src/definitions/accessors.h
 char* get_indicator_led_properties_indecies_name (uint32_t v);
 // defined in ./src/definitions/accessors.h

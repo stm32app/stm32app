@@ -20,11 +20,11 @@
 //#include <actor/transport/usart.h>
 
 
-#ifdef ACTOR_NODE_USE_CANOPEN
+#if ACTOR_NODE_USE_CANOPEN
 #include <actor/canopen.h>
 #endif
-#ifdef ACTOR_NODE_USE_DATABASE
-//#include <actor/database.h>
+#if ACTOR_NODE_USE_DATABASE
+#include <actor/database.h>
 #endif
 
 
@@ -81,7 +81,7 @@ static actor_signal_t mothership_stop(actor_mothership_t *mothership) {
 
 static actor_signal_t mothership_link(actor_mothership_t *mothership) {
     actor_link(mothership->actor, (void **)&mothership->mcu, mothership->properties->mcu_index, NULL);
-#ifdef ACTOR_NODE_USE_CANOPEN
+#if ACTOR_NODE_USE_CANOPEN
     actor_link(mothership->actor, (void **)&mothership->canopen, mothership->properties->canopen_index, NULL);
 #endif
     actor_link(mothership->actor, (void **)&mothership->timer, mothership->properties->timer_index, NULL);
@@ -102,7 +102,7 @@ static actor_signal_t mothership_phase(actor_mothership_t *mothership, actor_pha
     default:
         break;
     }
-    return 0;
+    return 1;
 }
 
 // Initialize all actors of all types found in OD
@@ -111,10 +111,10 @@ size_t actor_mothership_enumerate_actors(actor_node_t *node, OD_t *od, actor_t *
     size_t count = 0;
     count += actor_node_type_enumerate(node, od, &actor_mothership_class, destination, count);
     count += actor_node_type_enumerate(node, od, &module_mcu_class, destination, count);
-#ifdef ACTOR_NODE_USE_CANOPEN
+#if ACTOR_NODE_USE_CANOPEN
     count += actor_node_type_enumerate(node, od, &actor_canopen_class, destination, count);
 #endif
-#ifdef ACTOR_NODE_USE_DATABASE
+#if ACTOR_NODE_USE_DATABASE
     count += actor_node_type_enumerate(node, od, &actor_database_class, destination, count);
 #endif
     count += actor_node_type_enumerate(node, od, &module_timer_class, destination, count);
@@ -240,9 +240,9 @@ static actor_worker_callback_t mothership_on_worker_assignment(actor_mothership_
 }
 
 actor_class_t actor_mothership_class = {
-    .type = ACTOR_NODE,
+    .type = ACTOR_MOTHERSHIP,
     .size = sizeof(actor_mothership_t),
-    .phase_subindex = ACTOR_NODE_PHASE,
+    .phase_subindex = ACTOR_MOTHERSHIP_PHASE,
     .validate = (actor_method_t)mothership_validate,
     .construct = (actor_method_t)mothership_construct,
     .destruct = (actor_method_t)mothership_destruct,

@@ -15,7 +15,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModifiedBy="" fileModificationDate="2022-03-03" fileModificationTime="14:24:14.7202149+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModifiedBy="" fileModificationDate="2022-03-03" fileModificationTime="18:12:21.4919203+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <q1:DeviceIdentity>
         <q1:vendorName>2</q1:vendorName>
         <q1:vendorID>3</q1:vendorID>
@@ -624,7 +624,7 @@
               <UDINT />
             </q1:varDeclaration>
           </q1:struct>
-          <q1:struct name="Actor Node" uniqueID="UID_REC_3000">
+          <q1:struct name="Actor Mothership" uniqueID="UID_REC_3000">
             <q1:varDeclaration name="Highest sub-index supported" uniqueID="UID_RECSUB_300000">
               <USINT />
             </q1:varDeclaration>
@@ -5050,7 +5050,7 @@ On devices with large blocks (e.g. 128kB) setting this to a low size (2-8kB) can
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModificationDate="2022-03-03" fileModificationTime="14:24:14.7202149+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="Base.xdd" fileCreator="" fileCreationDate="2021-09-25" fileCreationTime="02:03:07.0000000+08:00" fileModificationDate="2022-03-03" fileModificationTime="18:12:21.4919203+08:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <ApplicationLayers>
         <q2:CANopenObjectList>
           <CANopenObject index="1000" name="Device type" objectType="7" PDOmapping="no" uniqueIDRef="UID_OBJ_1000" />
@@ -5362,7 +5362,7 @@ On devices with large blocks (e.g. 128kB) setting this to a low size (2-8kB) can
             <CANopenSubObject subIndex="07" name="Application object 7" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_1A0407" />
             <CANopenSubObject subIndex="08" name="Application object 8" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_1A0408" />
           </CANopenObject>
-          <CANopenObject index="3000" name="Actor Node" objectType="9" uniqueIDRef="UID_OBJ_3000" subNumber="6">
+          <CANopenObject index="3000" name="Actor Mothership" objectType="9" uniqueIDRef="UID_OBJ_3000" subNumber="6">
             <CANopenSubObject subIndex="00" name="Highest sub-index supported" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_300000" />
             <CANopenSubObject subIndex="01" name="Timer Index" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_300001" />
             <CANopenSubObject subIndex="02" name="Storage Index" objectType="7" PDOmapping="no" uniqueIDRef="UID_SUB_300002" />

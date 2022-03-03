@@ -5,8 +5,5 @@
   "description": "Real Time Operating System",
 
   "platform": ["ststm32"],
-  "frameworks": ["libopencm3"],
-  "dependencies":
-  {
-  }
+  "frameworks": ["libopencm3"]
 }

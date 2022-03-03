@@ -522,13 +522,13 @@ default: return "Unknown";
 }
 };
 
-char* get_actor_node_properties_indecies_name (uint32_t v) {
+char* get_actor_mothership_properties_indecies_name (uint32_t v) {
 switch (v) {
-case 1: return "ACTOR_NODE_TIMER_INDEX";
-case 2: return "ACTOR_NODE_STORAGE_INDEX";
-case 3: return "ACTOR_NODE_MCU_INDEX";
-case 4: return "ACTOR_NODE_CANOPEN_INDEX";
-case 5: return "ACTOR_NODE_PHASE";
+case 1: return "ACTOR_MOTHERSHIP_TIMER_INDEX";
+case 2: return "ACTOR_MOTHERSHIP_STORAGE_INDEX";
+case 3: return "ACTOR_MOTHERSHIP_MCU_INDEX";
+case 4: return "ACTOR_MOTHERSHIP_CANOPEN_INDEX";
+case 5: return "ACTOR_MOTHERSHIP_PHASE";
 default: return "Unknown";
 }
 };
@@ -557,7 +557,7 @@ default: return "Unknown";
 char* get_actor_type_name (uint32_t v) {
 switch (v) {
 case 25248: return "TRANSPORT_SDIO";
-case 12288: return "ACTOR_NODE";
+case 12288: return "ACTOR_MOTHERSHIP";
 case 16384: return "DEVICE_CIRCUIT";
 case 24576: return "MODULE_MCU";
 case 24608: return "ACTOR_CANOPEN";

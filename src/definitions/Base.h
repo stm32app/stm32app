@@ -16,7 +16,7 @@
 
         Created:      9/25/2021 2:03:07 AM
         Created By:   
-        Modified:     3/3/2022 3:51:50 AM
+        Modified:     3/3/2022 6:12:21 PM
         Modified By:  
 
     Device Info:
@@ -567,7 +567,7 @@ typedef struct {
         uint32_t MCU_Index;
         uint32_t CANopenIndex;
         uint8_t phase;
-    } x3000_actorNode;
+    } x3000_actorMothership;
     struct {
         uint8_t highestSub_indexSupported;
         uint8_t port;
@@ -710,7 +710,7 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1A01_TPDOMappingParameter &OD->list[30]
 #define OD_ENTRY_H1A02_TPDOMappingParameter &OD->list[31]
 #define OD_ENTRY_H1A03_TPDOMappingParameter &OD->list[32]
-#define OD_ENTRY_H3000_actorNode &OD->list[33]
+#define OD_ENTRY_H3000_actorMothership &OD->list[33]
 #define OD_ENTRY_H4000_deviceCircuit_1 &OD->list[34]
 #define OD_ENTRY_H6000_moduleMCU &OD->list[35]
 #define OD_ENTRY_H6020_actorCANopen &OD->list[36]

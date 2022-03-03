@@ -1,4 +1,6 @@
 #include "canopen.h"
+#include "OD.h"
+
 //#include <actor/indicator/led.h>
 //#include <actor/transport/can.h>
 
@@ -310,12 +312,12 @@ static void actor_canopen_initialize_class(actor_canopen_t *canopen) {
 }
 
 void actor_node_error_report(actor_node_t *node, const uint8_t errorBit, uint16_t errorCode, uint32_t index) {
-    if (node != NULL & node->canopen != NULL) {
-        CO_errorReport(node->canopen->instance->em, errorBit, errorCode, index);
+    if (node != NULL && node->canopen != NULL) {
+        CO_errorReport(((actor_canopen_t *)(node->canopen))->instance->em, errorBit, errorCode, index);
     }
 }
-void actor_node_error_report(actor_node_t *node, const uint8_t errorBit, uint16_t errorCode, uint32_t index) {
-    if (node != NULL & node->canopen != NULL) {
-        CO_errorReset(node->canopen->instance->em, errorBit, errorCode, index);
+void actor_node_error_reset(actor_node_t *node, const uint8_t errorBit, uint16_t errorCode, uint32_t index) {
+    if (node != NULL && node->canopen != NULL) {
+        CO_errorReset(((actor_canopen_t *)node->canopen)->instance->em, errorBit, index);
     }
 }

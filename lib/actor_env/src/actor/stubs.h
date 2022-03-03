@@ -33,5 +33,4 @@ void *actor_realloc_ext(void *ptr, uint32_t size);
 void *actor_realloc_fast(void *ptr, uint32_t size);
 void actor_free(void *ptr);
 
-
 #endif

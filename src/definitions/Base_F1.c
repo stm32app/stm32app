@@ -504,7 +504,7 @@ OD_ATTR_RAM OD_RAM_t OD_RAM = {
         .COB_IDClientToServerRx = 0x00000600,
         .COB_IDServerToClientTx = 0x00000580
     },
-    .x3000_actorNode = {
+    .x3000_actorMothership = {
         .highestSub_indexSupported = 0x05,
         .timerIndex = 0x00006102,
         .storageIndex = 0x00007100,
@@ -575,7 +575,7 @@ typedef struct {
     OD_obj_record_t o_1A01_TPDOMappingParameter[9];
     OD_obj_record_t o_1A02_TPDOMappingParameter[9];
     OD_obj_record_t o_1A03_TPDOMappingParameter[9];
-    OD_obj_record_t o_3000_actorNode[6];
+    OD_obj_record_t o_3000_actorMothership[6];
     OD_obj_record_t o_4000_deviceCircuit_1[12];
     OD_obj_record_t o_6000_moduleMCU[7];
     OD_obj_record_t o_6020_actorCANopen[11];
@@ -1470,39 +1470,39 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 4
         }
     },
-    .o_3000_actorNode = {
+    .o_3000_actorMothership = {
         {
-            .dataOrig = &OD_RAM.x3000_actorNode.highestSub_indexSupported,
+            .dataOrig = &OD_RAM.x3000_actorMothership.highestSub_indexSupported,
             .subIndex = 0,
             .attribute = ODA_SDO_R,
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_RAM.x3000_actorNode.timerIndex,
+            .dataOrig = &OD_RAM.x3000_actorMothership.timerIndex,
             .subIndex = 1,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_RAM.x3000_actorNode.storageIndex,
+            .dataOrig = &OD_RAM.x3000_actorMothership.storageIndex,
             .subIndex = 2,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_RAM.x3000_actorNode.MCU_Index,
+            .dataOrig = &OD_RAM.x3000_actorMothership.MCU_Index,
             .subIndex = 3,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_RAM.x3000_actorNode.CANopenIndex,
+            .dataOrig = &OD_RAM.x3000_actorMothership.CANopenIndex,
             .subIndex = 4,
             .attribute = ODA_SDO_RW | ODA_MB,
             .dataLength = 4
         },
         {
-            .dataOrig = &OD_RAM.x3000_actorNode.phase,
+            .dataOrig = &OD_RAM.x3000_actorMothership.phase,
             .subIndex = 5,
             .attribute = ODA_SDO_RW,
             .dataLength = 1
@@ -3216,7 +3216,7 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x1A01, 0x09, ODT_REC, &ODObjs.o_1A01_TPDOMappingParameter, NULL},
     {0x1A02, 0x09, ODT_REC, &ODObjs.o_1A02_TPDOMappingParameter, NULL},
     {0x1A03, 0x09, ODT_REC, &ODObjs.o_1A03_TPDOMappingParameter, NULL},
-    {0x3000, 0x06, ODT_REC, &ODObjs.o_3000_actorNode, NULL},
+    {0x3000, 0x06, ODT_REC, &ODObjs.o_3000_actorMothership, NULL},
     {0x4000, 0x0C, ODT_REC, &ODObjs.o_4000_deviceCircuit_1, NULL},
     {0x6000, 0x07, ODT_REC, &ODObjs.o_6000_moduleMCU, NULL},
     {0x6020, 0x0B, ODT_REC, &ODObjs.o_6020_actorCANopen, NULL},

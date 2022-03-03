@@ -51,10 +51,10 @@ struct actor_node {
     actor_thread_t *bg_priority;     /* A background thread of sorts for work that can be done in free time */
 
     void *mcu;
-#ifdef ACTOR_NODE_USE_CANOPEN
+#if ACTOR_NODE_USE_CANOPEN
     void *canopen;
 #endif
-#ifdef ACTOR_NODE_USE_DATABASE
+#if ACTOR_NODE_USE_DATABASE
     void *database;
 #endif
     void *timer;

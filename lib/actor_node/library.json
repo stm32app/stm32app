@@ -4,5 +4,7 @@
     "CANopenOD": "*",
     "actor_env": "*",
     "actor_rtos": "*"
+  },
+  "build": {
   }
 }

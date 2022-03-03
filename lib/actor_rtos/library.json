@@ -4,5 +4,7 @@
     "actor_env": "*",
     "FreeRTOS-Heap": "*",
     "FreeRTOS": "*"
+  },
+  "build": {
   }
 }

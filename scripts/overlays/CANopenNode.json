@@ -1,0 +1,9 @@
+{
+  "name": "CANopenNode",
+  "dependencies": {
+    "actor_env": "*"
+  },
+  "build": {
+    "flags": "-Wno-shadow"
+  }
+}

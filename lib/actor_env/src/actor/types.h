@@ -6,6 +6,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef BOOL_T_DEFINED
+#define BOOL_T_DEFINED
+typedef bool bool_t;
+#endif
+
 // Check GCC
 #if __GNUC__
 #if __x86_64__ || __ppc64__

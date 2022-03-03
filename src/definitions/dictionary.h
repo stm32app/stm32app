@@ -1,5 +1,5 @@
 typedef struct transport_sdio transport_sdio_t /* Secure input/output protocol*/;
-typedef struct actor_node actor_node_t /* Configuration of global object*/;
+typedef struct actor_mothership actor_mothership_t /* Configuration of global object*/;
 typedef struct device_circuit device_circuit_t /* A relay that turns circuit on and off (pwm optional */;
 typedef struct module_mcu module_mcu_t /* */;
 typedef struct actor_canopen actor_canopen_t /* CANOpen framework*/;
@@ -25,7 +25,7 @@ typedef struct signal_beeper signal_beeper_t /* */;
 
 enum actor_type {
     TRANSPORT_SDIO = 0x62A0, /* Secure input/output protocol*/
-    ACTOR_NODE = 0x3000, /* Configuration of global object*/
+    ACTOR_MOTHERSHIP = 0x3000, /* Configuration of global object*/
     DEVICE_CIRCUIT = 0x4000, /* A relay that turns circuit on and off (pwm optional */
     MODULE_MCU = 0x6000, /* */
     ACTOR_CANOPEN = 0x6020, /* CANOpen framework*/
