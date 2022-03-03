@@ -16,7 +16,7 @@
 
         Created:      9/25/2021 2:03:07 AM
         Created By:   
-        Modified:     2/21/2022 1:04:40 AM
+        Modified:     3/3/2022 3:51:50 AM
         Modified By:  
 
     Device Info:
@@ -268,7 +268,7 @@ typedef struct {
         uint8_t phase;
         int16_t CPU_Temperature;
         uint32_t startupTime;
-    } x6000_systemMCU;
+    } x6000_moduleMCU;
     struct {
         uint8_t highestSub_indexSupported;
         uint16_t CAN_Index;
@@ -281,14 +281,14 @@ typedef struct {
         uint8_t phase;
         uint8_t nodeID;
         uint16_t bitrate;
-    } x6020_systemCANopen;
+    } x6020_actorCANopen;
     struct {
         uint8_t highestSub_indexSupported;
         int16_t storageIndex;
         uint32_t journalBufferSize;
         char path[11];
         uint8_t phase;
-    } x6080_systemDatabase;
+    } x6080_actorDatabase;
     struct {
         uint8_t highestSub_indexSupported;
         uint8_t prescaler;
@@ -567,7 +567,7 @@ typedef struct {
         uint32_t MCU_Index;
         uint32_t CANopenIndex;
         uint8_t phase;
-    } x3000_coreApp;
+    } x3000_actorNode;
     struct {
         uint8_t highestSub_indexSupported;
         uint8_t port;
@@ -588,6 +588,7 @@ typedef struct {
         uint8_t pin;
         uint8_t phase;
         uint8_t dutyCycle;
+        uint8_t testZ;
     } x9900_signalBeeper_1;
 } OD_RAM_t;
 
@@ -709,11 +710,11 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1A01_TPDOMappingParameter &OD->list[30]
 #define OD_ENTRY_H1A02_TPDOMappingParameter &OD->list[31]
 #define OD_ENTRY_H1A03_TPDOMappingParameter &OD->list[32]
-#define OD_ENTRY_H3000_coreApp &OD->list[33]
+#define OD_ENTRY_H3000_actorNode &OD->list[33]
 #define OD_ENTRY_H4000_deviceCircuit_1 &OD->list[34]
-#define OD_ENTRY_H6000_systemMCU &OD->list[35]
-#define OD_ENTRY_H6020_systemCANopen &OD->list[36]
-#define OD_ENTRY_H6080_systemDatabase &OD->list[37]
+#define OD_ENTRY_H6000_moduleMCU &OD->list[35]
+#define OD_ENTRY_H6020_actorCANopen &OD->list[36]
+#define OD_ENTRY_H6080_actorDatabase &OD->list[37]
 #define OD_ENTRY_H6100_moduleTimer_1 &OD->list[38]
 #define OD_ENTRY_H6101_moduleTimer_2 &OD->list[39]
 #define OD_ENTRY_H6102_moduleTimer_3 &OD->list[40]

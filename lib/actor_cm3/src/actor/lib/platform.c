@@ -2,6 +2,9 @@
 #include <actor/debug/platform.h>
 #include "platform.h"
 
+
+extern void initialise_monitor_handles(void);
+
 void actor_platform_init(void) {
   scb_set_priority_grouping(SCB_AIRCR_PRIGROUP_GROUP16_NOSUB);
   #ifdef SEMIHOSTING

@@ -3,13 +3,12 @@
 #include <actor/debug/platform.h>
 #include <actor/debug/all.h>
 #include <actor/lib/platform.h>
+#include "301/CO_ODinterface.h"
+#include <OD.h>
 
 #ifdef ACTOR_MOTHERSHIP
     #include "mothership.h"
-    #include "OD.h"
 #endif
-
-extern void initialise_monitor_handles(void);
 
 static void actor_boot(void *pvParameters) {
     
@@ -20,13 +19,13 @@ static void actor_boot(void *pvParameters) {
     actor_node_allocate(node, OD, actor_mothership_enumerate_actors);
 #endif
     debug_printf("App - Constructing...\n");
-    actor_node_set_phase(*node, ACTOR_CONSTRUCTING);
+    actor_node_actors_set_phase(*node, ACTOR_CONSTRUCTING);
 
     debug_printf("App - Linking...\n");
-    actor_node_set_phase(*node, ACTOR_LINKING);
+    actor_node_actors_set_phase(*node, ACTOR_LINKING);
 
     debug_printf("App - Starting...\n");
-    actor_node_set_phase(*node, ACTOR_STARTING);
+    actor_node_actors_set_phase(*node, ACTOR_STARTING);
     
     vTaskDelete(NULL);
 }

@@ -34,6 +34,7 @@
 typedef bool bool_t;
 typedef float                   float32_t;
 typedef double                  float64_t;
+#define CO_VERSION_MAJOR 4
 
 #ifdef __cplusplus
 extern "C" {

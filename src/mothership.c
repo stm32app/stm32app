@@ -1,23 +1,32 @@
 #include "mothership.h"
-//#include <actor/circuit.h>
+#include <actor/device/circuit.h>
 //#include "actors/modbus.h"
 #include <actor/input/sensor.h>
-#include <actor/module/sdram.h>
 #include <actor/module/adc.h>
+#include <actor/module/mcu.h>
+#include <actor/module/sdram.h>
 #include <actor/module/timer.h>
 #include <actor/storage/at24c.h>
-//#include <actor/storage/sdcard.h>
+#include <actor/storage/sdcard.h>
 #include <actor/storage/w25.h>
-#include <actor/module/mcu.h>
 //#include "screen/epaper.h"
 //#include <actor/transport/can.h>
 //#include <actor/transport/i2c.h>
 #include <actor/indicator/led.h>
 #include <actor/transport/can.h>
 #include <actor/transport/i2c.h>
-//#include <actor/transport/sdio.h>
+#include <actor/transport/sdio.h>
 #include <actor/transport/spi.h>
 //#include <actor/transport/usart.h>
+
+
+#ifdef ACTOR_NODE_USE_CANOPEN
+#include <actor/canopen.h>
+#endif
+#ifdef ACTOR_NODE_USE_DATABASE
+//#include <actor/database.h>
+#endif
+
 
 static ODR_t mothership_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
     actor_mothership_t *mothership = stream->object;
@@ -103,31 +112,30 @@ size_t actor_mothership_enumerate_actors(actor_node_t *node, OD_t *od, actor_t *
     count += actor_node_type_enumerate(node, od, &actor_mothership_class, destination, count);
     count += actor_node_type_enumerate(node, od, &module_mcu_class, destination, count);
 #ifdef ACTOR_NODE_USE_CANOPEN
-    count += actor_node_type_enumerate(node, od, &system_canopen_class, destination, count);
+    count += actor_node_type_enumerate(node, od, &actor_canopen_class, destination, count);
 #endif
 #ifdef ACTOR_NODE_USE_DATABASE
-    count += actor_node_type_enumerate(node, od, &system_database_class, destination, count);
+    count += actor_node_type_enumerate(node, od, &actor_database_class, destination, count);
 #endif
     count += actor_node_type_enumerate(node, od, &module_timer_class, destination, count);
     count += actor_node_type_enumerate(node, od, &module_adc_class, destination, count);
     count += actor_node_type_enumerate(node, od, &transport_can_class, destination, count);
     count += actor_node_type_enumerate(node, od, &transport_spi_class, destination, count);
-    // count += actor_node_type_enumerate(node, od, &transport_i2c_class, destination, count);
-    //count += actor_node_type_enumerate(node, od, &transport_sdio_class, destination, count);
+    count += actor_node_type_enumerate(node, od, &transport_i2c_class, destination, count);
+    count += actor_node_type_enumerate(node, od, &transport_sdio_class, destination, count);
     count += actor_node_type_enumerate(node, od, &storage_w25_class, destination, count);
-    // count += actor_node_type_enumerate(node, od, &storage_at24c_class, destination, count);
-    //count += actor_node_type_enumerate(node, od, &storage_sdcard_class, destination, count);
+    count += actor_node_type_enumerate(node, od, &storage_at24c_class, destination, count);
+    count += actor_node_type_enumerate(node, od, &storage_sdcard_class, destination, count);
     count += actor_node_type_enumerate(node, od, &indicator_led_class, destination, count);
-    // count += actor_node_type_enumerate(MODULE_USART, &transport_usart_class, sizeof(transport_usart_t), destination, count);
-    // count += actor_node_type_enumerate(node, od, TRANSPORT_I2C, &transport_i2c_class, sizeof(transport_i2c_t), destination, count);
-    // count += actor_node_type_enumerate(node, od, DEVICE_CIRCUIT, &device_circuit_class, sizeof(device_circuit_t), destination, count);
-    // count += actor_node_type_enumerate(node, OD, SCREEN_EPAPER, &screen_epaper_class, sizeof(screen_epaper_t), destination, count);
-    // count += actor_node_type_enumerate(node, od, INPUT_SENSOR, &input_sensor_class, sizeof(input_sensor_t), destination, count);
+    // count += actor_node_type_enumerate(node, od, &transport_usart_class, sizeof(transport_usart_t), destination, count);
+    // count += actor_node_type_enumerate(node, od, &device_circuit_class, sizeof(device_circuit_t), destination, count);
+    // count += actor_node_type_enumerate(node, od, &screen_epaper_class, sizeof(screen_epaper_t), destination, count);
+    // count += actor_node_type_enumerate(node, od, &input_sensor_class, sizeof(input_sensor_t), destination, count);
     return count;
 }
 
 static actor_signal_t mothership_worker_high_priority(actor_mothership_t *mothership, actor_event_t *event, actor_worker_t *tick,
-                                                    actor_thread_t *thread) {
+                                                      actor_thread_t *thread) {
     (void)tick;
     (void)thread;
     if (event->type == ACTOR_EVENT_THREAD_ALARM && !mothership->initialized) {
@@ -145,7 +153,8 @@ static actor_signal_t mothership_worker_high_priority(actor_mothership_t *mother
     return 0;
 }
 
-static actor_signal_t mothership_worker_input(actor_mothership_t *mothership, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
+static actor_signal_t mothership_worker_input(actor_mothership_t *mothership, actor_event_t *event, actor_worker_t *tick,
+                                              actor_thread_t *thread) {
     return 0;
 }
 
@@ -170,7 +179,7 @@ static actor_job_signal_t mothership_job_stats(actor_job_t *job) {
 }
 
 static actor_signal_t mothership_worker_low_priority(actor_mothership_t *mothership, actor_event_t *event, actor_worker_t *tick,
-                                                   actor_thread_t *thread) {
+                                                     actor_thread_t *thread) {
     switch (event->type) {
     case ACTOR_EVENT_THREAD_ALARM:
         // if (mothership->sdram)
@@ -231,9 +240,9 @@ static actor_worker_callback_t mothership_on_worker_assignment(actor_mothership_
 }
 
 actor_class_t actor_mothership_class = {
-    .type = CORE_APP,
+    .type = ACTOR_NODE,
     .size = sizeof(actor_mothership_t),
-    .phase_subindex = CORE_ACTOR_PHASE,
+    .phase_subindex = ACTOR_NODE_PHASE,
     .validate = (actor_method_t)mothership_validate,
     .construct = (actor_method_t)mothership_construct,
     .destruct = (actor_method_t)mothership_destruct,

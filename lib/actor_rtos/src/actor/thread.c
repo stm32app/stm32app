@@ -115,7 +115,7 @@ static actor_signal_t actor_thread_event_actor_dispatch(actor_thread_t *thread, 
     actor_signal_t signal = 0;
 
     if (actor_thread_should_notify_actor(thread, event, actor, worker)) {
-        debug_printf("├ %-22s#%s from %s\n", actor_node_stringify(actor), get_actor_event_type_name(event->type),
+        debug_printf("├ %-22s#%s from %s\n", actor_node_stringify(actor), actor_event_stringify(event),
                      actor_node_stringify(event->producer));
 
         if (event->type == ACTOR_EVENT_THREAD_ALARM || event->type == ACTOR_EVENT_THREAD_START) {
@@ -161,7 +161,7 @@ static size_t actor_thread_event_requeue(actor_thread_t *thread, actor_event_t *
     switch (event->status) {
     case ACTOR_EVENT_WAITING:
         if (event->type != ACTOR_EVENT_THREAD_ALARM) {
-            debug_printf("No actors are listening to event: #%s\n", get_actor_event_type_name(event->type));
+            debug_printf("No actors are listening to event: #%s\n", actor_event_stringify(event));
             actor_event_finalize(event->producer, event);
         }
         break;
@@ -187,7 +187,7 @@ static size_t actor_thread_event_requeue(actor_thread_t *thread, actor_event_t *
                     return 1;
                 }
             } else {
-                debug_printf("The queue doesnt have any room for deferred event #%s\n", get_actor_event_type_name(event->type));
+                debug_printf("The queue doesnt have any room for deferred event #%s\n", actor_event_stringify(event));
             }
         } else {
             // Threads without a queue will leave event stored in the only available notification slot
@@ -316,7 +316,7 @@ actor_signal_t actor_thread_event_await(actor_thread_t *thread, actor_event_t *e
 }
 
 bool actor_thread_notify_generic(actor_thread_t *thread, uint32_t value, bool overwrite) {
-    debug_printf("│ │ ├ Notify\t\t%s with #%s\n", actor_thread_get_name(thread), value < 50 ? get_actor_signal_name(value) : (char *)(&value));
+    debug_printf("│ │ ├ Notify\t\t%s with #%s\n", actor_thread_get_name(thread), value < 50 ? actor_signal_stringify(value) : (char *)(&value));
     if (actor_thread_is_interrupted(thread)) {
         static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         bool result = xTaskNotifyFromISR(thread->task, value, overwrite ? eSetValueWithOverwrite : eSetValueWithoutOverwrite,
@@ -329,7 +329,7 @@ bool actor_thread_notify_generic(actor_thread_t *thread, uint32_t value, bool ov
 }
 
 bool actor_thread_publish_generic(actor_thread_t *thread, actor_event_t *event, bool to_front) {
-    debug_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", get_actor_event_type_name(event->type), actor_node_stringify(event->producer),
+    debug_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", actor_event_stringify(event), actor_node_stringify(event->producer),
                  event->consumer ? actor_node_stringify(event->consumer) : "broadcast", actor_thread_get_name(thread));
     bool result = false;
 

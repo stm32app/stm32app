@@ -1,9 +1,9 @@
-
 typedef struct transport_sdio transport_sdio_t /* Secure input/output protocol*/;
+typedef struct actor_node actor_node_t /* Configuration of global object*/;
 typedef struct device_circuit device_circuit_t /* A relay that turns circuit on and off (pwm optional */;
 typedef struct module_mcu module_mcu_t /* */;
-typedef struct system_canopen system_canopen_t /* CANOpen framework*/;
-typedef struct system_database system_database_t /* SQLite instance*/;
+typedef struct actor_canopen actor_canopen_t /* CANOpen framework*/;
+typedef struct actor_database actor_database_t /* SQLite instance*/;
 typedef struct module_timer module_timer_t /* Basic 16-bit timer with low power consumption.*/;
 typedef struct transport_can transport_can_t /* */;
 typedef struct transport_spi transport_spi_t /* ADC Unit used for high-volume sampling of analog signals*/;
@@ -25,11 +25,11 @@ typedef struct signal_beeper signal_beeper_t /* */;
 
 enum actor_type {
     TRANSPORT_SDIO = 0x62A0, /* Secure input/output protocol*/
-    CORE_APP = 0x3000, /* Configuration of global object*/
+    ACTOR_NODE = 0x3000, /* Configuration of global object*/
     DEVICE_CIRCUIT = 0x4000, /* A relay that turns circuit on and off (pwm optional */
-    SYSTEM_MCU = 0x6000, /* */
-    SYSTEM_CANOPEN = 0x6020, /* CANOpen framework*/
-    SYSTEM_DATABASE = 0x6080, /* SQLite instance*/
+    MODULE_MCU = 0x6000, /* */
+    ACTOR_CANOPEN = 0x6020, /* CANOpen framework*/
+    ACTOR_DATABASE = 0x6080, /* SQLite instance*/
     MODULE_TIMER = 0x6100, /* Basic 16-bit timer with low power consumption.*/
     TRANSPORT_CAN = 0x6200, /* */
     TRANSPORT_SPI = 0x6220, /* ADC Unit used for high-volume sampling of analog signals*/

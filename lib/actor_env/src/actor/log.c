@@ -10,6 +10,7 @@ int32_t cycntoffset;
 uint32_t lasttaskswitch;
 uint32_t lasttasksoffset;
 
+#define DWT_CYCCNT 0
 
 #if DEBUG_LOG_LEVEL > 0 && DEBUG_BUFFER_SIZE > 0 
 char debug_buffer[DEBUG_BUFFER_SIZE] = {};

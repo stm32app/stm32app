@@ -3,7 +3,7 @@
 #include <actor/lib/dma.h>
 
 static actor_job_signal_t w25_spi_transfer(actor_job_t *job, uint8_t *write_data, size_t write_size, size_t read_size) {
-    actor_publish(job->actor->node, &((actor_event_t){
+    actor_publish(job->actor, &((actor_event_t){
                                        .type = ACTOR_EVENT_TRANSFER,
                                        .consumer = ((storage_w25_t *)job->actor->object)->spi->actor,
                                        .producer = job->actor,

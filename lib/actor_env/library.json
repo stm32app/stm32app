@@ -1,7 +1,5 @@
 {
   "name": "actor_env",
   "dependencies": {
-    "FreeRTOS": "*",
-    "FreeRTOS-Heap": "*"
   }
 }

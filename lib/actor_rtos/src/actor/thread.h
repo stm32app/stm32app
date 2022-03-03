@@ -9,6 +9,7 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include <actor/job.h>
+#include <multi_heap.h>
 
 #include <actor/types.h>
 

@@ -46,7 +46,7 @@ static actor_worker_callback_t blank_on_worker_assignment(actor_blank_t *blank, 
 }
 
 actor_class_t actor_blank_class = {
-    .type = 0,//SYSTEM_MCU,
+    .type = 0,//ACTOR_MCU,
     .size = sizeof(actor_blank_t),
     .phase_subindex = 0,//ACTOR_BLANK_PHASE,
     .validate = (actor_method_t)blank_validate,

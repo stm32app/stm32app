@@ -1,7 +1,9 @@
 #include "modbus.h"
+#include "actor/lib/gpio.h"
 #define _MMODBUS_RTU 1
 #define _MMODBUS_TXDMA
 
+#if 0
 
 static ODR_t modbus_property_write(OD_stream_t *stream, const void *buf, OD_size_t count,
                                              OD_size_t *countWritten) {
@@ -67,7 +69,7 @@ static actor_signal_t modbus_signal(transport_modbus_t *modbus, actor_t *actor, 
     switch (signal) {
         /* usart is idle, need to wait 3.5 characters to start reading */
         case ACTOR_SIGNAL_RX_COMPLETE:
-            module_timer_set(modbus->timer, modbus->actor, modbus->idle_timeout, ACTOR_SIGNAL_RX_COMPLETE);
+            module_timer_timeout(modbus->timer, modbus->actor, modbus->idle_timeout, ACTOR_SIGNAL_RX_COMPLETE);
             break;
         /* 3.5 characters delay time is over, ready to process messages in buffer */
         case ACTOR_SIGNAL_TIMEOUT:
@@ -326,3 +328,6 @@ actor_class_t transport_modbus_class = {
     .on_signal = (actor_on_signal_t) modbus_signal,
     .on_phase = (actor_on_phase_t)modbus_phase,
     .property_write = modbus_property_write,};
+
+
+#endif

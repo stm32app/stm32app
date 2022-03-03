@@ -602,7 +602,7 @@ static actor_job_signal_t sdio_task_publish_response(actor_job_t *job) {
     case 0:
         // if event was ACTOR_EVENT_READ_TO_BUFFER, it is assumed that producer expects report instead of event
         if (job->inciting_event.type == ACTOR_EVENT_READ) {
-            actor_publish(job->actor->node, &((actor_event_t){.type = ACTOR_EVENT_RESPONSE,
+            actor_publish(job->actor, &((actor_event_t){.type = ACTOR_EVENT_RESPONSE,
                                                          .producer = sdio->actor,
                                                          .consumer = job->inciting_event.producer,
                                                          .data = (uint8_t *)sdio->target_buffer,

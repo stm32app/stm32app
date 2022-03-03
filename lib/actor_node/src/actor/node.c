@@ -1,23 +1,23 @@
-#include <actor/node.h>
 #include <actor/buffer.h>
+#include <actor/node.h>
 
 // Count or initialize all actors in OD of given type
-size_t actor_node_type_enumerate(actor_node_t *node, OD_t *od, actor_class_t *class, actor_t *destination, size_t offset) {
+size_t actor_node_type_enumerate(actor_node_t *node, OD_t *od, actor_class_t *actor_class, actor_t *destination, size_t offset) {
     size_t count = 0;
 
     for (size_t seq = 0; seq < 128; seq++) {
-        OD_entry_t *properties = OD_find(od, class->type + seq);
+        OD_entry_t *properties = OD_find(od, actor_class->type + seq);
         if (properties == NULL && seq >= 19)
             break;
         if (properties == NULL)
             continue;
 
-        uint8_t *phase = OD_getPtr(properties, class->phase_subindex, 0, NULL);
+        uint8_t *phase = OD_getPtr(properties, actor_class->phase_subindex, 0, NULL);
 
         // compute struct offset for phase property
-        class->phase_offset = (void *)phase - OD_getPtr(properties, 0x00, 0, NULL);
+        actor_class->phase_offset = (void *)phase - OD_getPtr(properties, 0x00, 0, NULL);
 
-        if (*phase != ACTOR_ENABLED || class->validate(OD_getPtr(properties, 0x00, 0, NULL)) != 0) {
+        if (*phase != ACTOR_ENABLED || actor_class->validate(OD_getPtr(properties, 0x00, 0, NULL)) != 0) {
             if (node != NULL) {
                 actor_node_error_report(node, APP_ERROR_INCONSISTENT_OBJECT_DICT, APP_ERROR_ADDITIONAL_MODUL, OD_getIndex(properties));
             }
@@ -32,10 +32,10 @@ size_t actor_node_type_enumerate(actor_node_t *node, OD_t *od, actor_class_t *cl
         actor_t *actor = &destination[offset + count - 1];
         actor->seq = seq;
         actor->entry = properties;
-        actor->class = class;
+        actor->class = actor_class;
 
-        actor->entry_extension.write = class->property_write == NULL ? OD_writeOriginal : class->property_write;
-        actor->entry_extension.read = class->property_read == NULL ? OD_readOriginal : class->property_read;
+        actor->entry_extension.write = actor_class->property_write == NULL ? OD_writeOriginal : actor_class->property_write;
+        actor->entry_extension.read = actor_class->property_read == NULL ? OD_readOriginal : actor_class->property_read;
 
         OD_extension_init(properties, &actor->entry_extension);
     }
@@ -75,7 +75,7 @@ uint8_t actor_node_find_number(actor_node_t *node, actor_t *actor) {
     return 255;
 }
 
-void actor_node_set_phase(actor_node_t *node, actor_phase_t phase) {
+void actor_node_actors_set_phase(actor_node_t *node, actor_phase_t phase) {
     debug_printf("Devices - phase %s\n", get_actor_phase_name(phase));
     for (size_t i = 0; i < node->actor_count; i++) {
         // if (node->actor[i].phase != ACTOR_DISABLED) {
@@ -196,28 +196,27 @@ void actor_event_report_callback(actor_t *actor, actor_event_t *event) {
 }
 
 actor_signal_t actor_buffer_allocation_callback(actor_buffer_t *buffer, uint32_t size) {
-    if (buffer->owner->class->on_buffer_allocation) {                                                                                      
-        return buffer->owner->class->on_buffer_allocation(buffer->owner->object, buffer, size);                                            
+    if (buffer->owner->class->on_buffer_allocation) {
+        return buffer->owner->class->on_buffer_allocation(buffer->owner->object, buffer, size);
     } else {
         return ACTOR_SIGNAL_NOT_IMPLEMENTED;
     }
 }
-actor_thread_t* actor_get_input_thread(actor_t *actor) {
+actor_thread_t *actor_get_input_thread(actor_t *actor) {
     return actor->node->input;
 }
 
 #ifdef INC_ENUMS
 char *actor_node_stringify(actor_t *actor) {
-  return get_actor_type_name(actor->class->type);
+    return get_actor_type_name(actor->class->type);
 };
 #endif
 
-actor_t *actor_unbox(actor_t *actor) {
-  return actor->object;
+void *actor_unbox(actor_t *actor) {
+    return actor->object;
 }
-
 
 actor_t *actor_box(void *object) {
-  return (actor_t *) ((void *) (*object));
+    uintXX_t *ptr = object;
+    return (actor_t *)((uintXX_t)*ptr);
 }
-

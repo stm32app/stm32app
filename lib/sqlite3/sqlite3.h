@@ -9740,7 +9740,7 @@ SQLITE_API int sqlite3_preupdate_blobwrite(sqlite3 *);
 ** called to get back the underlying "errno" that caused the problem, such
 ** as ENOSPC, EAUTH, EISDIR, and so forth.
 */
-SQLITE_API int sqlite3_system_errno(sqlite3*);
+SQLITE_API int sqlite3_actor_errno(sqlite3*);
 
 /*
 ** CAPI3REF: Database Snapshot

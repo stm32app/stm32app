@@ -20,9 +20,12 @@ It is a multi-region memory management features abilities:
 
 #include <stdint.h>
 #include <stddef.h>
-//#ifdef HEAP_CONFIG
-//#include ACTOR_CONFIG_PATH(HEAP_CONFIG)
-//#else
+
+#ifdef HEAP_CONFIG
+#define HEAP_CONFIG_PATH(x) HEAP_CONFIG_PATH2(x)
+#define HEAP_CONFIG_PATH2(x) #x
+#include HEAP_CONFIG_PATH(HEAP_CONFIG)
+#else
 #define HEAP_NUM 1
 #define HEAP_REGIONS {{(uint8_t *)&ucHeap0, sizeof(ucHeap0)}};
 #define RTOSREGION 0               // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 0
@@ -30,7 +33,7 @@ It is a multi-region memory management features abilities:
 #define MALLOC_DMAREGION 0 // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma : region 0
 #define MALLOC_INTREGION 0  // multi_malloc_fast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
 #define MALLOC_EXTREGION 0 // multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 2
-//#endif
+#endif
 
 
 #define HEAP_SHARED    ucHeap0[configTOTAL_HEAP_SIZE]  /* shared (with stack and bss) memory region heap */

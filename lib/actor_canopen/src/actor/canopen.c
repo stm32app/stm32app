@@ -1,22 +1,22 @@
 #include "canopen.h"
-#include <actor/indicator/led.h>
-#include <actor/transport/can.h>
+//#include <actor/indicator/led.h>
+//#include <actor/transport/can.h>
 
 static void actor_thread_canopen_notify(actor_thread_t *thread);
-static void system_canopen_initialize_class(system_canopen_t *canopen);
+static void actor_canopen_initialize_class(actor_canopen_t *canopen);
 
 static ODR_t canopen_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
-    system_canopen_t *canopen = stream->object;
+    actor_canopen_t *canopen = stream->object;
     (void)canopen;
     ODR_t result = OD_writeOriginal(stream, buf, count, countWritten);
     return result;
 }
 
-static actor_signal_t canopen_validate(system_canopen_properties_t *properties) {
+static actor_signal_t canopen_validate(actor_canopen_properties_t *properties) {
     return 0;
 }
 
-static actor_signal_t canopen_construct(system_canopen_t *canopen) {
+static actor_signal_t canopen_construct(actor_canopen_t *canopen) {
 
     /* Allocate memory */
     uint32_t heapMemoryUsed = 0;
@@ -51,20 +51,20 @@ static actor_signal_t canopen_construct(system_canopen_t *canopen) {
     return 0;
 }
 
-static actor_signal_t canopen_destruct(system_canopen_t *canopen) {
+static actor_signal_t canopen_destruct(actor_canopen_t *canopen) {
     CO_CANsetConfigurationMode(canopen->instance);
     CO_delete(canopen->instance);
     return 0;
 }
 
-static bool system_canopen_store_lss(system_canopen_t *canopen, uint8_t node_id, uint16_t bitrate) {
+static bool actor_canopen_store_lss(actor_canopen_t *canopen, uint8_t node_id, uint16_t bitrate) {
     debug_printf("Config - Store LSS #%i @ %ikbps...\n", node_id, bitrate);
-    system_canopen_set_node_id(canopen, node_id);
-    system_canopen_set_bitrate(canopen, bitrate);
+    actor_canopen_set_node_id(canopen, node_id);
+    actor_canopen_set_bitrate(canopen, bitrate);
     return 0;
 }
 
-static actor_signal_t canopen_start(system_canopen_t *canopen) {
+static actor_signal_t canopen_start(actor_canopen_t *canopen) {
     CO_ReturnError_t err;
     uint32_t errInfo = 0;
 
@@ -75,14 +75,15 @@ static actor_signal_t canopen_start(system_canopen_t *canopen) {
     CO_CANmodule_disable(canopen->instance->CANmodule);
 
     /* Pass CAN propertiesuration to CANopen driver */
-    canopen->instance->CANmodule->port = canopen->can->actor->seq == 0 ? CAN1 : CAN2;
+    actor_t *can_actor = actor_box(canopen);
+    canopen->instance->CANmodule->port = can_actor->seq == 0 ? CAN1 : CAN2;
     canopen->instance->CANmodule->rxFifoIndex = canopen->properties->can_fifo_index;
-    canopen->instance->CANmodule->sjw = canopen->can->properties->sjw;
-    canopen->instance->CANmodule->prop = canopen->can->properties->prop;
-    canopen->instance->CANmodule->brp = canopen->can->properties->brp;
-    canopen->instance->CANmodule->ph_seg1 = canopen->can->properties->ph_seg1;
-    canopen->instance->CANmodule->ph_seg2 = canopen->can->properties->ph_seg2;
-    canopen->instance->CANmodule->bitrate = canopen->can->properties->bitrate;
+    canopen->instance->CANmodule->sjw = transport_can_get_sjw(canopen->can);
+    canopen->instance->CANmodule->prop = transport_can_get_prop(canopen->can);
+    canopen->instance->CANmodule->brp = transport_can_get_brp(canopen->can);
+    canopen->instance->CANmodule->ph_seg1 = transport_can_get_ph_seg1(canopen->can);
+    canopen->instance->CANmodule->ph_seg2 = transport_can_get_ph_seg2(canopen->can);
+    canopen->instance->CANmodule->bitrate = transport_can_get_bitrate(canopen->can);
 
     /* Initialize CANopen driver */
     err = CO_CANinit(canopen->instance, canopen->instance, canopen->properties->bitrate);
@@ -98,14 +99,14 @@ static actor_signal_t canopen_start(system_canopen_t *canopen) {
                                                 .serialNumber = OD_PERSIST_COMM.x1018_identity.serialNumber}};
 
     err = CO_LSSinit(canopen->instance, &lssAddress, &canopen->properties->node_id, &canopen->properties->bitrate);
-    CO_LSSslave_initCfgStoreCallback(canopen->instance->LSSslave, canopen, (bool(*)(void *, uint8_t, uint16_t))system_canopen_store_lss);
+    CO_LSSslave_initCfgStoreCallback(canopen->instance->LSSslave, canopen, (bool(*)(void *, uint8_t, uint16_t))actor_canopen_store_lss);
 
     if (err != CO_ERROR_NO) {
         error_printf("Error: LSS slave initialization failed: %d\n", err);
         return err;
     }
 
-    system_canopen_initialize_class(canopen);
+    actor_canopen_initialize_class(canopen);
 
     /* Initialize CANopen itself */
     err = CO_CANopenInit(canopen->instance,                       /* CANopen object */
@@ -147,21 +148,21 @@ static actor_signal_t canopen_start(system_canopen_t *canopen) {
     return 0;
 }
 
-static actor_signal_t canopen_stop(system_canopen_t *canopen) {
+static actor_signal_t canopen_stop(actor_canopen_t *canopen) {
     debug_printf("Config - Unloading...\n");
     CO_CANsetConfigurationMode((void *)&canopen->instance);
     CO_delete(canopen->instance);
     return 0;
 }
 
-static actor_signal_t canopen_link(system_canopen_t *canopen) {
+static actor_signal_t canopen_link(actor_canopen_t *canopen) {
     actor_link(canopen->actor, (void **)&canopen->can, canopen->properties->can_index, NULL);
     actor_link(canopen->actor, (void **)&canopen->red_led, canopen->properties->red_led_index, NULL);
     actor_link(canopen->actor, (void **)&canopen->green_led, canopen->properties->green_led_index, NULL);
     return 0;
 }
 
-static actor_signal_t canopen_worker_high_priority(system_canopen_t *canopen, void *argument, actor_worker_t *tick, actor_thread_t *thread) {
+static actor_signal_t canopen_worker_high_priority(actor_canopen_t *canopen, void *argument, actor_worker_t *tick, actor_thread_t *thread) {
     (void)argument;
     tick->next_time = 0;
 
@@ -186,7 +187,7 @@ static actor_signal_t canopen_worker_high_priority(system_canopen_t *canopen, vo
 }
 
 /* CANopen accepts its input from interrupts */
-static actor_signal_t canopen_worker_on_input(system_canopen_t *canopen, void *argument, actor_worker_t *tick, actor_thread_t *thread) {
+static actor_signal_t canopen_worker_on_input(actor_canopen_t *canopen, void *argument, actor_worker_t *tick, actor_thread_t *thread) {
     (void)argument;
 
     uint32_t us_since_last = (thread->current_time - tick->last_time) * 1000;
@@ -213,7 +214,7 @@ static actor_signal_t canopen_worker_on_input(system_canopen_t *canopen, void *a
     return 0;
 }
 
-static actor_signal_t canopen_phase(system_canopen_t *canopen, actor_phase_t phase) {
+static actor_signal_t canopen_phase(actor_canopen_t *canopen, actor_phase_t phase) {
     (void)canopen;
     (void)phase;
     return 0;
@@ -221,14 +222,14 @@ static actor_signal_t canopen_phase(system_canopen_t *canopen, actor_phase_t pha
 
 /* Publish a wakeup event to thread for immediate processing */
 static void actor_thread_canopen_notify(actor_thread_t *thread) {
-    system_canopen_t *canopen = thread->actor->node->canopen;
+    actor_canopen_t *canopen = thread->actor->node->canopen;
 
     actor_event_t event = {.type = ACTOR_EVENT_RESPONSE, .producer = canopen->actor, .consumer = canopen->actor};
     // canopen messages are safe to send in any order and it is desirable to handle them asap
     actor_thread_publish(thread, &event);
 }
 
-static actor_worker_callback_t canopen_on_worker_assignment(system_canopen_t *canopen, actor_thread_t *thread) {
+static actor_worker_callback_t canopen_on_worker_assignment(actor_canopen_t *canopen, actor_thread_t *thread) {
     if (thread == canopen->actor->node->input) {
         return (actor_worker_callback_t) canopen_worker_on_input;
     } else if (thread == canopen->actor->node->high_priority) {
@@ -237,10 +238,10 @@ static actor_worker_callback_t canopen_on_worker_assignment(system_canopen_t *ca
     return NULL;
 }
 
-actor_class_t system_canopen_class = {
-    .type = SYSTEM_CANOPEN,
-    .size = sizeof(system_canopen_t),
-    .phase_subindex = SYSTEM_CANOPEN_PHASE,
+actor_class_t actor_canopen_class = {
+    .type = ACTOR_CANOPEN,
+    .size = sizeof(actor_canopen_t),
+    .phase_subindex = ACTOR_CANOPEN_PHASE,
 
     .validate = (actor_method_t)canopen_validate,
     .construct = (actor_method_t)canopen_construct,
@@ -254,7 +255,7 @@ actor_class_t system_canopen_class = {
     .on_worker_assignment = (actor_on_worker_assignment_t) canopen_on_worker_assignment,
 };
 
-static void system_canopen_initialize_class(system_canopen_t *canopen) {
+static void actor_canopen_initialize_class(actor_canopen_t *canopen) {
     actor_node_t *node = canopen->actor->node;
 
     /* Mainline tasks */

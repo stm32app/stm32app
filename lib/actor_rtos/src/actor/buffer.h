@@ -1,7 +1,6 @@
 #ifndef INC_CORE_BUFFER
 #define INC_CORE_BUFFER
 
-#include <multi_heap.h>
 
 #include <actor/event.h>
 #include <actor/types.h>

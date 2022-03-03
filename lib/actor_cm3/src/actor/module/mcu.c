@@ -42,9 +42,9 @@ static actor_signal_t mcu_phase(module_mcu_t *mcu, actor_phase_t phase) {
 }
 
 actor_class_t module_mcu_class = {
-    .type = SYSTEM_MCU,
+    .type = MODULE_MCU,
     .size = sizeof(module_mcu_t),
-    .phase_subindex = SYSTEM_MCU_PHASE,
+    .phase_subindex = MODULE_MCU_PHASE,
     .validate = (actor_method_t)mcu_validate,
     .construct = (actor_method_t)mcu_construct,
     .link = (actor_method_t)mcu_link,

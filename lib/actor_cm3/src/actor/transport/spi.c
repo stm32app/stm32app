@@ -267,7 +267,7 @@ static actor_signal_t spi_dma_read_complete(transport_spi_t *spi) {
     actor_buffer_trim_left(buffer, spi->tx_bytes_target);
 
     actor_event_finalize(spi->actor, &spi->processed_event);
-    actor_publish(spi->actor->node, &((actor_event_t){
+    actor_publish(spi->actor, &((actor_event_t){
         .type = ACTOR_EVENT_RESPONSE, 
         .producer = spi->actor, 
         .consumer = spi->processed_event.producer,

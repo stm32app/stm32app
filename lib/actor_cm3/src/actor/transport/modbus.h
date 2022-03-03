@@ -7,8 +7,8 @@ extern "C" {
 
 #include <actor/actor.h>
 #include <actor/lib/bytes.h>
-#include <actor/transport/usart.h>
 #include <actor/module/timer.h>
+#include <actor/transport/usart.h>
 
 #define MODBUS_RX_BUFFER_SIZE
 
@@ -52,7 +52,7 @@ struct transport_modbus {
     uint16_t (*ab)(uint16_t ab);
 };
 
-typedef enum {
+typedef enum transport_modbus_cmd {
     MODBUS_READ_COIL_STATUS = 1,
     MODBUS_READ_DISCRETE_INPUTS = 2,
     MODBUS_READ_HOLDING_REGISTERS = 3,
@@ -66,69 +66,43 @@ typedef enum {
 
 extern actor_class_t transport_modbus_class;
 
-
-//int transport_modbus_send(transport_modbus_t *modbus, uint8_t *data, uint8_t length);
-
+// int transport_modbus_send(transport_modbus_t *modbus, uint8_t *data, uint8_t length);
 
 int transport_modbus_receive(transport_modbus_t *modbus, uint8_t *data);
 int transport_modbus_cancel(transport_modbus_t *modbus);
 int transport_modbus_respond(transport_modbus_t *modbus, transport_modbus_request_t *request);
 int transport_modbus_request(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint8_t type, uint16_t length,
-                          uint8_t *response);
+                             uint8_t *response);
 
 int transport_modbus_read_coil(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint8_t *data);
-int transport_modbus_read_coils(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
-                             uint8_t *data);
+int transport_modbus_read_coils(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length, uint8_t *data);
 int transport_modbus_read_discrete_input(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint8_t *data);
-int transport_modbus_read_discrete_inputs(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
-                                       uint8_t *data);
-int transport_modbus_read_input_registers_8i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
-                                          uint8_t *data);
+int transport_modbus_read_discrete_inputs(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length, uint8_t *data);
+int transport_modbus_read_input_registers_8i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length, uint8_t *data);
 int transport_modbus_read_input_registers_16i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
-                                           uint16_t *data);
+                                              uint16_t *data);
 int transport_modbus_read_input_register_16i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t *data);
-int transport_modbus_read_input_registers_32f(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
-                                           float *data);
+int transport_modbus_read_input_registers_32f(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length, float *data);
 int transport_modbus_read_input_register_32f(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, float *data);
 int transport_modbus_read_input_register_32i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint32_t *data);
 int transport_modbus_read_input_registers_32i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
-                                           uint32_t *data);
+                                              uint32_t *data);
 int transport_modbus_read_holding_registers_8i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
-                                            uint8_t *data);
-int transport_modbus_read_holding_registers_16i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index,
-                                             uint16_t length, uint16_t *data);
+                                               uint8_t *data);
+int transport_modbus_read_holding_registers_16i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
+                                                uint16_t *data);
 int transport_modbus_read_holding_register16i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t *data);
-int transport_modbus_read_holding_registers_32f(transport_modbus_t *modbus, uint8_t recipient, uint16_t index,
-                                             uint16_t length, float *data);
+int transport_modbus_read_holding_registers_32f(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
+                                                float *data);
 int transport_modbus_read_holding_register32f(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, float *data);
 int transport_modbus_read_holding_register32i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint32_t *data);
-int transport_modbus_read_holding_registers_32i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index,
-                                             uint16_t length, uint32_t *data);
+int transport_modbus_read_holding_registers_32i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t length,
+                                                uint32_t *data);
 int transport_modbus_write_holding_register16i(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint16_t data);
 int transport_modbus_write_coil(transport_modbus_t *modbus, uint8_t recipient, uint16_t index, uint8_t data);
 
-
 uint16_t transport_modbus_crc16(const uint8_t *nData, uint16_t wLength);
 transport_modbus_request_t *transport_modbus_allocate_request(transport_modbus_t *modbus);
-
-/* Start of autogenerated OD accessors */
-typedef enum transport_modbus_properties_indecies {
-  TRANSPORT_MODBUS_USART_INDEX = 0x01,
-  TRANSPORT_MODBUS_RTS_PORT = 0x02,
-  TRANSPORT_MODBUS_RTS_PIN = 0x03,
-  TRANSPORT_MODBUS_SLAVE_ADDRESS = 0x04,
-  TRANSPORT_MODBUS_TIMEOUT = 0x05,
-  TRANSPORT_MODBUS_PHASE = 0x06
-} transport_modbus_properties_indecies_t;
-
-/* 0x62XX06: in us */
-static inline void transport_modbus_set_phase(transport_modbus_t *modbus, uint8_t value) { 
-    actor_set_property_numeric(modbus->actor, TRANSPORT_MODBUS_PHASE, (uint32_t)(value), sizeof(uint8_t));
-}
-static inline uint8_t transport_modbus_get_phase(transport_modbus_t *modbus) {
-    return *((uint8_t *) actor_get_property_pointer(modbus->actor, TRANSPORT_MODBUS_PHASE));
-}
-/* End of autogenerated OD accessors */
 
 #ifdef __cplusplus
 }

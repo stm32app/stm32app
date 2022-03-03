@@ -1,6 +1,7 @@
 #ifndef INC_FREERTOS_CONFIG
 #define INC_FREERTOS_CONFIG
 
+#include "actor/log.h"
 
 #ifdef DEBUG
 #define configCHECK_FOR_STACK_OVERFLOW 2

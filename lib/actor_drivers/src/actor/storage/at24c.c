@@ -56,7 +56,7 @@ static actor_job_signal_t at24c_task_read(actor_job_t *job, uint8_t address, uin
         }
     case 1:
         bytes_on_page = get_number_of_bytes_intesecting_page(address + job->counter, size, at24c->properties->page_size);
-        actor_publish(job->actor->node, &((actor_event_t){
+        actor_publish(job->actor, &((actor_event_t){
                                           .type = ACTOR_EVENT_READ_TO_BUFFER,
                                           .consumer = at24c->i2c->actor,
                                           .producer = job->actor,
@@ -92,7 +92,7 @@ static actor_signal_t at24c_task_write(actor_job_t *job, uint8_t address, uint8_
         }
     case 1:
         bytes_on_page = get_number_of_bytes_intesecting_page(address + job->counter, size, at24c->properties->page_size);
-        actor_publish(job->actor->node, &((actor_event_t){
+        actor_publish(job->actor, &((actor_event_t){
                                           .type = ACTOR_EVENT_WRITE,
                                           .consumer = at24c->i2c->actor,
                                           .producer = job->actor,

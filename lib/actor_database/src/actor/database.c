@@ -239,7 +239,7 @@ static int vfs_Open(sqlite3_vfs *pVfs,   /* VFS */
                     int *pOutFlags       /* Output SQLITE_OPEN_XXX flags (or NULL) */
 ) {
     trace_printf("fn: Open\n");
-    system_database_t *database = pVfs->pAppData;
+    actor_database_t *database = pVfs->pAppData;
     vfs_File *p = (vfs_File *)pFile; /* Populate this structure */
     memset(p, 0, sizeof(vfs_File));
 
@@ -282,7 +282,7 @@ static int vfs_Open(sqlite3_vfs *pVfs,   /* VFS */
 */
 static int vfs_Delete(sqlite3_vfs *pVfs, const char *zPath, int dirSync) {
     trace_printf("fn: Delete\n");
-    system_database_t *database = pVfs->pAppData;
+    actor_database_t *database = pVfs->pAppData;
     actor_file_t file = {.owner = database->actor, .storage = database->storage->actor, .path = zPath};
     actor_file_delete(&file);
     trace_printf("fn:Delete:Success\n");
@@ -380,17 +380,17 @@ static int vfs_GetLastError(sqlite3_vfs *pVfs, int nBuf, char *zBuf) {
 }
 
 static ODR_t database_property_write(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *countWritten) {
-    system_database_t *database = stream->object;
+    actor_database_t *database = stream->object;
     (void)database;
     ODR_t result = OD_writeOriginal(stream, buf, count, countWritten);
     return result;
 }
 
-static actor_signal_t database_validate(system_database_properties_t *properties) {
+static actor_signal_t database_validate(actor_database_properties_t *properties) {
     return 0;
 }
 
-static actor_signal_t database_construct(system_database_t *database) {
+static actor_signal_t database_construct(actor_database_t *database) {
     actor_event_subscribe(database->actor, ACTOR_EVENT_START);
     actor_thread_create(&database->thread, database->actor, (actor_procedure_t)actor_thread_execute, "DB", 1024, 0, 4,
                         ACTOR_THREAD_BLOCKABLE);
@@ -456,38 +456,38 @@ static actor_job_signal_t database_job_query(actor_job_t *job) {
 }
 
 static actor_job_signal_t database_job_connect(actor_job_t *job) {
-    system_database_t *database = job->actor->object;
+    actor_database_t *database = job->actor->object;
     sqlite3_open(database->properties->path, &database->connection);
     return ACTOR_JOB_HALT;
 }
 
-static actor_signal_t database_start(system_database_t *database) {
+static actor_signal_t database_start(actor_database_t *database) {
     sqlite3_initialize();
     return 0;
 }
 
-static actor_signal_t database_stop(system_database_t *database) {
+static actor_signal_t database_stop(actor_database_t *database) {
     sqlite3_shutdown();
     return 0;
 }
 
-static actor_signal_t database_link(system_database_t *database) {
+static actor_signal_t database_link(actor_database_t *database) {
     return 0;
 }
 
-static actor_signal_t database_on_phase(system_database_t *database, actor_phase_t phase) {
+static actor_signal_t database_on_phase(actor_database_t *database, actor_phase_t phase) {
     return 0;
 }
 
-static actor_signal_t database_on_signal(system_database_t *database, actor_t *actor, actor_signal_t signal, void *source) {
+static actor_signal_t database_on_signal(actor_database_t *database, actor_t *actor, actor_signal_t signal, void *source) {
     return 0;
 }
 
-static actor_signal_t database_worker_sql(system_database_t *database, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
+static actor_signal_t database_worker_sql(actor_database_t *database, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
     return actor_job_execute_if_running_in_thread(&database->job, thread);
 }
 
-static actor_signal_t database_worker_on_input(system_database_t *database, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
+static actor_signal_t database_worker_on_input(actor_database_t *database, actor_event_t *event, actor_worker_t *tick, actor_thread_t *thread) {
     switch (event->type) {
     case ACTOR_EVENT_START:
         debug_log_inhibited = false;
@@ -500,7 +500,7 @@ static actor_signal_t database_worker_on_input(system_database_t *database, acto
     return 0;
 }
 
-static actor_worker_callback_t database_on_worker_assignment(system_database_t *database, actor_thread_t *thread) {
+static actor_worker_callback_t database_on_worker_assignment(actor_database_t *database, actor_thread_t *thread) {
     if (thread == database->actor->node->input) {
         return (actor_worker_callback_t)database_worker_on_input;
     } else if (thread == database->thread) {
@@ -509,10 +509,10 @@ static actor_worker_callback_t database_on_worker_assignment(system_database_t *
     return NULL;
 }
 
-actor_class_t system_database_class = {
-    .type = SYSTEM_DATABASE,
-    .size = sizeof(system_database_t),
-    .phase_subindex = SYSTEM_DATABASE_PHASE,
+actor_class_t actor_database_class = {
+    .type = ACTOR_DATABASE,
+    .size = sizeof(actor_database_t),
+    .phase_subindex = ACTOR_DATABASE_PHASE,
     .validate = (actor_method_t)database_validate,
     .construct = (actor_method_t)database_construct,
     .link = (actor_method_t)database_link,
