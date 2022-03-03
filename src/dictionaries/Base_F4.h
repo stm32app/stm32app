@@ -67,7 +67,6 @@ typedef struct {
         uint8_t TX_Pin;
         uint8_t RX_Port;
         uint8_t RX_Pin;
-        uint8_t RX_Pin;
     } x6200_transportCAN_1;
 } Base_F4_RAM_t;
 

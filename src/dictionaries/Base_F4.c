@@ -33,7 +33,6 @@ Base_F4_ATTR_RAM Base_F4_RAM_t Base_F4_RAM = {
         .TX_Pin = 0x0B,
         .RX_Port = 0x01,
         .RX_Pin = 0x0C,
-        .RX_Pin = 0x0C
     }
 };
 

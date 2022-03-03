@@ -87,8 +87,6 @@ struct actor_generic_device_t {
     actor_t *actor;
 };
 
-#define actor_class_property_mask(class, property) (property - class->phase_subindex + 1)
-
 // Compute actor's own index
 #define actor_index(actor) (actor->seq + actor->class->type)
 // Get struct containing actors OD values

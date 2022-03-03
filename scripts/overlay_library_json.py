@@ -55,3 +55,4 @@ def glob(env, path_to_directory_with_custom_library_json):
 
 
 glob(env, env['PROJECT_DIR'] + "/scripts/overlays")
+print("PRE!!!!")

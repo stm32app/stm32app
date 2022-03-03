@@ -1,9 +1,5 @@
 {
   "name": "CANopenCM3",
-  "version": "1.0",
-  "keywords": "rtos, timing, thread, task, mutex, semaphore",
-  "description": "Real Time Operating System",
-
   "platform": ["ststm32"],
   "frameworks": ["libopencm3"]
 }

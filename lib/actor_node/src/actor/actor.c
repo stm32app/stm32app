@@ -62,20 +62,6 @@ int actor_object_free(actor_t *actor) {
     return 0;
 }
 
-int actor_timeout_check(uint32_t *clock, uint32_t time_since_last_tick, uint32_t *next_tick) {
-    if (*clock > time_since_last_tick) {
-        *clock -= time_since_last_tick;
-        if (*next_tick > *clock) {
-            *next_tick = *clock;
-        }
-        return 1;
-    } else {
-        *clock = 0;
-        return 0;
-    }
-}
-
-
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase) {
 #if DEBUG
     debug_printf("  - Device phase: 0x%x %s %s <= %s\n", actor_index(actor), get_actor_type_name(actor->class->type),
