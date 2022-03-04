@@ -14,7 +14,8 @@ void actor_node_error_reset(actor_node_t* node, const uint8_t errorBit, uint16_t
 
 char *actor_event_stringify(actor_event_t *event);
 char *actor_signal_stringify(int signal);
-char *actor_node_stringify(actor_t *actor);
+char *actor_phase_stringify(int phase);
+char *actor_stringify(actor_t *actor);
 void *actor_unbox(actor_t *actor);
 actor_t *actor_box(void *object);
 

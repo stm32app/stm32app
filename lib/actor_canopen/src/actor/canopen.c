@@ -1,6 +1,7 @@
 #include "canopen.h"
 #include "OD.h"
 
+#if ACTOR_NODE_USE_CANOPEN
 //#include <actor/indicator/led.h>
 //#include <actor/transport/can.h>
 
@@ -321,3 +322,4 @@ void actor_node_error_reset(actor_node_t *node, const uint8_t errorBit, uint16_t
         CO_errorReset(((actor_canopen_t *)node->canopen)->instance->em, errorBit, index);
     }
 }
+#endif

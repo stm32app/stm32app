@@ -115,8 +115,8 @@ static actor_signal_t actor_thread_event_actor_dispatch(actor_thread_t *thread, 
     actor_signal_t signal = 0;
 
     if (actor_thread_should_notify_actor(thread, event, actor, worker)) {
-        debug_printf("├ %-22s#%s from %s\n", actor_node_stringify(actor), actor_event_stringify(event),
-                     actor_node_stringify(event->producer));
+        debug_printf("├ %-22s#%s from %s\n", actor_stringify(actor), actor_event_stringify(event),
+                     actor_stringify(event->producer));
 
         if (event->type == ACTOR_EVENT_THREAD_ALARM || event->type == ACTOR_EVENT_THREAD_START) {
             worker->next_time = -1;
@@ -329,8 +329,8 @@ bool actor_thread_notify_generic(actor_thread_t *thread, uint32_t value, bool ov
 }
 
 bool actor_thread_publish_generic(actor_thread_t *thread, actor_event_t *event, bool to_front) {
-    debug_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", actor_event_stringify(event), actor_node_stringify(event->producer),
-                 event->consumer ? actor_node_stringify(event->consumer) : "broadcast", actor_thread_get_name(thread));
+    debug_printf("│ │ ├ Publish\t\t#%s to %s for %s on %s\n", actor_event_stringify(event), actor_stringify(event->producer),
+                 event->consumer ? actor_stringify(event->consumer) : "broadcast", actor_thread_get_name(thread));
     bool result = false;
 
     if (actor_thread_is_interrupted(thread)) {

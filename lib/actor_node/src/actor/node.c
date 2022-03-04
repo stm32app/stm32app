@@ -1,5 +1,6 @@
 #include <actor/buffer.h>
 #include <actor/node.h>
+#include "definitions/enums.h"
 
 // Count or initialize all actors in OD of given type
 size_t actor_node_type_enumerate(actor_node_t *node, OD_t *od, actor_class_t *actor_class, actor_t *destination, size_t offset) {
@@ -76,7 +77,7 @@ uint8_t actor_node_find_number(actor_node_t *node, actor_t *actor) {
 }
 
 void actor_node_actors_set_phase(actor_node_t *node, actor_phase_t phase) {
-    debug_printf("Devices - phase %s\n", get_actor_phase_name(phase));
+    debug_printf("Devices - phase %s\n", actor_phase_stringify(phase));
     for (size_t i = 0; i < node->actor_count; i++) {
         // if (node->actor[i].phase != ACTOR_DISABLED) {
         actor_set_phase(&node->actor[i], phase);
@@ -207,8 +208,11 @@ actor_thread_t *actor_get_input_thread(actor_t *actor) {
 }
 
 #ifdef INC_ENUMS
-char *actor_node_stringify(actor_t *actor) {
+char *actor_stringify(actor_t *actor) {
     return get_actor_type_name(actor->class->type);
+};
+char *actor_phase_stringify(int phase) {
+    return get_actor_phase_name(phase);
 };
 #endif
 

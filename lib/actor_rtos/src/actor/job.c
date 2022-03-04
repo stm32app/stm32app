@@ -7,7 +7,7 @@ actor_signal_t actor_job_execute(actor_job_t **job_slot) {
     actor_assert(job->handler);
     bool halt = false;
     debug_printf("| ├ Task \t\t#%s at %u:%u for %s\n", actor_event_stringify(&job->inciting_event), job->job_phase, job->task_phase,
-                 actor_node_stringify(job->actor));
+                 actor_stringify(job->actor));
     while (!halt) {
         actor_job_signal_t job_signal = actor_job_advance(job, job->handler(job));
         switch (job_signal) {

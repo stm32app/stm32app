@@ -7,10 +7,11 @@ extern "C" {
 
 #include <actor/env.h>
 #include "FreeRTOS.h"
+#include "task.h"
 #include "semphr.h"
 #include <actor/job.h>
 #include <multi_heap.h>
-
+#include "hooks.h"
 #include <actor/types.h>
 
 #define TIME_DIFF(now, last) (last > now ? ((uint32_t)-1) - last + now : now - last)

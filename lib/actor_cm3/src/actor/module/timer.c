@@ -274,7 +274,7 @@ static actor_signal_t timer_notify(module_timer_t *timer) {
         if (diff <= 0) {
             actor_t *actor = subscription->actor;
             void *argument = subscription->argument;
-            debug_printf("~ Timeout for 0x%x %s (argument: %lu)\n", actor_index(actor), get_actor_type_name(actor->class->type), (uint32_t)argument);
+            debug_printf("~ Timeout for 0x%x %s (argument: %lu)\n", actor_index(actor), actor_stringify(actor), (uint32_t)argument);
             *subscription = (module_timer_subscription_t){};
             actor_signal(actor, timer->actor, ACTOR_SIGNAL_TIMEOUT, argument);
         }

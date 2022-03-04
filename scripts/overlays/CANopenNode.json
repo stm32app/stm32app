@@ -6,6 +6,6 @@
   },
   "build": {
     "libLDFMode": "chain+",
-    "flags": "-Wno-shadow"
+    "flags": "-Wno-shadow -Wno-maybe-uninitialized"
   }
 }

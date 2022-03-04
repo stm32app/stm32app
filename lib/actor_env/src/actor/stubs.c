@@ -16,8 +16,11 @@ __attribute__((weak)) actor_t *actor_box(void *object) {
     return (actor_t *) object;
 }
 
-__attribute__((weak)) char *actor_node_stringify(actor_t *actor) {
+__attribute__((weak)) char *actor_stringify(actor_t *actor) {
     return "ACTOR";
+};
+__attribute__((weak)) char *actor_phase_stringify(int phase) {
+    return "PHASE";
 };
 __attribute__((weak)) char *actor_event_stringify(actor_event_t *event) {
     return "EVENT";

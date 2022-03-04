@@ -32,7 +32,7 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
         return 0;
     } else {
         *destination = NULL;
-        debug_printf("    ! Device 0x%x (%s) could not find actor 0x%x\n", actor_index(actor), get_actor_type_name(actor->class->type),
+        debug_printf("    ! Device 0x%x (%s) could not find actor 0x%x\n", actor_index(actor), actor_stringify(actor),
                      index);
         actor_set_phase(actor, ACTOR_DISABLED);
         actor_error_report(actor, 0x2DU/*CO_EM_INCONSISTENT_OBJECT_DICT*/, 0x7000U/*CO_EMC_ADDITIONAL_MODUL*/);
@@ -64,8 +64,8 @@ int actor_object_free(actor_t *actor) {
 
 void actor_on_phase_change(actor_t *actor, actor_phase_t phase) {
 #if DEBUG
-    debug_printf("  - Device phase: 0x%x %s %s <= %s\n", actor_index(actor), get_actor_type_name(actor->class->type),
-                 get_actor_phase_name(phase), get_actor_phase_name(actor->previous_phase));
+    debug_printf("  - Device phase: 0x%x %s %s <= %s\n", actor_index(actor), actor_stringify(actor),
+                 actor_phase_stringify(phase), actor_phase_stringify(actor->previous_phase));
     actor->previous_phase = phase;
 #endif
 

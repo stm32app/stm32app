@@ -64,7 +64,7 @@ actor_signal_t actor_event_accept_and_start_job_generic(actor_t *actor, actor_ev
         job->actor = actor;
         job->thread = thread;
         job->handler = handler;
-        debug_printf("| ├ Task start\t\t%s for %s\t\n", actor_node_stringify(actor), actor_thread_get_name(thread));
+        debug_printf("| ├ Task start\t\t%s for %s\t\n", actor_stringify(actor), actor_thread_get_name(thread));
         actor_thread_actor_schedule(thread, actor, thread->current_time);
     }
     return signal;
@@ -128,7 +128,7 @@ actor_signal_t actor_event_finalize(actor_t *actor, actor_event_t *event) {
     if (event != NULL && event->type != ACTOR_EVENT_IDLE) {
         if (event->type != ACTOR_EVENT_THREAD_ALARM) {
             debug_printf("│ │ ├ Finalize\t\t#%s of %s\n", actor_event_stringify(event),
-                         actor_node_stringify(event->producer));
+                         actor_stringify(event->producer));
 
             actor_event_report_callback(actor, event);
 

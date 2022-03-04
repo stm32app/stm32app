@@ -12,7 +12,7 @@ static actor_signal_t actor_buffer_dereference(actor_buffer_t *buffer) {
 }
 
 actor_buffer_t *actor_buffer_create_with_options(actor_t *owner, uint8_t *data, uint32_t size, uint8_t options) {
-    debug_printf("│ │ ├ Allocate\t\t%s takes buffer of size %lu\n", actor_node_stringify(owner), size);
+    debug_printf("│ │ ├ Allocate\t\t%s takes buffer of size %lu\n", actor_stringify(owner), size);
     actor_buffer_t *buffer = actor_buffer_alloc(owner);
     if (buffer != NULL) {
         *buffer = (actor_buffer_t){.owner = owner, .options = options};

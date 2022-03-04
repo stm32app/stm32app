@@ -1,10 +1,8 @@
 #include "hooks.h"
 #include <actor/log.h>
-// #include "FreeRTOS.h"
-// #include "task.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
-
-#if DEBUG && 0
 void vApplicationIdleHook(void) {
     //printf("Idle!\n");
     buffered_printf_flush();
@@ -29,4 +27,3 @@ void vApplicationMallocFailedHook(void) {
         __asm("BKPT #0\n"); // Break into the debugger
     }
 }
-#endif

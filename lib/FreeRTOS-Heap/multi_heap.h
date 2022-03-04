@@ -31,7 +31,7 @@ It is a multi-region memory management features abilities:
 #define RTOSREGION 0               // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 0
 #define MALLOC_REGION 0      // malloc, calloc, realloc, heapsize : region 2 + region 1 + region 0
 #define MALLOC_DMAREGION 0 // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma : region 0
-#define MALLOC_INTREGION 0  // multi_malloc_fast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
+#define MALLOC_INTREGION 0  // multi_mallocfast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
 #define MALLOC_EXTREGION 0 // multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 2
 #endif
 

@@ -165,7 +165,7 @@ static actor_job_signal_t mothership_job_stats(actor_job_t *job) {
             for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(actor_buffer_t)) {
                 actor_buffer_t *buffer = (actor_buffer_t *)&page->data[offset];
                 if (!(buffer->owner == NULL && buffer->data == NULL && buffer->allocated_size == 0)) {
-                    debug_printf("│ │ │ ├ %-16s%lub/%lub\n", get_actor_type_name(buffer->owner->class->type), buffer->size,
+                    debug_printf("│ │ │ ├ %-16s%lub/%lub\n", actor_stringify(buffer->owner), buffer->size,
                                  buffer->allocated_size);
                 }
             }
