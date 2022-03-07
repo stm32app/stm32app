@@ -141,7 +141,7 @@ static inline uint32_t lfs_tobe32(uint32_t a) {
 
 // Allocate memory, only used if buffers are not provided to littlefs
 // Note, memory must be 64-bit aligned
-#define lfs_malloc actor_malloc_dma
+#define lfs_malloc(size) actor_malloc_region(ACTOR_REGION_DMA, size)
 
 // Deallocate memory, only used if buffers are not provided to littlefs
 #define lfs_free actor_free

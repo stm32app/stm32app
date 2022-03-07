@@ -119,9 +119,9 @@ actor_signal_t actor_buffer_reserve(actor_buffer_t *buffer, uint32_t size) {
 
 static void *actor_buffer_realloc(actor_buffer_t *buffer, uint32_t size) {
     if (buffer->options & ACTOR_BUFFER_DMA) {
-        return actor_realloc_dma(buffer->data, size);
+        return actor_realloc_region(ACTOR_REGION_DMA, buffer->data, size);
     } else if (buffer->options & ACTOR_BUFFER_EXT) {
-        return actor_realloc_ext(buffer->data, size);
+        return actor_realloc_region(ACTOR_REGION_EXT, buffer->data, size);
     } else {
         return actor_realloc(buffer->data, size);
     }
@@ -264,7 +264,7 @@ void *actor_pool_allocate(actor_buffer_t *pool, uint16_t size) {
         for (uint32_t offset = 0; offset < page->allocated_size; offset += size) {
             uint16_t i = 0;
             for (; i < size; i++) {
-                if (page->data[offset + i] == 0) {
+                if (page->data[offset + i] != 0) {
                     break;
                 }
             }

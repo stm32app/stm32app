@@ -1,7 +1,7 @@
-#include "FreeRTOS.h"
-#include "task.h"
+// #include "FreeRTOS.h"
+// #include "task.h"
 /*
- * multi_heap.h (completion for heap_4.c / h)
+ * actor_heap.h (completion for heap_4.c / h)
  *
  *  Created on: Dec 14, 2020
  *      Author: Benjami
@@ -77,12 +77,14 @@
 all the API functions to use the MPU wrappers.  That should only be done when
 task.h is included from an application file. */
 #include "multi_heap.h"
-
+#include "FreeRTOS.h"
+#include "task.h"
 /* Block sizes must not get too small. */
 #define heapMINIMUM_BLOCK_SIZE	((size_t) (xHeapStructSize << 1))
 
 /* Assumes 8bit bytes! */
 #define heapBITS_PER_BYTE		((size_t) 8)
+
 
 /* Define the linked list structure.  This is used to link free blocks in order of their memory address. */
 typedef struct A_BLOCK_LINK
@@ -126,6 +128,7 @@ static size_t xMinimumEverFreeBytesRemaining[HEAP_NUM];
 #ifdef HEAP_SHARED
 static uint8_t HEAP_SHARED;
 #endif
+
 
 #if    HEAP_NUM == 1
 static BlockLink_t xStart[HEAP_NUM], *pxEnd[HEAP_NUM] = {NULL};
@@ -282,7 +285,7 @@ void *multiRegionMalloc(uint32_t i, size_t xWantedSize)
 				{
 					/* Byte alignment required. */
 					xWantedSize += (portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK));
-					configASSERT((xWantedSize & portBYTE_ALIGNMENT_MASK) == 0);
+					actor_assert((xWantedSize & portBYTE_ALIGNMENT_MASK) == 0);
 				}
 				else
 				{
@@ -325,7 +328,7 @@ void *multiRegionMalloc(uint32_t i, size_t xWantedSize)
 						cast is used to prevent byte alignment warnings from the
 						compiler. */
 						pxNewBlockLink = (void *) (((uint8_t *) pxBlock) + xWantedSize);
-						configASSERT((((size_t) pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
+						actor_assert((((size_t) pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
 
 						/* Calculate the sizes of two blocks split from the	single block. */
 						pxNewBlockLink->xBlockSize = pxBlock->xBlockSize - xWantedSize;
@@ -661,7 +664,7 @@ int32_t multiRegionSearch(void * pv)
 
 /*-----------------------------------------------------------*/
 /* All memory region memory free */
-void multi_free(void *pv)
+void actor_free_default(void *pv)
 {
   int32_t region = multiRegionSearch(pv);
   if(region >= 0)
@@ -674,14 +677,14 @@ void multi_free(void *pv)
 
 void *pvPortMalloc(size_t xWantedSize)
 {
-  return multi_malloc(xWantedSize);
+  return actor_malloc(xWantedSize);
 }
 
 /*-----------------------------------------------------------*/
 void vPortFree(void *pv)
 {
 
-  multi_free(pv);
+  actor_free(pv);
 }
 
 /*-----------------------------------------------------------*/
@@ -709,7 +712,7 @@ void vPortInitialiseBlocks(void)
 /* Default memory region(s) (MALLOC_REGION) */
 #ifdef MALLOC_REGION
 
-void *multi_malloc(size_t xWantedSize)
+void *actor_malloc_default(size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_REGION) >= 0
@@ -756,7 +759,7 @@ void *multi_malloc(size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_calloc(size_t nmemb, size_t xWantedSize)
+void *actor_calloc_default(size_t nmemb, size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_REGION) >= 0
@@ -803,11 +806,11 @@ void *multi_calloc(size_t nmemb, size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_realloc(void *pv, size_t xWantedSize)
+void *actor_realloc_default(void *pv, size_t xWantedSize)
 {
   int32_t region;
   if(pv == NULL)
-    return multi_malloc(xWantedSize);
+    return actor_malloc(xWantedSize);
   else
   {
     region = multiRegionSearch(pv);
@@ -819,7 +822,7 @@ void *multi_realloc(void *pv, size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-size_t heapsize(void)
+size_t heapsize_default(void)
 {
   size_t szReturn = 0;
   #if DEFPARAM_0(MALLOC_REGION) >= 0
@@ -855,7 +858,7 @@ size_t heapsize(void)
 /* DMA capable memory region(s) (MALLOC_DMAREGION) */
 #ifdef MALLOC_DMAREGION
 
-void *multi_malloc_dma(size_t xWantedSize)
+void *actor_malloc_dma(size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_DMAREGION) >= 0
@@ -902,7 +905,7 @@ void *multi_malloc_dma(size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_calloc_dma(size_t nmemb, size_t xWantedSize)
+void *actor_calloc_dma(size_t nmemb, size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_DMAREGION) >= 0
@@ -949,11 +952,11 @@ void *multi_calloc_dma(size_t nmemb, size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_realloc_dma(void *pv, size_t xWantedSize)
+void *actor_realloc_dma(void *pv, size_t xWantedSize)
 {
   int32_t region;
   if(pv == NULL)
-    return multi_malloc_dma(xWantedSize);
+    return actor_malloc_dma(xWantedSize);
   else
   {
     region = multiRegionSearch(pv);
@@ -1001,7 +1004,7 @@ size_t heapsize_dma(void)
 /* Internal memory region(s) (MALLOC_INTREGION) */
 #ifdef MALLOC_INTREGION
 
-void *multi_malloc_fast(size_t xWantedSize)
+void *actor_malloc_fast(size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_INTREGION) >= 0
@@ -1030,7 +1033,7 @@ void *multi_malloc_fast(size_t xWantedSize)
     return pvReturn;
   #endif
   #if DEFPARAM_5(MALLOC_INTREGION) >= 0
-  pvReturn = multiRegionMalloc(DEFPARAM_5MALLOC_INTREGION), xWantedSize);
+  pvReturn = multiRegionMalloc(DEFPARAM_5(MALLOC_INTREGION), xWantedSize);
   if(pvReturn != NULL)
     return pvReturn;
   #endif
@@ -1048,7 +1051,7 @@ void *multi_malloc_fast(size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_calloc_fast(size_t nmemb, size_t xWantedSize)
+void *actor_calloc_fast(size_t nmemb, size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_INTREGION) >= 0
@@ -1095,11 +1098,11 @@ void *multi_calloc_fast(size_t nmemb, size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_realloc_fast(void *pv, size_t xWantedSize)
+void *actor_realloc_fast(void *pv, size_t xWantedSize)
 {
   int32_t region;
   if(pv == NULL)
-    return multi_malloc_fast(xWantedSize);
+    return actor_malloc_fast(xWantedSize);
   else
   {
     region = multiRegionSearch(pv);
@@ -1147,7 +1150,7 @@ size_t heapsize_fast(void)
 /* External memory region(s) (MALLOC_EXTREGION) */
 #ifdef MALLOC_EXTREGION
 
-void *multi_malloc_ext(size_t xWantedSize)
+void *actor_malloc_ext(size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_EXTREGION) >= 0
@@ -1194,7 +1197,7 @@ void *multi_malloc_ext(size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_calloc_ext(size_t nmemb, size_t xWantedSize)
+void *actor_calloc_ext(size_t nmemb, size_t xWantedSize)
 {
   void *pvReturn;
   #if DEFPARAM_0(MALLOC_EXTREGION) >= 0
@@ -1241,11 +1244,11 @@ void *multi_calloc_ext(size_t nmemb, size_t xWantedSize)
 }
 
 /*-----------------------------------------------------------*/
-void *multi_realloc_ext(void *pv, size_t xWantedSize)
+void *actor_realloc_ext(void *pv, size_t xWantedSize)
 {
   int32_t region;
   if(pv == NULL)
-    return multi_malloc_ext(xWantedSize);
+    return actor_malloc_ext(xWantedSize);
   else
   {
     region = multiRegionSearch(pv);
@@ -1286,5 +1289,6 @@ size_t heapsize_ext(void)
   #endif
   return szReturn;
 }
+
 
 #endif  /* #ifdef MALLOC_EXTREGION */

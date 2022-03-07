@@ -17,5 +17,6 @@
 #include <actor/types.h>
 #include <actor/errors.h>
 #include <actor/log.h>
+#include <actor/heap.h>
 
 #endif

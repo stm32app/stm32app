@@ -1,5 +1,6 @@
 #include "mothership.h"
 #include <actor/device/circuit.h>
+#include <actor/heap/region.h>
 //#include "actors/modbus.h"
 #include <actor/input/sensor.h>
 #include <actor/module/adc.h>

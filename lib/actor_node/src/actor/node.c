@@ -88,7 +88,7 @@ void actor_node_actors_set_phase(actor_node_t *node, actor_phase_t phase) {
 int actor_node_allocate(actor_node_t **node, OD_t *od, size_t (*enumerator)(actor_node_t *node, OD_t *od, actor_t *actors)) {
     // count actors first to allocate specific size of an array
     size_t actor_count = enumerator(NULL, od, NULL);
-    actor_t *actors = actor_calloc_fast(actor_count, sizeof(actor_t));
+    actor_t *actors = actor_calloc_region(ACTOR_REGION_FAST, actor_count, sizeof(actor_t));
 
     if (actors == NULL) {
         return ACTOR_SIGNAL_OUT_OF_MEMORY;
@@ -210,6 +210,9 @@ actor_thread_t *actor_get_input_thread(actor_t *actor) {
 #ifdef INC_ENUMS
 char *actor_stringify(actor_t *actor) {
     return get_actor_type_name(actor->class->type);
+};
+char *actor_event_stringify(actor_event_t *event) {
+    return get_actor_event_type_name(event->type);
 };
 char *actor_phase_stringify(int phase) {
     return get_actor_phase_name(phase);

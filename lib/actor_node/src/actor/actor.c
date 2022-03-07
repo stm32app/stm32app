@@ -41,7 +41,7 @@ int actor_link(actor_t *actor, void **destination, uint16_t index, void *argumen
 }
 
 int actor_object_allocate(actor_t *actor) {
-    actor->object = actor_malloc(actor->class->size);
+    actor->object = actor_calloc(1, actor->class->size);
     if (actor->object == NULL) {
         return ACTOR_SIGNAL_OUT_OF_MEMORY;
     }

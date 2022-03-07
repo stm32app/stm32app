@@ -4,7 +4,8 @@
 #define MAX_THREAD_SLEEP_TIME 60000
 
 static actor_signal_t actor_thread_event_dispatch(actor_thread_t *thread, actor_event_t *event);
-static actor_signal_t actor_thread_event_actor_dispatch(actor_thread_t *thread, actor_event_t *event, actor_t *actor, actor_worker_t *worker);
+static actor_signal_t actor_thread_event_actor_dispatch(actor_thread_t *thread, actor_event_t *event, actor_t *actor,
+                                                        actor_worker_t *worker);
 static size_t actor_thread_event_requeue(actor_thread_t *thread, actor_event_t *event, actor_event_status_t previous_status);
 static inline bool actor_thread_event_queue_shift(actor_thread_t *thread, actor_event_t *event, size_t deferred_count);
 
@@ -30,7 +31,8 @@ static inline bool actor_thread_event_queue_shift(actor_thread_t *thread, actor_
   either by using alarm to schedule next worker in future (with 1ms resolution) or right after the thread goes through its queue of events
   (effectively simulating RTOS yield)
   - Devices can also create their own custom threads with own queues, leveraging all the dispatching and queue-management mechanisms
-  available to node-wide threads. In this case RTOS will use time-slicing to periodically break up execution and allow other threads to work.
+  available to node-wide threads. In this case RTOS will use time-slicing to periodically break up execution and allow other threads to
+  work.
  */
 void actor_thread_execute(actor_thread_t *thread) {
     thread->current_time = xTaskGetTickCount();
@@ -111,12 +113,12 @@ static actor_signal_t actor_thread_event_dispatch(actor_thread_t *thread, actor_
  * - keep event in the queue for later processing, but allow other actors to handle it before that
  * - wake up on software timer at specific time in future */
 
-static actor_signal_t actor_thread_event_actor_dispatch(actor_thread_t *thread, actor_event_t *event, actor_t *actor, actor_worker_t *worker) {
+static actor_signal_t actor_thread_event_actor_dispatch(actor_thread_t *thread, actor_event_t *event, actor_t *actor,
+                                                        actor_worker_t *worker) {
     actor_signal_t signal = 0;
 
     if (actor_thread_should_notify_actor(thread, event, actor, worker)) {
-        debug_printf("├ %-22s#%s from %s\n", actor_stringify(actor), actor_event_stringify(event),
-                     actor_stringify(event->producer));
+        debug_printf("├ %-22s#%s from %s\n", actor_stringify(actor), actor_event_stringify(event), actor_stringify(event->producer));
 
         if (event->type == ACTOR_EVENT_THREAD_ALARM || event->type == ACTOR_EVENT_THREAD_START) {
             worker->next_time = -1;
@@ -316,11 +318,12 @@ actor_signal_t actor_thread_event_await(actor_thread_t *thread, actor_event_t *e
 }
 
 bool actor_thread_notify_generic(actor_thread_t *thread, uint32_t value, bool overwrite) {
-    debug_printf("│ │ ├ Notify\t\t%s with #%s\n", actor_thread_get_name(thread), value < 50 ? actor_signal_stringify(value) : (char *)(&value));
+    debug_printf("│ │ ├ Notify\t\t%s with #%s\n", actor_thread_get_name(thread),
+                 value < 50 ? actor_signal_stringify(value) : (char *)(&value));
     if (actor_thread_is_interrupted(thread)) {
         static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         bool result = xTaskNotifyFromISR(thread->task, value, overwrite ? eSetValueWithOverwrite : eSetValueWithoutOverwrite,
-                                           &xHigherPriorityTaskWoken);
+                                         &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
         return result;
     } else {
@@ -366,19 +369,16 @@ void actor_thread_worker_schedule(actor_thread_t *thread, actor_worker_t *worker
 }
 
 actor_thread_t *actor_thread_create(actor_thread_t **thread_slot, actor_t *actor, void (*callback)(void *ptr), const char *const name,
-                                  uint16_t stack_depth, size_t queue_size, size_t priority, uint8_t flags) {
+                                    uint16_t stack_depth, size_t queue_size, size_t priority, uint8_t flags) {
     actor_thread_t *thread = actor_thread_alloc(actor);
     if (thread != NULL) {
         *thread_slot = thread;
-
-        thread->actor = actor;
-        thread->flags = flags;
+        *thread = (actor_thread_t){.actor = actor, .flags = flags};
 
         // initialize workers for all listneing actors
         thread->worker_count = actor_thread_iterate_workers(thread, NULL);
         if (thread->worker_count > 0) {
-            thread->workers = actor_malloc(thread->worker_count * sizeof(actor_worker_t));
-            memset(thread->workers, 0, thread->worker_count * sizeof(actor_worker_t));
+            thread->workers = actor_calloc(thread->worker_count, sizeof(actor_worker_t));
 
             if (thread->workers) {
                 actor_thread_iterate_workers(thread, thread->workers);
@@ -457,10 +457,17 @@ __attribute__((weak)) bool actor_thread_is_interrupted(actor_thread_t *thread) {
     return false;
 }
 
-__attribute__((weak)) actor_thread_t* actor_get_input_thread(actor_t *actor) {
-    return NULL; //todo: throw
+__attribute__((weak)) actor_thread_t *actor_get_input_thread(actor_t *actor) {
+    return NULL; // todo: throw
 }
 
 __attribute__((weak)) bool actor_event_is_subscribed(actor_t *actor, actor_event_t *event) {
     return true;
+}
+
+__attribute__((weak)) void *pvPortMalloc(size_t size) {
+    return actor_malloc(size);
+}
+__attribute__((weak)) void vPortFree(void *ptr) {
+    return actor_free(ptr);
 }

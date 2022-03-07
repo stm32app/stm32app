@@ -10,7 +10,6 @@ extern "C" {
 #include "task.h"
 #include "semphr.h"
 #include <actor/job.h>
-#include <multi_heap.h>
 #include "hooks.h"
 #include <actor/types.h>
 

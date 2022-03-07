@@ -1,3 +1,15 @@
+#include "actor/thread.h"
 #include "interrupts.h"
-#define actor_disable_interrupts() cm_disable_interrupts();
-#define actor_enable_interrupts() cm_enable_interrupts();
+
+
+bool actor_thread_is_interrupted(actor_thread_t *thread) {
+  return (SCB_ICSR & SCB_ICSR_VECTACTIVE);
+} 
+
+void actor_disable_interrupts(void) {
+  cm_disable_interrupts();
+}
+
+void actor_enable_interrupts(void) {
+  cm_enable_interrupts();
+}

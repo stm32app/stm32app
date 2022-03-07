@@ -1,5 +1,5 @@
 /*
-multi_heap.h
+actor_heap.h
 Created on: dec 14, 2020
     Author: Benjami
 It is a multi-region memory management features abilities:
@@ -14,12 +14,18 @@ It is a multi-region memory management features abilities:
 #ifndef __MULTI_HEAP_H_
 #define __MULTI_HEAP_H_
 
+
+
+
 #ifdef __cplusplus
  extern "C" {
 #endif
 
 #include <stdint.h>
 #include <stddef.h>
+#include <actor/env.h>
+#include "FreeRTOS.h"
+
 
 #ifdef HEAP_CONFIG
 #define HEAP_CONFIG_PATH(x) HEAP_CONFIG_PATH2(x)
@@ -30,9 +36,9 @@ It is a multi-region memory management features abilities:
 #define HEAP_REGIONS {{(uint8_t *)&ucHeap0, sizeof(ucHeap0)}};
 #define RTOSREGION 0               // pvPortMalloc, vPortFree, xPortGetFreeHeapSize : region 0
 #define MALLOC_REGION 0      // malloc, calloc, realloc, heapsize : region 2 + region 1 + region 0
-#define MALLOC_DMAREGION 0 // multi_malloc_dma, multi_calloc_dma, multi_realloc_dma, heapsize_dma : region 0
-#define MALLOC_INTREGION 0  // multi_mallocfast, multi_calloc_fast, multi_realloc_fast, heapsize_int : region 1 + region 0
-#define MALLOC_EXTREGION 0 // multi_malloc_ext, multi_calloc_ext, multi_realloc_ext, heapsize_ext : region 2
+#define MALLOC_DMAREGION 0 // actor_malloc_dma, actor_calloc_dma, actor_realloc_dma, heapsize_dma : region 0
+#define MALLOC_INTREGION 0  // actor_mallocfast, actor_calloc_fast, actor_realloc_fast, heapsize_int : region 1 + region 0
+#define MALLOC_EXTREGION 0 // actor_malloc_ext, actor_calloc_ext, actor_realloc_ext, heapsize_ext : region 2
 #endif
 
 
@@ -63,33 +69,31 @@ int32_t multiRegionSearch(void * pv);
 #endif*/
 
 /* Default memory region(s) (MALLOC_REGION) */
-void    *multi_malloc(size_t xWantedSize);
-void    *multi_calloc(size_t nmemb, size_t xWantedSize);
-void    *multi_realloc(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
-size_t  heapsize(void);
+void    *actor_malloc_default(size_t xWantedSize);
+void    *actor_calloc_default(size_t nmemb, size_t xWantedSize);
+void    *actor_realloc_default(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
+size_t  heapsize_default(void);
 
 /* DMA capable memory region(s) (MALLOC_DMAREGION) */
-void    *multi_malloc_dma(size_t xWantedSize);
-void    *multi_calloc_dma(size_t nmemb, size_t xWantedSize);
-void    *multi_realloc_dma(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
+void    *actor_malloc_dma(size_t xWantedSize);
+void    *actor_calloc_dma(size_t nmemb, size_t xWantedSize);
+void    *actor_realloc_dma(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
 size_t  heapsize_dma(void);
 
 /* Internal memory region(s) (MALLOC_INTREGION) */
-void    *multi_malloc_fast(size_t xWantedSize);
-void    *multi_calloc_fast(size_t nmemb, size_t xWantedSize);
-void    *multi_realloc_fast(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
+void    *actor_malloc_fast(size_t xWantedSize);
+void    *actor_calloc_fast(size_t nmemb, size_t xWantedSize);
+void    *actor_realloc_fast(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
 size_t  heapsize_fast(void);
 
 /* External memory region(s)  (MALLOC_EXTREGION)*/
-void    *multi_malloc_ext(size_t xWantedSize);
-void    *multi_calloc_ext(size_t nmemb, size_t xWantedSize);
-void    *multi_realloc_ext(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
+void    *actor_malloc_ext(size_t xWantedSize);
+void    *actor_calloc_ext(size_t nmemb, size_t xWantedSize);
+void    *actor_realloc_ext(void *pv, size_t xWantedSize); /* if pv is valid -> new pointer region is equal previsous pointer region */
 size_t  heapsize_ext(void);
 
-
 /* Region independence free (it first finds the region) */
-void    multi_free(void *pv);
-
+void    actor_free_default(void *pv);
 #ifdef __cplusplus
 }
 #endif

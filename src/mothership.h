@@ -37,10 +37,6 @@ struct actor_mothership {
     actor_thread_t *low_priority;    /* Logic that runs periodically that is not very important */
     actor_thread_t *bg_priority;     /* A background thread of sorts for work that can be done in free time */
 
-    actor_job_t *job;
-    bool_t initialized;
-    bool_t sdram;
-
     module_mcu_t *mcu;
 #if ACTOR_NODE_USE_CANOPEN
     actor_canopen_t *canopen;
@@ -50,6 +46,10 @@ struct actor_mothership {
 #endif
     module_timer_t *timer;
 
+
+    actor_job_t *job;
+    bool_t initialized;
+    bool_t sdram;
 };
 
 
