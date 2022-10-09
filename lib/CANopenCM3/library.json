@@ -1,0 +1,5 @@
+{
+  "name": "CANopenCM3",
+  "platform": ["ststm32"],
+  "frameworks": ["libopencm3"]
+}

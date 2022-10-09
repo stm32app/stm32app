@@ -1,0 +1,8 @@
+{
+  "name": "actor_canopen",
+  "dependencies": {
+    "CANopenNode": "git@github.com:CANopenNode/CANopenNode.git"
+  },
+  "build": {
+  }
+}

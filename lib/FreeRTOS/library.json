@@ -1,0 +1,9 @@
+{
+  "name": "FreeRTOS",
+  "dependencies": {
+    "actor_env": "*"
+  },
+  "build": {
+    "unflags": "-flto"
+  }
+}

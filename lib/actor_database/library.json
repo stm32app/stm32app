@@ -1,0 +1,6 @@
+{
+  "name": "actor_database",
+  "dependencies": {
+    "sqlite3": "git@github.com:azadkuh/sqlite-amalgamation.git"
+  }
+}

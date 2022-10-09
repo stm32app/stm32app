@@ -1,0 +1,11 @@
+{
+  "name": "CANopenNode",
+  "dependencies": {
+    "actor_env": "*",
+    "CANopenCM3": "*"
+  },
+  "build": {
+    "libLDFMode": "chain+",
+    "flags": "-Wno-shadow -Wno-maybe-uninitialized"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "actor_drivers",
+  "dependencies": {
+    "littlefs": "git@github.com:littlefs-project/littlefs.git"
+  },
+  "build": {
+  }
+}

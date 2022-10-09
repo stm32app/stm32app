@@ -1,0 +1,11 @@
+{
+  "name": "sqlite3",
+  "version": "3.37.2",
+  "build": {
+    "srcFilter": [
+      "+<*.c>",
+      "-<shell.c>"
+    ],
+    "flags": "-Wno-empty-body -Wno-unused-value"
+  }
+}

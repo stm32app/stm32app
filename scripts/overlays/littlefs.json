@@ -1,0 +1,6 @@
+{
+  "name": "littlefs",
+  "dependencies": {
+    "actor_env": "*"
+  }
+}

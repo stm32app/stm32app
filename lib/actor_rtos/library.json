@@ -1,0 +1,10 @@
+{
+  "name": "actor_rtos",
+  "dependencies": {
+    "actor_env": "*",
+    "FreeRTOS-Heap": "*",
+    "FreeRTOS": "*"
+  },
+  "build": {
+  }
+}

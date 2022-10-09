@@ -1,0 +1,11 @@
+#ifndef INC_ENV_CONFIG
+#define INC_ENV_CONFIG
+
+
+#define ACTOR_CONFIG_PATH(x) ACTOR_CONFIG_PATH2(x)
+#define ACTOR_CONFIG_PATH2(x) #x
+#ifdef ACTOR_CONFIG
+#include ACTOR_CONFIG_PATH(ACTOR_CONFIG)
+#endif
+
+#endif
