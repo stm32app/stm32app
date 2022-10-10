@@ -10,17 +10,17 @@ int32_t cycntoffset;
 uint32_t lasttaskswitch;
 uint32_t lasttasksoffset;
 
+// #include <actor/debug/print.c>
+
 #define DWT_CYCCNT 0
 
 #if DEBUG_LOG_LEVEL > 0 && DEBUG_BUFFER_SIZE > 0 
 char debug_buffer[DEBUG_BUFFER_SIZE] = {};
 int debug_buffer_position = 0;
 
-void conditional_printf_flush(void) {
-
-    printf("\n, %.*s", debug_buffer_position, debug_buffer_position, debug_buffer);
+void buffered_printf_flush(void) {
+    printf("\n, %.*s", debug_buffer_position, debug_buffer);
     debug_buffer_position = 0;
-    return 0;
 }
 #endif
 
@@ -45,12 +45,12 @@ void log_ccycnt_after(void) {
     lasttasksoffset += cycntoffset;
 }
 
-void log_job_in(void) {
+void log_job_in(char *taskName) {
     lasttaskswitch = DWT_CYCCNT;
     lasttasksoffset = 0;
     conditional_printf("\n");
-    //debug_printf("~~~%s\n", pcTaskGetName(xTaskGetCurrentTaskHandle()));
-    debug_printf("~~~%s\n", "task");
+    debug_printf("~~~%s\n", taskName);
+    //debug_printf("~~~%s\n", "task");
 }
 
 void log_job_out(void) {

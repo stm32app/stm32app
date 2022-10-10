@@ -86,7 +86,7 @@
 #define configASSERT actor_assert
 
 #define traceTASK_SWITCHED_OUT() log_job_out()
-#define traceTASK_SWITCHED_IN() log_job_in()
+#define traceTASK_SWITCHED_IN() log_job_in(pcTaskGetName(xTaskGetCurrentTaskHandle()))
 
 #define INCLUDE_uxTaskGetStackHighWaterMark 1
 #else

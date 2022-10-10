@@ -25,6 +25,7 @@
 
 #define DEBUG_NOOP(...) ((void)0)
 
+void buffered_printf_flush(void);
 
 extern volatile int debug_log_inhibited;
 
@@ -33,7 +34,6 @@ extern volatile int debug_log_inhibited;
 extern char debug_buffer[DEBUG_BUFFER_SIZE];
 extern int debug_buffer_position;
 
-void buffered_printf_flush(void);
 
 #define buffered_printf(...)                                                                                                               \
     (debug_buffer_position += sprintf(&debug_buffer[debug_buffer_position], __VA_ARGS__),                                                  \
@@ -84,7 +84,7 @@ void buffered_printf_flush(void);
 
 #ifdef DEBUG
 #define traceTASK_SWITCHED_OUT() log_job_out()
-#define traceTASK_SWITCHED_IN() log_job_in()
+#define traceTASK_SWITCHED_IN() log_job_in(pcTaskGetName(xTaskGetCurrentTaskHandle()))
 
 /* For program debug (e.g. printf the memory allocations and memory free) */
 // #define traceMALLOC(pvAddress, uiSize)  debug_printf("%p %d malloc\r\n", pvAddress, (unsigned int)uiSize)
@@ -94,7 +94,7 @@ void log_ccycnt_before(void);
 void log_ccycnt_after(void);
 void log_job_out(void);
 
-void log_job_in(void);
+void log_job_in(char *);
 
 
 #endif

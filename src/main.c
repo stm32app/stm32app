@@ -35,7 +35,7 @@ int main(void) {
     start_sdram();
     actor_node_t *node;
 
-    //debug_log_inhibited = false;
+    debug_log_inhibited = false;
     actor_platform_init();
     xTaskCreate( actor_boot, "Startup", 5000, &node, tskIDLE_PRIORITY + 7, NULL);
 

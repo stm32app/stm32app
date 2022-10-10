@@ -106,7 +106,7 @@ struct actor_message {
     uint8_t *data;               /* Pointer to data package*/
     uint32_t size;               /* Size of data payload*/
     void *argument;              /* Optional argument */
-    actor_t *producer;           /* Where event originated at */
+    actor_t *producer;           /* Where event originated at */    
     actor_t *consumer;           /* Device that handled the event*/
 };
 

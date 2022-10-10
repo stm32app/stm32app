@@ -114,6 +114,7 @@ static actor_signal_t usart_start(transport_usart_t *usart) {
     usart_set_parity(usart->address, USART_PARITY_NONE);
     usart_set_flow_control(usart->address, USART_FLOWCONTROL_NONE);
 
+    // FIXME: Not available everywhere
     //usart_enable_idle_interrupt(usart->address);
     rcc_periph_clock_enable(usart->clock);
 
