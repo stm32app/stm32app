@@ -1,0 +1,6 @@
+BasedOnStyle: Chromium
+BraceWrapping:
+  AfterEnum:       true # <-- You need this
+  AfterExternBlock: false # <-- And this
+BreakBeforeBraces: Custom # <-- And this
+ColumnLimit: 100

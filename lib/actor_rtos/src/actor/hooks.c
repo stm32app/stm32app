@@ -14,16 +14,20 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
     (void)pcTaskName; /* may be unused*/
     debug_printf("System - Stack overflow! %s\n", pcTaskName);
     buffered_printf_flush();
-    while (1) {
-        __asm("BKPT #0\n"); // Break into the debugger
-    }
+    #ifdef CM3
+        while (1) {
+            __asm("BKPT #0\n"); // Break into the debugger
+        }
+    #endif
 }
 #endif
 
 void vApplicationMallocFailedHook(void) {
     debug_printf("System - Malloc failed!");
     buffered_printf_flush();
+    #ifdef CM3
     while (1) {
         __asm("BKPT #0\n"); // Break into the debugger
     }
+    #endif
 }

@@ -30,9 +30,8 @@ static void actor_boot(void *pvParameters) {
 }
 
 
-
 int main(void) {
-    start_sdram();
+    //start_sdram();
     actor_node_t *node;
 
     debug_log_inhibited = false;

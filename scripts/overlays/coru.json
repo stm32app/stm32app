@@ -1,9 +1,0 @@
-{
-  "name": "coru",
-  "dependencies": {
-    "actor_env": "*"
-  },
-  "build": {
-    "flags": "-Wno-missing-prototypes -Wno-incompatible-pointer-types -Wno-redundant-decls"
-  }
-}

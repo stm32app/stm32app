@@ -148,7 +148,7 @@ static actor_signal_t mothership_worker_high_priority(actor_mothership_t *mother
                                                       actor_thread_t *thread) {
     (void)tick;
     (void)thread;
-    if (event->type == ACTOR_MESSAGE_THREAD_ALARM && !mothership->initialized) {
+    if (event->type == ACTOR_MESSAGE_THREAD_START && !mothership->initialized) {
         mothership->initialized = true;
         // test simple timeout
         actor_send_numeric(mothership->timer, mothership->actor, 1000000, (void *)123);
@@ -156,7 +156,7 @@ static actor_signal_t mothership_worker_high_priority(actor_mothership_t *mother
         actor_publish_message(mothership->actor, ACTOR_MESSAGE_DIAGNOSE);
         return actor_publish_message(mothership->actor, ACTOR_MESSAGE_START);
     }
-    if (event->type == ACTOR_MESSAGE_THREAD_ALARM && mothership->initialized && !mothership->sdram) {
+    if (event->type == ACTOR_MESSAGE_THREAD_START && mothership->initialized && !mothership->sdram) {
         // finish_sdram();
     }
     return 0;

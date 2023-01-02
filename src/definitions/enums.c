@@ -152,7 +152,7 @@ case 3: return "ACTOR_SIGNAL_UNAFFECTED";
 case 4: return "ACTOR_SIGNAL_TIMER";
 case 5: return "ACTOR_SIGNAL_DMA_TRANSFERRING";
 case 6: return "ACTOR_SIGNAL_DMA_IDLE";
-case 7: return "ACTOR_SIGNAL_CANCEL";
+case 7: return "ACTOR_SIGNAL_ABORT";
 case 8: return "ACTOR_SIGNAL_RX_COMPLETE";
 case 9: return "ACTOR_SIGNAL_TX_COMPLETE";
 case 10: return "ACTOR_SIGNAL_CATCHUP";

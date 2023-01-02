@@ -220,7 +220,7 @@ static actor_signal_t spi_dma_read_complete(transport_spi_t *spi) {
     actor_dma_tx_stop(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream, spi->properties->dma_tx_channel);
     debug_printf("   > SPI%u\t", spi->actor->seq + 1);
     actor_dma_rx_stop(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->properties->dma_rx_channel);
-    actor_signal(spi->actor->node->timer, ACTOR_SIGNAL_CANCEL, spi->actor, (void *)0);
+    actor_signal(spi->actor->node->timer, ACTOR_SIGNAL_ABORT, spi->actor, (void *)0);
 
     spi_disable(spi->address);
 

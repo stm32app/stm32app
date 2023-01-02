@@ -3,9 +3,16 @@
 
 #include "301/CO_ODinterface.h"
 #include "actor/types.h"
-#include "actor/event.h"
+#include "actor/message.h"
 
-// Handle external writes to OD via CAN
+
+/*
+Version of `actor_property_set` that is fully compatible with OD writers, so it is used used
+to receieve external writes from the CANopen to actor nodes. It retains behavioral changes
+of actor_property_set, but allows values to be streamed in chunks. It converts Actor
+signals to ODR return values for compatability with OD interface, so Actor functions 
+that use it (like `actor_property_stream_set`) directly do a backward conversion
+*/
 ODR_t actor_property_writer(OD_stream_t *stream, const void *buf, OD_size_t count, OD_size_t *count_written);
 // Handle external reads to OD via CAN
 ODR_t actor_property_reader(OD_stream_t *stream, void *buf, OD_size_t count, OD_size_t *count_read);
@@ -46,7 +53,7 @@ static inline ODR_t actor_signal_to_odr(actor_signal_t signal) {
     }
 }
 
-static inline actor_signal_t actor_signal_from_odr(actor_signal_t signal) {
+static inline actor_signal_t actor_signal_from_odr(ODR_t signal) {
     switch (signal) {
     case ODR_PARTIAL:
         return ACTOR_SIGNAL_INCOMPLETE;

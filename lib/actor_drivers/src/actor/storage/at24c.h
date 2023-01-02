@@ -24,7 +24,7 @@ typedef struct storage_at24c_properties {
 struct storage_at24c {
     actor_t *actor;
     storage_at24c_properties_t *properties;
-    transport_i2c_t *i2c;
+    actor_t *i2c;
     actor_job_t *job;
     actor_buffer_t *source_buffer;
     actor_buffer_t *target_buffer;

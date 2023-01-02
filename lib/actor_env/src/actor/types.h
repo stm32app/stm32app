@@ -43,7 +43,6 @@ typedef enum actor_type actor_type_t;                     /* List of actor group
 typedef enum actor_phase actor_phase_t;                   /* All phases that actor can be in*/
 typedef enum actor_signal actor_signal_t;                 /* Things that actor tell each other */
 typedef struct actor_job actor_job_t;                     /* State machine dealing with high_priority commands*/
-typedef enum actor_signal actor_signal_t;                 /* Commands to advance step machine*/
 typedef struct actor_mutex actor_mutex_t;                 /* Enable exclusive control to shared resources  */
 typedef struct actor_blank actor_blank_t;                 /* Example blank actor */
 typedef struct actor_buffer actor_buffer_t;               /* Growable owned buffer */

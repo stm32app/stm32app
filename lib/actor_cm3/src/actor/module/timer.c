@@ -452,7 +452,7 @@ static actor_signal_t timer_value_received(module_timer_t *timer, actor_t *origi
 }
 static actor_signal_t timer_signal_received(module_timer_t *timer, actor_signal_t signal, actor_t *caller, void *argument) {
     switch (signal) {
-    case ACTOR_SIGNAL_CANCEL:
+    case ACTOR_SIGNAL_ABORT:
         return timer_clear(timer, caller, argument);
     default:
         return 0;

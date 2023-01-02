@@ -1,4 +1,4 @@
-#include "definitions/enums.h"
+
 #include <actor/buffer.h>
 #include <actor/node.h>
 
@@ -234,5 +234,5 @@ actor_t *actor_box(void *object) {
 }
 
 actor_signal_t actor_job_delay_us(actor_job_t *job, uint32_t delay_us) {
-    return actor_send(job->actor->node->timer, job->actor, (void *)delay_us, job);
+    return actor_send(job->actor->node->timer, job->actor, (void *) (uintptr_t) delay_us, job);
 }

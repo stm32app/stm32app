@@ -5,6 +5,7 @@
 #ifdef DEBUG
 #include "actor/log.h"
 
+#define configUSE_32_BIT_TICKS 1
 #define configCHECK_FOR_STACK_OVERFLOW 2
 #define configUSE_MALLOC_FAILED_HOOK 1
 #define configUSE_IDLE_HOOK 1

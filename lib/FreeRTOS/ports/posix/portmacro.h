@@ -60,8 +60,13 @@ typedef portSTACK_TYPE StackType_t;
 typedef long BaseType_t;
 typedef unsigned long UBaseType_t;
 
-typedef unsigned long TickType_t;
-#define portMAX_DELAY ( TickType_t ) ULONG_MAX
+#if ( configUSE_32_BIT_TICKS == 1 )
+    typedef uint32_t     TickType_t;
+    #define portMAX_DELAY              ( TickType_t ) 0xffffffffUL
+#else
+    typedef unsigned int TickType_t;
+    #define portMAX_DELAY ( TickType_t ) ULONG_MAX
+#endif
 
 #define portTICK_TYPE_IS_ATOMIC 1
 

@@ -3,6 +3,7 @@
 volatile int debug_log_inhibited = 0;
 
 #ifdef DEBUG
+#ifdef CM3
 #include <stdio.h>
 
 uint32_t lastcyccnt;
@@ -66,5 +67,5 @@ void log_job_out(void) {
     conditional_printf("total \n");
 }
 
-
+#endif
 #endif

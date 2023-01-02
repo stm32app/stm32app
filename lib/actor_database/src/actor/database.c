@@ -456,7 +456,7 @@ static actor_signal_t database_job_connect(actor_job_t *job) {
 
 static actor_signal_t database_start(actor_database_t *database) {
     sqlite3_initialize();
-    return 0;`
+    return 0;
 }
 
 static actor_signal_t database_stop(actor_database_t *database) {

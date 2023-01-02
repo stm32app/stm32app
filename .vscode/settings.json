@@ -1,0 +1,22 @@
+{
+    "files.associations": {
+        "type_traits": "c",
+        "typeinfo": "c",
+        "platform.h": "c",
+        "scb.h": "c",
+        "event.h": "c",
+        "co_odinterface.h": "c",
+        "types.h": "c",
+        "message.h": "c",
+        "thread.h": "c",
+        "mutex.h": "c",
+        "env.h": "c",
+        "co_driver_custom.h": "c",
+        "enums.h": "c",
+        "buffer.h": "c",
+        "config.h": "c",
+        "actor.h": "c",
+        "node.h": "c",
+        "accessors.h": "c"
+    }
+}

@@ -60,7 +60,7 @@ actor_signal_t actor_callback_phase_changed(actor_t *actor, actor_phase_t phase,
     if (actor->interface->phase_changed != NULL) {
         actor_signal_t signal = actor->interface->phase_changed(actor->object, phase);
         switch (signal) {
-        case ACTOR_SIGNAL_CANCEL:
+        case ACTOR_SIGNAL_ABORT:
         case ACTOR_SIGNAL_WAIT:
             actor_set_phase(actor, previous);
             break;

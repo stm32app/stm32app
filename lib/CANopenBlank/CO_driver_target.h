@@ -75,12 +75,33 @@ typedef struct {
 
 /* Data storage object for one entry */
 typedef struct {
-    void *addr;
     size_t len;
     uint8_t subIndexOD;
     uint8_t attr;
-    /* Additional variables (target specific) */
+    uint8_t index; // index within entries array
+    void *addr;
     void *addrNV;
+
+    // eeprom specific
+    void *storageModule;
+    /** CRC checksum of the data stored in eeprom, set on store, required with
+     * @ref CO_storage_eeprom. */
+    uint16_t crc;
+    /** Address of entry signature inside eeprom, set by init, required with
+     * @ref CO_storage_eeprom. */
+    size_t eepromAddrSignature;
+    /** Address of data inside eeprom, set by init, required with
+     * @ref CO_storage_eeprom. */
+    size_t eepromAddr;
+    /** Offset of next byte being updated by automatic storage, required with
+     * @ref CO_storage_eeprom. */
+    size_t offset;
+    /** Additional target specific parameters, optional. */
+    void *additionalParameters;
+
+    // flash specific
+    void *addrFlash;
+
 } CO_storage_entry_t;
 
 

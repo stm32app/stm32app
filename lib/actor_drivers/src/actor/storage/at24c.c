@@ -50,7 +50,7 @@ static actor_signal_t at24c_task_read(actor_job_t *job, actor_signal_t signal, a
             bytes_on_page = get_number_of_bytes_intesecting_page(address + job->counter, size, at24c->properties->page_size);
             actor_publish(job->actor, &((actor_message_t){
                                             .type = ACTOR_MESSAGE_READ_TO_BUFFER,
-                                            .consumer = at24c->i2c->actor,
+                                            .consumer = at24c->i2c,
                                             .producer = job->actor,
                                             .data = &at24c->target_buffer->data[job->counter],
                                             .size = bytes_on_page,
@@ -87,7 +87,7 @@ static actor_signal_t at24c_task_write(actor_job_t *job, actor_signal_t signal, 
         bytes_on_page = get_number_of_bytes_intesecting_page(address + job->counter, size, at24c->properties->page_size);
         actor_publish(job->actor, &((actor_message_t){
                                           .type = ACTOR_MESSAGE_WRITE,
-                                          .consumer = at24c->i2c->actor,
+                                          .consumer = at24c->i2c,
                                           .producer = job->actor,
                                           .data = &at24c->source_buffer->data[job->counter],
                                           .size = bytes_on_page,

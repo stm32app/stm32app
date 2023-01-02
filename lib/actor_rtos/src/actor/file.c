@@ -1,5 +1,5 @@
 #include <actor/file.h>
-#include <actor/event.h>
+#include <actor/message.h>
 
 actor_signal_t actor_file_publish_message_with_argument_for(actor_file_t *file, actor_message_type_t type, actor_t *target, uint8_t *buffer, uint32_t size) {
   if (file->job) {
