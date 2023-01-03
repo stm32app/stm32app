@@ -256,7 +256,7 @@ static actor_signal_t timer_schedule(module_timer_t *timer, uint32_t next_time) 
     } else {
         timer->next_tick = timer->properties->period;
     }
-    return 0;
+    return ACTOR_SIGNAL_WAIT;
 }
 
 static actor_signal_t timer_notify(module_timer_t *timer) {
@@ -362,13 +362,13 @@ static actor_signal_t timer_timeout(module_timer_t *timer, actor_t *actor, void 
         module_timer_subscription_t *next = was_closer ? timer_get_next_subscription(timer) : subscription;
         return timer_schedule(timer, next->time);
     }
-    return 0;
+    return ACTOR_SIGNAL_WAIT;
 }
 
 static actor_signal_t timer_clear(module_timer_t *timer, actor_t *actor, void *argument) {
     module_timer_subscription_t *subscription = timer_get_subscription(timer, actor, argument);
     if (subscription == NULL)
-        return 0;
+        return ACTOR_SIGNAL_UNAFFECTED;
     bool was_next = timer->next_time == subscription->time;
 
     *subscription = (module_timer_subscription_t){};

@@ -115,7 +115,7 @@ static actor_signal_t actor_thread_message_dispatch(actor_thread_t* thread,
     signal = actor_thread_message_actor_dispatch(thread, event, worker->actor, worker);
 
     // let worker know that it has events to catch up later
-    if (signal == ACTOR_SIGNAL_WAIT) {
+    if (signal == ACTOR_SIGNAL_BUSY) {
       worker->catchup = thread;
     }
 
@@ -313,8 +313,10 @@ actor_signal_t actor_thread_message_await(actor_thread_t* thread, actor_message_
         // it means that thread is woken up by schedule so synthetic wake up event is broadcasted
         *event = (actor_message_t){.producer = actor_thread_get_root_actor(thread),
                                    .type = ACTOR_MESSAGE_THREAD_ALARM};
-        debug_printf("├ Wakeup\t\tafter %lums (timeout of %lims)\n",
-                     (unsigned long ) ((xTaskGetTickCount() - thread->current_time) * portTICK_PERIOD_MS), (long )timeout);
+        debug_printf(
+            "├ Wakeup\t\tafter %lums (timeout of %lims)\n",
+            (unsigned long)((xTaskGetTickCount() - thread->current_time) * portTICK_PERIOD_MS),
+            (long)timeout);
         stop = true;
         break;
 
@@ -496,10 +498,13 @@ char* actor_thread_get_name(actor_thread_t* thread) {
 }
 
 void actor_enter_critical(void) {
-  portENTER_CRITICAL();
+  actor_disable_interrupts();
 }
 void actor_exit_critical(void) {
-  portEXIT_CRITICAL();
+  actor_enable_interrupts();
+}
+void actor_exit_critical_cleanup(void *value) {
+  actor_exit_critical();
 }
 
 bool actor_thread_is_blockable(actor_thread_t* thread) {

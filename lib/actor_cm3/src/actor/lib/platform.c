@@ -175,7 +175,7 @@ _read(int fd, char *ptr, int len)
 #endif
 
 void actor_platform_init(void) {
-  scb_set_priority_grouping(SCB_AIRCR_PRIGROUP_GROUP16_NOSUB);
+  //scb_set_priority_grouping(SCB_AIRCR_PRIGROUP_GROUP16_NOSUB);
   #ifdef SEMIHOSTING
       initialise_monitor_handles();
       dwt_enable_cycle_counter();

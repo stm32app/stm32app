@@ -163,7 +163,7 @@ static actor_signal_t spi_dma_read_is_idle(transport_spi_t *spi) {
 
 // Initiate dma write. If size is 0 for the sent message, it will send zeroes indefinitely
 static actor_signal_t spi_dma_write(transport_spi_t *spi, uint8_t *data) {
-    actor_register_dma(spi->properties->dma_tx_unit, spi->properties->dma_tx_stream, spi->actor);
+    actor_dma_acquire(spi->actor, spi->properties->dma_tx_unit, spi->properties->dma_tx_stream);
     uint32_t tx_bytes_required = spi_dma_get_required_tx_bytes(spi);
 
     debug_printf("   > SPI%u\t", spi->actor->seq + 1);
@@ -183,7 +183,7 @@ static actor_signal_t spi_dma_read(transport_spi_t *spi) {
             return error;
         }
     }
-    actor_register_dma(spi->properties->dma_rx_unit, spi->properties->dma_rx_stream, spi->actor);
+    actor_dma_acquire(spi->actor, spi->properties->dma_rx_unit, spi->properties->dma_rx_stream);
     uint16_t buffer_size = spi_dma_get_effectve_rx_circular_buffer_size(spi);
     uint32_t rx_bytes_required = spi_dma_get_required_rx_bytes(spi);
 

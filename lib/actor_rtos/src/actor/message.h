@@ -99,7 +99,8 @@ enum actor_signal
   ACTOR_SIGNAL_INVALID_ARGUMENT = -11,
   ACTOR_SIGNAL_NOT_IMPLEMENTED = -12,
   ACTOR_SIGNAL_TRANSFER_FAILED = -13,
-  ACTOR_SIGNAL_UNSUPPORTED = -14
+  ACTOR_SIGNAL_UNSUPPORTED = -14,
+  ACTOR_SIGNAL_CONFLICT = -15
 };
 
 /* Message is the main entity for communication between modules. A message can be directed to

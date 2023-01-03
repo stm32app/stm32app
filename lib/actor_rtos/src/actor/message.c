@@ -123,20 +123,18 @@ actor_signal_t actor_job_publish_message_generic(actor_job_t* job,
   return actor_job_wait(job);
 }
 
-actor_message_t actor_prepared_message;
 actor_signal_t actor_publish_message_generic(actor_t* actor,
                                              actor_message_type_t type,
                                              actor_t* target,
                                              uint8_t* data,
                                              uint32_t size,
                                              void* argument) {
-  actor_prepared_message = (actor_message_t){.type = type,
+  return actor_publish(actor, &((actor_message_t){.type = type,
                                              .data = data,
                                              .size = size,
                                              .argument = argument,
                                              .consumer = target,
-                                             .producer = actor};
-  return actor_publish(actor, &actor_prepared_message);
+                                             .producer = actor}));
 }
 
 actor_signal_t actor_message_finalize(actor_t* actor,

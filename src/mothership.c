@@ -110,8 +110,8 @@ static actor_signal_t mothership_job_stop(actor_job_t *job, actor_signal_t signa
     return ACTOR_SIGNAL_JOB_COMPLETE;
 }
 
-static actor_signal_t mothership_job_stats(actor_job_t *job, actor_signal_t actor, actor_t *caller) {
-    if (job->job_phase == 0) {
+static actor_signal_t mothership_job_stats(actor_job_t *job, actor_signal_t signal, actor_t *caller) {
+    actor_async_job_begin();
         debug_printf("│ │ ├ Allocated buffers\n");
         for (actor_buffer_t *page = job->actor->node->buffers; page; page = actor_buffer_get_next_page(page, job->actor->node->buffers)) {
             for (uint32_t offset = 0; offset < page->allocated_size; offset += sizeof(actor_buffer_t)) {
@@ -125,8 +125,7 @@ static actor_signal_t mothership_job_stats(actor_job_t *job, actor_signal_t acto
             debug_printf("│ │ ├ Heap #0x%lx\t%ub/%ub free, %u lowest\n", (uint32_t)multiRegionGetHeapStartAddress(i),
                          multiRegionGetFreeHeapSize(i), multiRegionGetHeapSize(i), multiRegionGetMinimumEverFreeHeapSize(i));
         }
-    }
-    return ACTOR_SIGNAL_JOB_COMPLETE;
+    actor_async_job_end();
 }
 
 static actor_signal_t mothership_worker_input(actor_mothership_t *mothership, actor_message_t *event, actor_worker_t *tick,

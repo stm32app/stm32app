@@ -27,8 +27,12 @@ static actor_signal_t i2c_validate(transport_i2c_properties_t* properties) {
   return 0;
 }
 
-static void i2c_dma_tx_start(transport_i2c_t* i2c, uint8_t* data, uint32_t size) {
-  actor_register_dma(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream, i2c->actor);
+static actor_signal_t i2c_dma_tx_start(transport_i2c_t* i2c, uint8_t* data, uint32_t size) {
+  actor_signal_t status =
+      actor_dma_acquire(i2c->actor, i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream);
+  if (status == ACTOR_SIGNAL_UNAFFECTED || status < 0) {
+    return status;
+  }
 
   debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
   debug_printf("TX started\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit,
@@ -39,9 +43,15 @@ static void i2c_dma_tx_start(transport_i2c_t* i2c, uint8_t* data, uint32_t size)
                      i2c->source_buffer->data, i2c->source_buffer->size, false, 1, 0, 0);
 
   i2c_enable_dma(i2c->address);
+  return ACTOR_SIGNAL_OK;
 }
 
-static void i2c_dma_tx_stop(transport_i2c_t* i2c) {
+static actor_signal_t i2c_dma_tx_stop(transport_i2c_t* i2c) {
+  actor_signal_t status = actor_dma_release(i2c->actor, i2c->properties->dma_tx_unit,
+                                               i2c->properties->dma_tx_stream);
+  if (status == ACTOR_SIGNAL_UNAFFECTED || status < 0) {
+    return status;
+  }
   debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
   debug_printf("TX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_tx_unit,
                i2c->properties->dma_tx_stream, i2c->properties->dma_tx_channel);
@@ -49,13 +59,16 @@ static void i2c_dma_tx_stop(transport_i2c_t* i2c) {
   actor_buffer_release(i2c->source_buffer, i2c->actor);
   actor_dma_tx_stop(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream,
                     i2c->properties->dma_tx_channel);
-  actor_unregister_dma(i2c->properties->dma_tx_unit, i2c->properties->dma_tx_stream);
   i2c_disable_dma(i2c->address);
+  return ACTOR_SIGNAL_OK;
 }
 
-static void i2c_dma_rx_start(transport_i2c_t* i2c, uint8_t* destination, uint32_t expected_size) {
-  actor_register_dma(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream, i2c->actor);
-
+static actor_signal_t i2c_dma_rx_start(transport_i2c_t* i2c, uint8_t* destination, uint32_t expected_size) {
+  actor_signal_t status =
+      actor_dma_acquire(i2c->actor, i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream);
+  if (status == ACTOR_SIGNAL_UNAFFECTED || status < 0) {
+    return status;
+  }
   debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
   debug_printf("RX started\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit,
                i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
@@ -66,17 +79,22 @@ static void i2c_dma_rx_start(transport_i2c_t* i2c, uint8_t* destination, uint32_
   actor_dma_rx_start((uint32_t) & (I2C_DR(i2c->address)), i2c->properties->dma_rx_unit,
                      i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel, input->data,
                      input->allocated_size, input == i2c->ring_buffer, 1, 0, 0);
+  return ACTOR_SIGNAL_OK;
 }
 
-static void i2c_dma_rx_stop(transport_i2c_t* i2c) {
+static actor_signal_t i2c_dma_rx_stop(transport_i2c_t* i2c) {
+  actor_signal_t status = actor_dma_release(i2c->actor, i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream);
+  if (status == ACTOR_SIGNAL_UNAFFECTED || status < 0) {
+    return status;
+  }
   debug_printf("│ │ ├ I2C%u\t\t", i2c->actor->seq + 1);
   debug_printf("RX stopped\tDMA%u(%u/%u)\n", i2c->properties->dma_rx_unit,
                i2c->properties->dma_rx_stream, i2c->properties->dma_rx_channel);
 
   actor_dma_rx_stop(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream,
                     i2c->properties->dma_rx_channel);
-  actor_unregister_dma(i2c->properties->dma_rx_unit, i2c->properties->dma_rx_stream);
   i2c_disable_dma(i2c->address);
+  return ACTOR_SIGNAL_OK;
 }
 
 static actor_signal_t i2c_construct(transport_i2c_t* i2c) {
@@ -132,41 +150,6 @@ transport_i2c_message_argument_t* i2c_unpack_message_argument(void** argument) {
 }
 
 static actor_signal_t i2c_task_setup(actor_job_t* job,
-                                     actor_signal_t signal,
-                                     actor_t* caller,
-                                     uint8_t address,
-                                     uint32_t memory_register) {
-  transport_i2c_t* i2c = job->actor->object;
-  switch (job->task_phase) {
-    case 0:
-      i2c_peripheral_enable(i2c->address);
-      i2c_send_start(i2c->address);
-      return ACTOR_SIGNAL_OK;
-    case 1:
-      if (!I2C_EVENT_MASTER_MODE_SELECT(i2c->address)) {
-        return ACTOR_SIGNAL_LOOP;
-      } else {
-        i2c_send_7bit_address(i2c->address, address, I2C_WRITE);
-        return ACTOR_SIGNAL_WAIT;
-      }
-    case 2:
-      if (!I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED(i2c->address) &&
-          !I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address)) {
-        return ACTOR_SIGNAL_LOOP;
-      } else {
-        I2C_DR(i2c->address) = memory_register;
-        return ACTOR_SIGNAL_OK;
-      }
-    case 3:
-      if (!I2C_EVENT_TXE(i2c->address)) {
-        return ACTOR_SIGNAL_LOOP;
-      } else {
-        return ACTOR_SIGNAL_TASK_COMPLETE;
-      }
-  }
-  return 0;
-}
-static actor_signal_t i2c_task_setup_async(actor_job_t* job,
                                            actor_signal_t signal,
                                            actor_t* caller,
                                            uint8_t address,
@@ -177,11 +160,10 @@ static actor_signal_t i2c_task_setup_async(actor_job_t* job,
   i2c_send_start(i2c->address);
   actor_async_until(I2C_EVENT_MASTER_MODE_SELECT(i2c->address));
   i2c_send_7bit_address(i2c->address, address, I2C_WRITE);
-  actor_async_yield();
-  actor_async_until(!I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED(i2c->address) &&
-                    !I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address));
+  actor_async_until(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED(i2c->address) || I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address));
   I2C_DR(i2c->address) = memory_register;
-  actor_async_until(I2C_EVENT_TXE(i2c->address)) actor_async_task_end();
+  actor_async_until(I2C_EVENT_TXE(i2c->address));
+  actor_async_task_end();
 }
 
 static actor_signal_t i2c_task_write_data(actor_job_t* job,
@@ -190,55 +172,6 @@ static actor_signal_t i2c_task_write_data(actor_job_t* job,
                                           uint8_t address,
                                           uint8_t* data,
                                           uint32_t size) {
-  (void)address;
-  transport_i2c_t* i2c = job->actor->object;
-  if (signal > ACTOR_SIGNAL_FAILURE) {
-    switch (job->task_phase) {
-      case 0:
-        nvic_disable_irq(i2c->ev_irq);
-        return actor_job_switch_thread(job, job->thread);
-      case 1:
-        i2c->source_buffer = actor_buffer_source(i2c->actor, data, size);
-        if (!i2c->source_buffer) {
-          signal = ACTOR_SIGNAL_OUT_OF_MEMORY;
-          break;
-        } else {
-          return ACTOR_SIGNAL_OK;
-        }
-      case 2:
-        i2c_dma_tx_start(i2c, data, size);
-        return ACTOR_SIGNAL_OK;
-      case 3:
-        if (signal != ACTOR_SIGNAL_DMA_TRANSFERRING) {
-          return ACTOR_SIGNAL_LOOP;
-        } else {
-          i2c_dma_tx_stop(i2c);
-          nvic_enable_irq(i2c->ev_irq);
-          return ACTOR_SIGNAL_OK;
-        }
-      case 4:
-        if (!I2C_EVENT_BTF(i2c->address) && !I2C_EVENT_TXE(i2c->address)) {
-          return ACTOR_SIGNAL_LOOP;
-        } else {
-          i2c_send_stop(i2c->address);
-          i2c_peripheral_disable(i2c->address);
-          return ACTOR_SIGNAL_TASK_COMPLETE;
-        }
-    }
-  }
-
-  i2c_peripheral_disable(i2c->address);
-  actor_buffer_release(i2c->source_buffer, i2c->actor);
-  i2c->source_buffer = NULL;
-  return signal;
-}
-
-static actor_signal_t i2c_task_write_data_async(actor_job_t* job,
-                                                actor_signal_t signal,
-                                                actor_t* caller,
-                                                uint8_t address,
-                                                uint8_t* data,
-                                                uint32_t size) {
   transport_i2c_t* i2c = job->actor->object;
   actor_async_task_begin();
 
@@ -251,89 +184,36 @@ static actor_signal_t i2c_task_write_data_async(actor_job_t* job,
   // Allocate buffer wrapper over given data
   actor_async_assert(i2c->source_buffer = actor_buffer_source(i2c->actor, data, size),
                      ACTOR_SIGNAL_OUT_OF_MEMORY);
+  actor_async_defer(buffer, {
+    actor_buffer_release(i2c->source_buffer, i2c->actor);
+    i2c->source_buffer = NULL;
+  });
 
   // Initialize transmission of data over DMA
   i2c_dma_tx_start(i2c, data, size);
+  actor_async_defer(dma, {
+    // Finalize DMA transmission, release buffer
+    i2c_dma_tx_stop(i2c);
+  });
 
   // Wait for interrupt to notify of completion
   actor_async_until(actor_async_signal == ACTOR_SIGNAL_DMA_TRANSFERRING);
-
-  // Finalize DMA transmission, release buffer
-  i2c_dma_tx_stop(i2c);
+  actor_async_undefer(dma);
 
   // Wait for Byte transfer Finished or Transmission empty events
   nvic_enable_irq(i2c->ev_irq);
   actor_async_until(I2C_EVENT_BTF(i2c->address) || I2C_EVENT_TXE(i2c->address));
 
   // Finish the async work
-  actor_async_end(1, {
-    // Release ad disable I2C bus
-    i2c_send_stop(i2c->address);
-    i2c_peripheral_disable(i2c->address);
+  actor_async_task_end({
+    // Release and disable I2C bus
+    actor_async_cleanup(dma);
+    actor_async_cleanup(buffer);
 
-    // Release buffer, if error happend mid-transfer
-    actor_buffer_release(i2c->source_buffer, i2c->actor);
-    i2c->source_buffer = NULL;
   });
 }
 
 static actor_signal_t i2c_task_read_data(actor_job_t* job,
-                                         actor_signal_t signal,
-                                         actor_t* caller,
-                                         uint8_t address,
-                                         uint8_t* data,
-                                         uint32_t size) {
-  transport_i2c_t* i2c = job->actor->object;
-  if (signal > ACTOR_SIGNAL_FAILURE) {
-    switch (job->task_phase) {
-      case 0:
-        nvic_disable_irq(i2c->ev_irq);
-        return actor_job_switch_thread(job, job->thread);
-      case 1:
-        i2c->output_buffer = actor_double_buffer_target(i2c->ring_buffer, i2c->actor, data, size);
-        if (!i2c->output_buffer) {
-          signal = ACTOR_SIGNAL_OUT_OF_MEMORY;
-          break;
-        } else {
-          return ACTOR_SIGNAL_OK;
-        }
-      case 2:
-        i2c_enable_ack(i2c->address);
-        i2c_send_start(i2c->address);
-        nvic_enable_irq(i2c->ev_irq);
-        return ACTOR_SIGNAL_OK;
-      case 3:
-        if (!I2C_EVENT_MASTER_MODE_SELECT(i2c->address)) {
-          return ACTOR_SIGNAL_LOOP;
-        } else {
-          i2c_send_7bit_address(i2c->address, address, I2C_READ);
-          return ACTOR_SIGNAL_OK;
-        }
-      case 4:
-        if (!I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED(i2c->address)) {
-          return ACTOR_SIGNAL_LOOP;
-        } else {
-          i2c_dma_rx_start(i2c, data, size);
-          return ACTOR_SIGNAL_WAIT;
-        }
-      case 5:
-        if (signal != ACTOR_SIGNAL_DMA_TRANSFERRING || i2c->output_buffer->size != size) {
-          return ACTOR_SIGNAL_LOOP;
-        } else {
-          i2c_dma_rx_stop(i2c);
-          i2c_peripheral_disable(i2c->address);
-          i2c_send_stop(i2c->address);
-          return ACTOR_SIGNAL_TASK_COMPLETE;
-        }
-    }
-  }
-  i2c_peripheral_disable(i2c->address);
-  actor_buffer_release(i2c->output_buffer, i2c->actor);
-  i2c->output_buffer = NULL;
-  return signal;
-}
-
-static actor_signal_t i2c_task_read_data_async(actor_job_t* job,
                                                actor_signal_t signal,
                                                actor_t* caller,
                                                uint8_t address,
@@ -356,6 +236,11 @@ static actor_signal_t i2c_task_read_data_async(actor_job_t* job,
   // Initiate I2C mode selection
   i2c_enable_ack(i2c->address);
   i2c_send_start(i2c->address);
+  actor_async_defer(i2c, {
+    i2c_send_stop(i2c->address);
+    i2c_peripheral_disable(i2c->address);
+  });
+
   nvic_enable_irq(i2c->ev_irq);
   actor_async_until(I2C_EVENT_MASTER_MODE_SELECT(i2c->address));
 
@@ -365,14 +250,14 @@ static actor_signal_t i2c_task_read_data_async(actor_job_t* job,
 
   // Read data over DMA, wait until the buffer is filled up
   i2c_dma_rx_start(i2c, data, size);
+  actor_async_defer(dma, {
+    i2c_dma_rx_stop(i2c);
+  });
   actor_async_until(signal == ACTOR_SIGNAL_DMA_TRANSFERRING && i2c->output_buffer->size == size);
-  i2c_dma_rx_stop(i2c);
 
   actor_async_task_end({
-    // Stop I2C
-    i2c_send_stop(i2c->address);
-    i2c_peripheral_disable(i2c->address);
-
+    actor_async_cleanup(i2c);
+    actor_async_cleanup(dma);
     // Cleanup buffer if transmission failed
     if (actor_async_error) {
       actor_buffer_release(i2c->output_buffer, i2c->actor);
@@ -381,33 +266,8 @@ static actor_signal_t i2c_task_read_data_async(actor_job_t* job,
   });
 }
 
+
 static actor_signal_t i2c_task_publish_response(actor_job_t* job,
-                                                actor_signal_t signal,
-                                                actor_t* caller) {
-  actor_buffer_t* buffer;
-  transport_i2c_t* i2c = job->actor->object;
-  switch (job->task_phase) {
-    case 0:
-      buffer = actor_double_buffer_detach(i2c->ring_buffer, &i2c->output_buffer, i2c->actor);
-
-      // if event was ACTOR_MESSAGE_READ_TO_BUFFER, it is assumed that producer expect report
-      // instead of event
-      if (job->inciting_message.type == ACTOR_MESSAGE_READ) {
-        actor_publish(job->actor->node->actor,
-                      &((actor_message_t){.type = ACTOR_MESSAGE_RESPONSE,
-                                          .producer = i2c->actor,
-                                          .consumer = job->inciting_message.producer,
-                                          .data = (uint8_t*)buffer,
-                                          .size = ACTOR_BUFFER_DYNAMIC_SIZE}));
-      } else {
-        actor_buffer_release(buffer, job->actor);
-      }
-      return ACTOR_SIGNAL_TASK_COMPLETE;
-  }
-  return 0;
-}
-
-static actor_signal_t i2c_task_publish_response_async(actor_job_t* job,
                                                       actor_signal_t signal,
                                                       actor_t* caller) {
   transport_i2c_t* i2c = job->actor->object;
@@ -426,7 +286,7 @@ static actor_signal_t i2c_task_publish_response_async(actor_job_t* job,
   } else {
     actor_buffer_release(buffer, job->actor);
   }
-  return ACTOR_SIGNAL_TASK_COMPLETE;
+  return ACTOR_SIGNAL_OK;;
 }
 
 static actor_signal_t i2c_start(transport_i2c_t* i2c) {
@@ -513,24 +373,11 @@ static actor_signal_t i2c_stop(transport_i2c_t* i2c) {
 static actor_signal_t i2c_job_read(actor_job_t* job, actor_signal_t signal, actor_t* caller) {
   transport_i2c_message_argument_t* argument =
       i2c_unpack_message_argument(&job->inciting_message.argument);
-  switch (job->job_phase) {
-    case 0:
-      return i2c_task_setup(job, signal, caller, argument->slave_address, argument->memory_address);
-    case 1:
-      return i2c_task_read_data(job, signal, caller, argument->slave_address,
-                                job->inciting_message.data, job->inciting_message.size);
-    case 2:
-      return i2c_task_publish_response(job, signal, caller);
-  }
-  return ACTOR_SIGNAL_JOB_COMPLETE;
-}
-static actor_signal_t i2c_job_read_async(actor_job_t* job, actor_signal_t signal, actor_t* caller) {
-  transport_i2c_message_argument_t* argument =
-      i2c_unpack_message_argument(&job->inciting_message.argument);
   actor_async_job_begin();
-  actor_async_await(i2c_task_setup(job, signal, caller, argument->slave_address, argument->memory_address));
+  actor_async_await(
+      i2c_task_setup(job, signal, caller, argument->slave_address, argument->memory_address));
   actor_async_await(i2c_task_read_data(job, signal, caller, argument->slave_address,
-                                job->inciting_message.data, job->inciting_message.size));
+                                       job->inciting_message.data, job->inciting_message.size));
   actor_async_await(i2c_task_publish_response(job, signal, caller));
   actor_async_job_end();
 }
@@ -538,23 +385,11 @@ static actor_signal_t i2c_job_read_async(actor_job_t* job, actor_signal_t signal
 static actor_signal_t i2c_job_write(actor_job_t* job, actor_signal_t signal, actor_t* caller) {
   transport_i2c_message_argument_t* argument =
       i2c_unpack_message_argument(&job->inciting_message.argument);
-  switch (job->job_phase) {
-    case 0:
-      return i2c_task_setup(job, signal, caller, argument->slave_address, argument->memory_address);
-    case 1:
-      return i2c_task_write_data(job, signal, caller, argument->slave_address,
-                                 job->inciting_message.data, job->inciting_message.size);
-  }
-  return ACTOR_SIGNAL_JOB_COMPLETE;
-}
-
-static actor_signal_t i2c_job_write_async(actor_job_t* job, actor_signal_t signal, actor_t* caller) {
-  transport_i2c_message_argument_t* argument =
-      i2c_unpack_message_argument(&job->inciting_message.argument);
   actor_async_job_begin();
-  actor_async_await(i2c_task_setup(job, signal, caller, argument->slave_address, argument->memory_address));
+  actor_async_await(
+      i2c_task_setup(job, signal, caller, argument->slave_address, argument->memory_address));
   actor_async_await(i2c_task_write_data(job, signal, caller, argument->slave_address,
-                                 job->inciting_message.data, job->inciting_message.size));
+                                        job->inciting_message.data, job->inciting_message.size));
   actor_async_job_end();
 }
 
@@ -607,16 +442,16 @@ static actor_signal_t i2c_signal_received(transport_i2c_t* i2c,
 }
 
 static actor_signal_t i2c_worker_on_input(transport_i2c_t* i2c,
-                                          actor_message_t* event,
+                                          actor_message_t* message,
                                           actor_worker_t* tick,
                                           actor_thread_t* thread) {
-  switch (event->type) {
+  switch (message->type) {
     case ACTOR_MESSAGE_READ:
     case ACTOR_MESSAGE_READ_TO_BUFFER:
-      return actor_message_handle_and_start_job(i2c->actor, event, &i2c->job,
+      return actor_message_handle_and_start_job(i2c->actor, message, &i2c->job,
                                                 i2c->actor->node->medium_priority, i2c_job_read);
     case ACTOR_MESSAGE_WRITE:
-      return actor_message_handle_and_start_job(i2c->actor, event, &i2c->job,
+      return actor_message_handle_and_start_job(i2c->actor, message, &i2c->job,
                                                 i2c->actor->node->medium_priority, i2c_job_write);
     default:
       return 0;
@@ -624,7 +459,7 @@ static actor_signal_t i2c_worker_on_input(transport_i2c_t* i2c,
 }
 
 static actor_signal_t i2c_worker_medium_priority(transport_i2c_t* i2c,
-                                                 actor_message_t* event,
+                                                 actor_message_t* message,
                                                  actor_worker_t* tick,
                                                  actor_thread_t* thread) {
   return actor_job_execute_if_running_in_thread(i2c->job, thread);

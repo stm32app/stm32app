@@ -101,6 +101,11 @@ bool actor_message_is_subscribed(actor_t *actor, actor_message_t *event);
 
 void actor_enter_critical(void);
 void actor_exit_critical(void);
+void actor_exit_critical_cleanup(void *value);
+
+#define actor_critical_context() \
+  actor_enter_critical();      \
+  int8_t __critical __attribute__((__cleanup__(actor_exit_critical_cleanup))) = 0
 
 #ifdef __cplusplus
 }
