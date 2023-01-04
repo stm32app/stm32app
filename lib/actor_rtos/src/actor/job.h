@@ -1,9 +1,9 @@
 #ifndef INC_CORE_TASK
 #define INC_CORE_TASK
 
+#include <actor/async.h>
 #include <actor/message.h>
 #include <actor/types.h>
-#include <actor/async.h>
 
 struct actor_job {
   actor_t* actor;          // actor owning the job
@@ -17,9 +17,9 @@ struct actor_job {
   actor_buffer_t* target_buffer;  // buffer that is used as a target for read operations
   actor_buffer_t* output_buffer;  // buffer that is returned
 
-  uint8_t flags;
-  actor_async_t routine;
-  actor_async_t subroutine;
+  uint32_t timeout_time;
+  actor_async_t async_job;
+  actor_async_t async_task;
 
   actor_job_handler_t handler;
 
@@ -45,26 +45,58 @@ void actor_job_free(actor_job_t* buffer);
 void actor_callback_job_complete(actor_t* actor);
 void actor_callback_job_started(actor_t* actor);
 
+actor_signal_t actor_job_timeout(actor_job_t* job, uint32_t timeout_ms);
 actor_signal_t actor_job_delay(actor_job_t* job, uint32_t delay_ms);
 actor_signal_t actor_job_delay_us(actor_job_t* job, uint32_t delay_us);
 #define actor_job_wakeup(job) actor_job_delay(job, 0)
 
 actor_signal_t actor_job_task_retry(actor_job_t* job);
 
-#define actor_async_job_begin() actor_async_begin(job->routine, actor_critical_context());
-#define actor_async_task_begin()      \
-  actor_async_begin(job->subroutine); \
-  debug_printf("%s: Start %s\n", __func__, get_actor_signal_name(actor_async_signal));
+#define actor_async_job_begin()                                                            \
+  actor_async_begin(                                                                       \
+      job->async_job, /* on call*/                                                         \
+      actor_critical_context(),                    \
+      { /* on begin*/                                                                      \
+        debug_printf("%s: Begin\n", __func__);                                             \
+      },                                                                                   \
+      { /* on end*/                                                                        \
+        debug_printf("%s: End %s\n", __func__, get_actor_signal_name(actor_async_signal)); \
+        actor_job_finalize(job, actor_async_signal);                                       \
+      },                                                                                   \
+      {                                                                                    \
+        /*on step: clear timeout */                                                        \
+        debug_printf("%s: Step %s\n", __func__, get_actor_signal_name(actor_async_signal)); \
+        actor_job_timeout(job, 0);                                                         \
+      },                                                                                   \
+      {                                                                                    \
+        /*on yield: schedule timeout */                                                    \
+        debug_printf("%s: Yield %s\n", __func__, get_actor_signal_name(actor_async_signal)); \
+        actor_job_timeout(job, actor_async_args.timeout);                                  \
+      });
+#define actor_async_task_begin()                                                           \
+  actor_async_begin(                                                                       \
+      job->async_task,                                                                     \
+      { /* on call*/                                                                       \
+        /*debug_printf("%s: Call\n", __func__); */                                             \
+      },                                                                                   \
+      { /* on begin*/                                                                      \
+        debug_printf("%s: Begin\n", __func__);                                             \
+      },                                                                                   \
+      { /* on end*/                                                                        \
+        debug_printf("%s: End %s\n", __func__, get_actor_signal_name(actor_async_signal)); \
+      },                                                                                   \
+      {                                                                                    \
+        /*on step: clear timeout */                                                        \
+        debug_printf("%s: Step %s\n", __func__, get_actor_signal_name(actor_async_signal)); \
+        actor_job_timeout(job, 0);                                                         \
+      },                                                                                   \
+      {                                                                                    \
+        /*on yield: schedule timeout */                                                    \
+        debug_printf("%s: Yield %s\n", __func__, get_actor_signal_name(actor_async_signal)); \
+        actor_job_timeout(job, actor_async_args.timeout);                                  \
+      });
 
-#define actor_async_job_end(...)                                                            \
-  actor_async_end(                                                                          \
-      ACTOR_SIGNAL_JOB_COMPLETE,                                                            \
-      {                                                                                     \
-        debug_printf("%s: Done %s\n", __func__, get_actor_signal_name(actor_async_signal)); \
-        actor_job_finalize(job, actor_async_signal);                                        \
-      },                                                                                    \
-      __VA_ARGS__);
-#define actor_async_task_end(...) actor_async_end(ACTOR_SIGNAL_TASK_COMPLETE, , __VA_ARGS__);
-
+#define actor_async_job_end(...) actor_async_end(ACTOR_SIGNAL_OK, __VA_ARGS__);
+#define actor_async_task_end(...) actor_async_end(ACTOR_SIGNAL_OK, __VA_ARGS__);
 
 #endif

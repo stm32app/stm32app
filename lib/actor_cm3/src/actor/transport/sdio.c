@@ -402,7 +402,7 @@ static actor_signal_t sdio_task_read_block(actor_job_t* job,
   actor_async_task_begin();
 
   // Allocate buffer wrapper, hint to get
-  actor_async_await(actor_job_switch_thread(job, job->thread));
+  actor_async_await(actor_job_switch_thread(job, job->thread), .timeout=100);
   sdio->target_buffer = data == NULL ? actor_buffer_aligned(job->actor, size, 16)
                                      : actor_buffer_target(job->actor, data, size);
   sdio->target_buffer->size = size;
@@ -436,7 +436,7 @@ static actor_signal_t sdio_task_read_block(actor_job_t* job,
                | SDIO_DCTRL_DTEN    // enable transfer
                | SDIO_DCTRL_DTDIR;  // from card
 
-  actor_async_undefer(dma);
+  actor_async_cleanup(dma);
   
   // Listen for end of transmission and handle errors
   while (signal != ACTOR_SIGNAL_DMA_TRANSFERRING && !(SDIO_STA & SDIO_STA_DBCKEND)) {
@@ -461,16 +461,17 @@ static actor_signal_t sdio_task_detect_card(actor_job_t* job,
 
   actor_async_task_begin();
   // Skip initialization if card is already initialized
-  if (storage_sdcard_get_capacity(sdcard) == 0) {
+  if (storage_sdcard_get_capacity(sdcard) > 0) {
     actor_async_exit(ACTOR_SIGNAL_UNAFFECTED);
   }
 
   nvic_enable_irq(sdio->irq);
   sdio_enable();
 
+
   actor_async_await(sdio_command(/*GO_IDLE_STATE*/ 0, 0, SDIO_CMD_WAITRESP_NO_0));
 
-  actor_async_try(sdio_command(/*SEND_IF_COND*/ 8, 0x1F1, SDIO_CMD_WAITRESP_SHORT));
+  actor_async_await(sdio_command(/*SEND_IF_COND*/ 8, 0x1F1, SDIO_CMD_WAITRESP_SHORT), .catch=true);
   if (actor_async_error == ACTOR_SIGNAL_TIMEOUT) {
     // V1: cards dont recognize command 8, need command 55 to reset illegal command bit
     storage_sdcard_set_version(sdcard, 1);
@@ -490,11 +491,11 @@ static actor_signal_t sdio_task_detect_card(actor_job_t* job,
     // Initialize card and wait for ready status (55 + 41)
     actor_async_await(sdio_command(/*CMD_ACTOR_CMD*/ 55, 0, SDIO_CMD_WAITRESP_SHORT));
 
-    actor_async_try(sdio_command(
+    actor_async_await(sdio_command(
         /*CMD_SD_SEND_OP_COND*/ 41,
         (SDIO_3_0_to_3_3_V |
          (storage_sdcard_get_version(sdcard) == 2 ? SDIO_HIGH_CAPACITY : SDIO_STANDARD_CAPACITY)),
-        SDIO_CMD_WAITRESP_SHORT));
+        SDIO_CMD_WAITRESP_SHORT), .catch=true);
 
     // MMC Cards will time out and fail this:
     if (actor_async_error == ACTOR_SIGNAL_TIMEOUT) {

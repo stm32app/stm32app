@@ -1,5 +1,6 @@
 #include <actor/job.h>
 #include <actor/thread.h>
+#include <actor/lib/time.h>
 
 actor_signal_t actor_job_execute(actor_job_t* job, actor_signal_t signal, actor_t* caller) {
   actor_assert(job);
@@ -44,6 +45,11 @@ actor_signal_t actor_job_wait(actor_job_t* job) {
   } else {
     return ACTOR_SIGNAL_WAIT;
   }
+}
+
+actor_signal_t actor_job_timeout(actor_job_t* job, uint32_t timeout_ms ) {
+  job->timeout_time = job->thread->current_time + timeout_ms;
+  return actor_job_delay(job, timeout_ms);
 }
 
 actor_signal_t actor_job_switch_thread(actor_job_t* job, actor_thread_t* thread) {

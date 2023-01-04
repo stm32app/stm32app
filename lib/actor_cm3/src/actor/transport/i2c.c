@@ -156,6 +156,7 @@ static actor_signal_t i2c_task_setup(actor_job_t* job,
                                            uint32_t memory_register) {
   transport_i2c_t* i2c = job->actor->object;
   actor_async_task_begin();
+  
   i2c_peripheral_enable(i2c->address);
   i2c_send_start(i2c->address);
   actor_async_until(I2C_EVENT_MASTER_MODE_SELECT(i2c->address));
@@ -198,7 +199,7 @@ static actor_signal_t i2c_task_write_data(actor_job_t* job,
 
   // Wait for interrupt to notify of completion
   actor_async_until(actor_async_signal == ACTOR_SIGNAL_DMA_TRANSFERRING);
-  actor_async_undefer(dma);
+  actor_async_cleanup(dma);
 
   // Wait for Byte transfer Finished or Transmission empty events
   nvic_enable_irq(i2c->ev_irq);

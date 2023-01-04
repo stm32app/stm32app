@@ -44,21 +44,21 @@ static actor_signal_t at24c_task_read(actor_job_t* job,
   actor_async_assert(at24c->target_buffer = actor_buffer_target(job->actor, data, size),
                      ACTOR_SIGNAL_OUT_OF_MEMORY);
 
-  for (job->subroutine.counter = 0; job->subroutine.counter < size;) {
+  for (job->async_task.counter = 0; job->async_task.counter < size;) {
     uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(
-        address + job->subroutine.counter, size, at24c->properties->page_size);
+        address + job->async_task.counter, size, at24c->properties->page_size);
     actor_publish(job->actor,
                   &((actor_message_t){
                       .type = ACTOR_MESSAGE_READ_TO_BUFFER,
                       .consumer = at24c->i2c,
                       .producer = job->actor,
-                      .data = &at24c->target_buffer->data[job->subroutine.counter],
+                      .data = &at24c->target_buffer->data[job->async_task.counter],
                       .size = bytes_on_page,
                       .argument = i2c_pack_message_argument(at24c->properties->i2c_address,
-                                                            address + job->subroutine.counter),
+                                                            address + job->async_task.counter),
                   }));
     actor_async_sleep();  // todo: signal handled message
-    job->subroutine.counter += bytes_on_page;
+    job->async_task.counter += bytes_on_page;
   }
 
   actor_async_task_end({
@@ -78,21 +78,21 @@ static actor_signal_t at24c_task_write(actor_job_t* job,
   actor_async_assert(at24c->target_buffer = actor_buffer_snapshot(job->actor, data, size),
                      ACTOR_SIGNAL_OUT_OF_MEMORY);
 
-  for (job->subroutine.counter = 0; job->subroutine.counter < size;) {
+  for (job->async_task.counter = 0; job->async_task.counter < size;) {
     uint32_t bytes_on_page = get_number_of_bytes_intesecting_page(
-        address + job->subroutine.counter, size, at24c->properties->page_size);
+        address + job->async_task.counter, size, at24c->properties->page_size);
     actor_publish(job->actor,
                   &((actor_message_t){
                       .type = ACTOR_MESSAGE_WRITE,
                       .consumer = at24c->i2c,
                       .producer = job->actor,
-                      .data = &at24c->source_buffer->data[job->subroutine.counter],
+                      .data = &at24c->source_buffer->data[job->async_task.counter],
                       .size = bytes_on_page,
                       .argument = i2c_pack_message_argument(at24c->properties->i2c_address,
-                                                            address + job->subroutine.counter),
+                                                            address + job->async_task.counter),
                   }));
     actor_async_sleep();  // todo: signal handled message
-    job->subroutine.counter += bytes_on_page;
+    job->async_task.counter += bytes_on_page;
   }
 
   actor_async_task_end({ actor_buffer_release(at24c->target_buffer, at24c->actor); });

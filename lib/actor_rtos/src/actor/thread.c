@@ -498,9 +498,11 @@ char* actor_thread_get_name(actor_thread_t* thread) {
 }
 
 void actor_enter_critical(void) {
+  //portENTER_CRITICAL();
   actor_disable_interrupts();
 }
 void actor_exit_critical(void) {
+  //portEXIT_CRITICAL();
   actor_enable_interrupts();
 }
 void actor_exit_critical_cleanup(void *value) {

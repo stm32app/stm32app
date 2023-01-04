@@ -42,12 +42,12 @@ static actor_signal_t w25_task_write_in_pages(actor_job_t* job,
                                               size_t page_size) {
   actor_async_task_begin();
 
-  for (job->subroutine.counter = 0; job->subroutine.counter < size;) {
+  for (job->async_task.counter = 0; job->async_task.counter < size;) {
     uint32_t bytes_on_page =
-        get_number_of_bytes_intesecting_page(address + job->subroutine.counter, size, page_size);
+        get_number_of_bytes_intesecting_page(address + job->async_task.counter, size, page_size);
     w25_spi_transfer(job, data, bytes_on_page, bytes_on_page);
     actor_async_sleep();  // todo: signal handled message
-    job->subroutine.counter += bytes_on_page;
+    job->async_task.counter += bytes_on_page;
   }
 
   actor_async_task_end();
